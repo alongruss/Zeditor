@@ -24,6 +24,7 @@
     path: [{}],
     front: { z: 1 },
     backface: true,
+    selected: false,
   });
 
   Shape.prototype.create = function (options) {
@@ -113,6 +114,9 @@
   };
 
   Shape.prototype.updateSortValue = function () {
+    this.selected = this.id == document.getElementsByClassName("illo")[0].getAttribute("selectedId");
+
+
     // sort by average z of all points
     // def not geometrically correct, but works for me
     var pointCount = this.pathCommands.length;
@@ -184,6 +188,11 @@
     // use backface color if applicable
     var isBackfaceColor = typeof this.backface == 'string' && this.isFacingBack;
     var color = isBackfaceColor ? this.backface : this.color;
+
+    if (this.selected) {
+      color = "#55F";
+    }
+
     return color;
   };
 
@@ -212,6 +221,7 @@
       this.svgElement.setAttribute('stroke-linecap', 'round');
       this.svgElement.setAttribute('stroke-linejoin', 'round');
       this.svgElement.setAttribute('id', this.id);
+      this.svgElement.setAttribute('selected', this.selected);
     }
     return this.svgElement;
   };
