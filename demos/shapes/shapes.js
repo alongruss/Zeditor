@@ -1,7 +1,7 @@
 // ----- setup ----- //
 
 var sceneSize = 24;
-var isSpinning = true;
+var isSpinning = false;
 var TAU = Zdog.TAU;
 var offWhite = '#FED';
 var gold = '#EA0';
@@ -13,11 +13,11 @@ var illo = new Zdog.Illustration({
   element: '.illo',
   dragRotate: true,
   resize: 'fullscreen',
-  onDragStart: function() {
+  onDragStart: function () {
     isSpinning = false;
   },
-  onResize: function( width, height ) {
-    this.zoom = Math.floor( Math.min( width, height ) / sceneSize );
+  onResize: function (width, height) {
+    this.zoom = Math.floor(Math.min(width, height) / sceneSize);
   },
 });
 
@@ -63,7 +63,7 @@ new Zdog.Shape({
   addTo: illo,
   path: [
     { x: -1 },
-    { x:  1 },
+    { x: 1 },
     { move: { y: -1 } },
     { y: 1 },
     { move: { z: -1 } },
@@ -123,15 +123,15 @@ var ticker = 0;
 var cycleCount = 360;
 
 function animate() {
-  if ( isSpinning ) {
-    var progress = ticker/cycleCount;
-    var theta = Zdog.easeInOut( progress % 1, 3 ) * TAU;
+  if (isSpinning) {
+    var progress = ticker / cycleCount;
+    var theta = Zdog.easeInOut(progress % 1, 3) * TAU;
     illo.rotate.y = theta * 2;
-    illo.rotate.x = Math.sin( theta ) * 0.5;
+    illo.rotate.x = Math.sin(theta) * 0.5;
     ticker++;
   }
   illo.updateRenderGraph();
-  requestAnimationFrame( animate );
+  requestAnimationFrame(animate);
 }
 
 animate();
