@@ -131,8 +131,10 @@ function animate() {
     ticker++;
   }
   illo.updateRenderGraph();
+
   requestAnimationFrame(animate);
 }
 
 animate();
 
+document.getElementById("btnShifter").addEventListener("click", () => { illo.shapeShifter(); });

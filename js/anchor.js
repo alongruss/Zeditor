@@ -123,6 +123,14 @@
     return a.sortValue - b.sortValue;
   };
 
+  Anchor.prototype.shapeShifter = function () {
+    this.flatGraph.forEach(function (item) {
+      if (item.selected) {
+        item.translate.x += 5;
+      }
+    });
+  };
+
   // custom getter to check for flatGraph before using it
   Object.defineProperty(Anchor.prototype, 'flatGraph', {
     get: function () {
