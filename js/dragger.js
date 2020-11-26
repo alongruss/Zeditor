@@ -89,14 +89,10 @@
     this.dragStartX = pointer.pageX;
     this.dragStartY = pointer.pageY;
 
-
-
     if (hasWindow) {
       window.addEventListener(moveEvent, this);
       window.addEventListener(upEvent, this);
     }
-    var elementMouseIsOver = document.elementFromPoint(this.dragStartX, this.dragStartY);
-    console.log(elementMouseIsOver.id);
 
     this.onDragStart(pointer);
   };
