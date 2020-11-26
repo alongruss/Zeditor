@@ -138,3 +138,4 @@ function animate() {
 animate();
 
 document.getElementById("btnShifter").addEventListener("click", () => { illo.shapeShifter(); });
+document.getElementById("rangeShifter").addEventListener("input", (e) => { illo.shapeShifter(2 * Math.PI * e.target.value / 10000); });
