@@ -114,6 +114,7 @@
   };
 
   Shape.prototype.updateSortValue = function () {
+    // check for the selected elements id, currently hardwired to the illo class
     this.selected = this.id == document.getElementsByClassName("illo")[0].getAttribute("selectedId");
 
 
