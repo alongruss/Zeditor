@@ -35,7 +35,9 @@ html body .container-main .container-gui {
       -ms-flex-direction: column;
           flex-direction: column;
   padding: 8px;
+  gap: 8px;
   border: solid 1px black;
+  background-color: lightgray;
 }
 
 html body .container-main .container-gui .container-group {
@@ -47,6 +49,8 @@ html body .container-main .container-gui .container-group {
       -ms-flex-direction: column;
           flex-direction: column;
   padding: 8px;
+  gap: 8px;
   border: solid 1px black;
+  background-color: white;
 }
 /*# sourceMappingURL=style.css.map */

@@ -137,6 +137,7 @@ var ticker = 0;
 var cycleCount = 360;
 
 function animate() {
+
   if (isSpinning) {
     var progress = ticker / cycleCount;
     var theta = Zdog.easeInOut(progress % 1, 3) * TAU;

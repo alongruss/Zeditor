@@ -31,14 +31,18 @@ html {
                 flex-direction: column;
 
                 padding: 8px;
+                gap: 8px;
                 border: solid 1px black;
+                background-color: lightgray;
 
                 .container-group {
                     display: flex;
                     flex-direction: column;
 
                     padding: 8px;
+                    gap: 8px;
                     border: solid 1px black;
+                    background-color: white;
 
                 }
             }
