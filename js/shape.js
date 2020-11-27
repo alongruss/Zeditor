@@ -24,7 +24,6 @@
     path: [{}],
     front: { z: 1 },
     backface: true,
-    selected: false,
   });
 
   Shape.prototype.create = function (options) {

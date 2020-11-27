@@ -38,6 +38,7 @@
     this.renderOrigin = new Vector();
     // id
     this.id = Math.random(999);
+    this.selected = false;
 
     if (this.addTo) {
       this.addTo.addChild(this);
@@ -97,8 +98,9 @@
     });
     this.transform(this.translate, this.rotate, this.scale);
 
-    // check for the selected elements id, currently hardwired to the illo class
-    this.selected = this.id == document.getElementsByClassName("illo")[0].getAttribute("selectedId");
+    // check for the selected element
+    this.selected = this.id == document.getElementsByTagName('svg')[0].getAttribute("selectedId");
+
   };
 
   Anchor.prototype.reset = function () {
@@ -117,6 +119,7 @@
     this.update();
     this.updateFlatGraph();
     this.flatGraph.forEach(function (item) {
+
       item.updateSortValue();
     });
     // z-sort
@@ -128,10 +131,8 @@
   };
 
   Anchor.prototype.shapeShifter = function (inputTransform) {
-
     this.flatGraph.forEach(function (item) {
       if (item.selected) {
-        //item.transform(inputTransform.translation, inputTransform.rotation, inputTransform.scale)
         item.translate = inputTransform.translation;
         item.rotate = inputTransform.rotation;
         item.scale = inputTransform.scale;
