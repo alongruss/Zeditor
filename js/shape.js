@@ -217,6 +217,9 @@
       this.svgElement.setAttribute('stroke-linejoin', 'round');
       this.svgElement.setAttribute('id', this.id);
       this.svgElement.setAttribute('selected', this.selected);
+      this.svgElement.setAttribute('translation', JSON.stringify(this.translate));
+      this.svgElement.setAttribute('rotation', JSON.stringify(this.rotate));
+      this.svgElement.setAttribute('scale', JSON.stringify(this.scale));
     }
     return this.svgElement;
   };

@@ -138,7 +138,7 @@ var ticker = 0;
 var cycleCount = 360;
 
 function animate() {
-
+  updateGuiValueOfSelected();
   if (isSpinning) {
     var progress = ticker / cycleCount;
     var theta = Zdog.easeInOut(progress % 1, 3) * TAU;
@@ -152,6 +152,23 @@ function animate() {
 }
 
 animate();
+
+
+function updateGuiValueOfSelected() {
+  var svg = document.getElementsByTagName('svg')[0];
+
+  var selectedId = svg.getAttribute("selectedId");
+
+  var selectedItem = svg.getElementById(selectedId);
+
+  if (selectedItem != null) {
+    document.getElementById("itemName").innerText = selectedId;
+
+    currentTransform.translation = JSON.parse(selectedItem.getAttribute("translation"));
+    currentTransform.rotation = JSON.parse(selectedItem.getAttribute("rotation"));
+    currentTransform.scale = JSON.parse(selectedItem.getAttribute("scale"));
+  }
+}
 
 
 function updateIllustration() {
