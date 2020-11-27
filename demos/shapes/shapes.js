@@ -183,3 +183,7 @@ document.getElementById("rot-z").addEventListener("input", (e) => {
   currentTransform.rotation.z = 2 * Math.PI * e.target.value / 10000;
   updateIllustration();
 });
+document.getElementById("scale").addEventListener("input", (e) => {
+  currentTransform.scale = 2 * Math.PI * e.target.value / 10000;
+  updateIllustration();
+});

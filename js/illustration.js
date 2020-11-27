@@ -177,7 +177,7 @@
     // set initial size from width & height attributes
     var width = element.getAttribute('width');
     var height = element.getAttribute('height');
-    this.element.setAttribute('selectedId', undefined);
+    this.element.setAttribute('selectedId', "svg");
     this.setSizeSvg(width, height);
   };
 
