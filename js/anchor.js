@@ -42,6 +42,7 @@
     if (this.addTo) {
       this.addTo.addChild(this);
     }
+
   };
 
   Anchor.defaults = {};
@@ -124,10 +125,13 @@
   };
 
   Anchor.prototype.shapeShifter = function (inputTransform) {
+
     this.flatGraph.forEach(function (item) {
       if (item.selected) {
         //item.transform(inputTransform.translation, inputTransform.rotation, inputTransform.scale)
+        item.translate = inputTransform.translation;
         item.rotate = inputTransform.rotation;
+        item.scale = inputTransform.scale;
       }
     });
   };

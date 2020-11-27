@@ -20,13 +20,14 @@ var currentTransform = {
     y: 0,
     z: 0
   },
-  scale: 0,
+  scale: 1,
 };
 
 var illo = new Zdog.Illustration({
   element: '.illo',
   dragRotate: true,
   resize: 'fullscreen',
+  zoom: 24,
   onDragStart: function () {
     isSpinning = false;
   },
@@ -158,6 +159,18 @@ function updateIllustration() {
 }
 
 
+document.getElementById("pos-x").addEventListener("input", (e) => {
+  currentTransform.translation.x = 2 * Math.PI * e.target.value / 10000;
+  updateIllustration();
+});
+document.getElementById("pos-y").addEventListener("input", (e) => {
+  currentTransform.translation.y = 2 * Math.PI * e.target.value / 10000;
+  updateIllustration();
+});
+document.getElementById("pos-z").addEventListener("input", (e) => {
+  currentTransform.translation.z = 2 * Math.PI * e.target.value / 10000;
+  updateIllustration();
+});
 document.getElementById("rot-x").addEventListener("input", (e) => {
   currentTransform.rotation.x = 2 * Math.PI * e.target.value / 10000;
   updateIllustration();
