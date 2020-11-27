@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap");
 html {
   margin: 0;
   padding: 0;
@@ -8,6 +9,7 @@ html body {
   margin: 0;
   padding: 0;
   height: 100%;
+  font-family: 'Ubuntu', sans-serif;
 }
 
 html body .container-main {
@@ -36,7 +38,7 @@ html body .container-main .container-gui {
           flex-direction: column;
   padding: 8px;
   gap: 8px;
-  background-color: lightgray;
+  background-color: #f0f0f0;
   -webkit-box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
           box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
 }
@@ -49,7 +51,7 @@ html body .container-main .container-gui .container-group {
   -webkit-box-direction: normal;
       -ms-flex-direction: column;
           flex-direction: column;
-  border-radius: 8px;
+  border-radius: 4px;
   padding: 8px;
   gap: 8px;
   background-color: white;
