@@ -123,12 +123,11 @@
     return a.sortValue - b.sortValue;
   };
 
-  Anchor.prototype.shapeShifter = function (value) {
+  Anchor.prototype.shapeShifter = function (inputTransform) {
     this.flatGraph.forEach(function (item) {
       if (item.selected) {
-        //item.transform({ x: 1, y: 1, z: 1 }, { x: 0, y: 0, z: 0 }, 1)
-        //item.translate.x += 5;
-        item.rotate.x = value;
+        //item.transform(inputTransform.translation, inputTransform.rotation, inputTransform.scale)
+        item.rotate = inputTransform.rotation;
       }
     });
   };

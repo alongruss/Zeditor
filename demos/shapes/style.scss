@@ -1,0 +1,48 @@
+html {
+    margin: 0;
+    padding: 0;
+
+    height: 100vh;
+
+    body {
+        margin: 0;
+        padding: 0;
+
+        height: 100%;
+
+        .container-main {
+            display: grid;
+
+            grid-template-columns: auto 320px;
+
+            height: 100%;
+
+
+            .illo {
+                display: block;
+                width: 100%;
+                height: 100%;
+                background: #FDB;
+                cursor: move;
+            }
+
+            .container-gui {
+                display: flex;
+                flex-direction: column;
+
+                padding: 8px;
+                border: solid 1px black;
+
+                .container-group {
+                    display: flex;
+                    flex-direction: column;
+
+                    padding: 8px;
+                    border: solid 1px black;
+
+                }
+            }
+        }
+
+    }
+}

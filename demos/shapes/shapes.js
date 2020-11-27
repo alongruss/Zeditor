@@ -9,6 +9,20 @@ var orange = '#E62';
 var garnet = '#C25';
 var eggplant = '#636';
 
+var currentTransform = {
+  translation: {
+    x: 0,
+    y: 0,
+    z: 0
+  },
+  rotation: {
+    x: 0,
+    y: 0,
+    z: 0
+  },
+  scale: 0,
+};
+
 var illo = new Zdog.Illustration({
   element: '.illo',
   dragRotate: true,
@@ -137,5 +151,21 @@ function animate() {
 
 animate();
 
-document.getElementById("btnShifter").addEventListener("click", () => { illo.shapeShifter(); });
-document.getElementById("rangeShifter").addEventListener("input", (e) => { illo.shapeShifter(2 * Math.PI * e.target.value / 10000); });
+
+function updateIllustration() {
+  illo.shapeShifter(currentTransform);
+}
+
+
+document.getElementById("rot-x").addEventListener("input", (e) => {
+  currentTransform.rotation.x = 2 * Math.PI * e.target.value / 10000;
+  updateIllustration();
+});
+document.getElementById("rot-y").addEventListener("input", (e) => {
+  currentTransform.rotation.y = 2 * Math.PI * e.target.value / 10000;
+  updateIllustration();
+});
+document.getElementById("rot-z").addEventListener("input", (e) => {
+  currentTransform.rotation.z = 2 * Math.PI * e.target.value / 10000;
+  updateIllustration();
+});

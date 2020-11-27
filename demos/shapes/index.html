@@ -5,34 +5,27 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width" />
 
-  <title>shapes</title>
-
-  <style>
-    html {
-      height: 100%;
-    }
-
-    body {
-      min-height: 100%;
-      margin: 0;
-    }
-
-    .illo {
-      display: block;
-      width: 100%;
-      height: 100%;
-      background: #FDB;
-      cursor: move;
-    }
-  </style>
-
+  <title>Zeditor</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
+  <div class="container-main">
+    <svg class="illo"></svg>
+    <div class="container-gui">
+      <div class="container-group">
+        <label for="rot-x">X</label>
+        <input type="range" min="1" max="10000" value="5000" class="slider" id="rot-x">
+        <label for="rot-y">Y</label>
+        <input type="range" min="1" max="10000" value="5000" class="slider" id="rot-y">
+        <label for="rot-z">Z</label>
+        <input type="range" min="1" max="10000" value="5000" class="slider" id="rot-z">
+      </div>
+    </div>
 
-  <button id="btnShifter">Shifter</button>
-  <input type="range" min="1" max="10000" value="5000" class="slider" id="rangeShifter">
-  <svg class="illo"></svg>
+
+  </div>
+
 
 
   <script src="../../js/boilerplate.js"></script>
