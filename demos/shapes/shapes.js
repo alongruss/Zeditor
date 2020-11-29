@@ -257,3 +257,40 @@ document.getElementById("scale").addEventListener("input", (e) => {
   currentTransform.scale.z = parseFloat(e.target.value);
   updateIllustration();
 });
+document.getElementById("btnSceneExport").addEventListener("click", (e) => {
+  var result = "";
+  for (let i = 0; i < illo.children.length; i++) {
+    result += illo.children[i].id;
+    result += "<br>";
+    result += "addTo : \"" + illo.children[i].addTo + "\"";
+    result += "<br>";
+    if (illo.children[i].width) {
+      result += "width : \"" + illo.children[i].width + "\"";
+      result += "<br>";
+    }
+    if (illo.children[i].height) {
+      result += "height : \"" + illo.children[i].height + "\"";
+      result += "<br>";
+    }
+    if (illo.children[i].depth) {
+      result += "depth : \"" + illo.children[i].depth + "\"";
+      result += "<br>";
+    }
+    if (illo.children[i].translate) {
+      result += "translate : \"" + JSON.stringify(illo.children[i].translate) + "\"";
+      result += "<br>";
+    }
+    if (illo.children[i].rotate) {
+      result += "rotate : \"" + JSON.stringify(illo.children[i].rotate) + "\"";
+      result += "<br>";
+    }
+    if (illo.children[i].scale) {
+      result += "scale : \"" + JSON.stringify(illo.children[i].scale) + "\"";
+      result += "<br>";
+    }
+    result += "color : \"" + illo.children[i].color + "\"";
+    result += "<br>";
+    result += "<br>";
+  }
+  document.getElementById("textSceneExport").innerHTML = result;
+});
