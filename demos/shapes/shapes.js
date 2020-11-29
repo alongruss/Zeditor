@@ -144,6 +144,23 @@ new Zdog.Box({
 var ticker = 0;
 var cycleCount = 360;
 
+function populateTree() {
+  document.getElementById("scene-tree").innerHTML = "";
+  document.getElementById("scene-tree").innerHTML += "root";
+  for (let i = 0; i < illo.children.length; i++) {
+    document.getElementById("scene-tree").innerHTML += "<ul>";
+    document.getElementById("scene-tree").innerHTML += "<il>";
+    if (illo.children[i].selected) {
+      document.getElementById("scene-tree").innerHTML += '<span class="blue">' + illo.children[i].id + '</span>';
+    } else {
+      document.getElementById("scene-tree").innerHTML += '<span>' + illo.children[i].id + '</span>';
+    }
+
+    document.getElementById("scene-tree").innerHTML += "</il>";
+    document.getElementById("scene-tree").innerHTML += "</ul>";
+  }
+}
+
 function animate() {
 
   if (isSpinning) {
@@ -158,6 +175,7 @@ function animate() {
   requestAnimationFrame(animate);
 }
 
+populateTree();
 animate();
 
 
@@ -176,6 +194,7 @@ function updateGuiValueOfSelected() {
   }
 
   if (lastSelectedItem != selectedItem && selectedItem != null) {
+    populateTree();
     document.getElementById("itemName").innerText = selectedItem.getAttribute("id");
 
     // get current translation and reset GUI
