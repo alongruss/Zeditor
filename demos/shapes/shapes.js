@@ -263,30 +263,30 @@ document.getElementById("btnSceneExport").addEventListener("click", (e) => {
   for (let i = 0; i < illo.children.length; i++) {
     result += illo.children[i].id;
     result += "<br>";
-    result += "addTo : \"" + illo.children[i].addTo + "\"";
+    result += "addTo : illo";
     result += "<br>";
     if (illo.children[i].width) {
-      result += "width : \"" + illo.children[i].width + "\"";
+      result += "width : " + illo.children[i].width;
       result += "<br>";
     }
     if (illo.children[i].height) {
-      result += "height : \"" + illo.children[i].height + "\"";
+      result += "height : " + illo.children[i].height;
       result += "<br>";
     }
     if (illo.children[i].depth) {
-      result += "depth : \"" + illo.children[i].depth + "\"";
+      result += "depth : " + illo.children[i].depth;
       result += "<br>";
     }
     if (illo.children[i].translate) {
-      result += "translate : \"" + JSON.stringify(illo.children[i].translate) + "\"";
+      result += "translate : " + JSON.stringify(illo.children[i].translate);
       result += "<br>";
     }
     if (illo.children[i].rotate) {
-      result += "rotate : \"" + JSON.stringify(illo.children[i].rotate) + "\"";
+      result += "rotate : " + JSON.stringify(illo.children[i].rotate);
       result += "<br>";
     }
     if (illo.children[i].scale) {
-      result += "scale : \"" + JSON.stringify(illo.children[i].scale) + "\"";
+      result += "scale : " + JSON.stringify(illo.children[i].scale);
       result += "<br>";
     }
     result += "color : \"" + illo.children[i].color + "\"";
@@ -296,13 +296,13 @@ document.getElementById("btnSceneExport").addEventListener("click", (e) => {
   document.getElementById("textSceneExport").innerHTML = result;
 });
 
-function selectChild(e){
+function selectChild(e) {
   deselectAll();
 
   var x = illo.children;
   var i;
   for (i = 0; i < x.length; i++) {
-    if(x[i].id == e.target.innerText){
+    if (x[i].id == e.target.innerText) {
       illo.children[i].selected = "true";
     }
   }
@@ -312,20 +312,20 @@ function selectChild(e){
   highLightTree();
 }
 
-function deselectAll(){
+function deselectAll() {
   var x = illo.children;
   var i;
   for (i = 0; i < x.length; i++) {
     illo.children[i].selected = "";
   }
 }
-function highLightTree(){
+function highLightTree() {
   var x = illo.children;
   var i;
   for (i = 0; i < x.length; i++) {
-    if(illo.children[i].selected == "true" || illo.children[i].selected == true){
+    if (illo.children[i].selected == "true" || illo.children[i].selected == true) {
       document.getElementById("scene-tree").getElementsByTagName("span")[i].className = "blue";
-    }else{
+    } else {
       document.getElementById("scene-tree").getElementsByTagName("span")[i].className = "";
     }
   }
