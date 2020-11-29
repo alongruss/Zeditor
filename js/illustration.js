@@ -236,7 +236,19 @@
     // get element under pointer
     var elementMouseIsOver = document.elementFromPoint(pointer.pageX, pointer.pageY);
     //console.log(elementMouseIsOver.id);
-    this.element.setAttribute('selectedId', elementMouseIsOver.id);
+    this.selectElement(elementMouseIsOver.id);
+
+  };
+
+  Illustration.prototype.selectElement = function (id) {
+    for (let i = 0; i < this.children.length; i++) {
+      if (this.children[i].id == id) {
+        this.children[i].selected = true;
+      } else {
+        this.children[i].selected = false;
+      }
+    }
+
   };
 
   Illustration.prototype.dragMove = function (event, pointer) {

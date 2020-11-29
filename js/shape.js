@@ -186,6 +186,7 @@
 
     if (this.selected) {
       color = "#55F";
+
     }
 
     return color;
@@ -197,7 +198,10 @@
       this.pathCommands[1].method == 'line';
     var isClosed = !isTwoPoints && this.closed;
     var color = this.getRenderColor();
-
+    this.svgElement.setAttribute('selected', this.selected);
+    this.svgElement.setAttribute('translation', JSON.stringify(this.translate));
+    this.svgElement.setAttribute('rotation', JSON.stringify(this.rotate));
+    this.svgElement.setAttribute('scale', JSON.stringify(this.scale));
     renderer.renderPath(ctx, elem, this.pathCommands, isClosed);
     renderer.stroke(ctx, elem, this.stroke, color, this.getLineWidth());
     renderer.fill(ctx, elem, this.fill, color);

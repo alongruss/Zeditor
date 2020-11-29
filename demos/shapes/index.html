@@ -11,32 +11,44 @@
 
 <body>
   <div class="container-main">
+    <div class="container-tree">
+      <span>Scene tree</span>
+      <div class="container-nook">
+        this is where we should show all the items inside the svg element and their children
+
+      </div>
+    </div>
     <svg class="illo"></svg>
     <div class="container-gui">
       <span>Inspector</span>
       <span id="itemName"></span>
       <div class="container-group">
         <span>Position</span>
-        <label for="pos-x">X</label>
-        <input type="range" min="1" max="10000" value="5000" class="slider" id="pos-x">
-        <label for="pos-y">Y</label>
-        <input type="range" min="1" max="10000" value="5000" class="slider" id="pos-y">
-        <label for="pos-z">Z</label>
-        <input type="range" min="1" max="10000" value="5000" class="slider" id="pos-z">
+        <div class="container-tuple">
+          <label for="pos-x">X <input type="input" id="pos-x"></label>
+
+          <label for="pos-y">Y <input type="input" id="pos-y"></label>
+
+          <label for="pos-z">Z <input type="input" id="pos-z"></label>
+        </div>
       </div>
+
       <div class="container-group">
         <span>Rotation</span>
-        <label for="rot-x">X</label>
-        <input type="range" min="1" max="10000" value="5000" class="slider" id="rot-x">
-        <label for="rot-y">Y</label>
-        <input type="range" min="1" max="10000" value="5000" class="slider" id="rot-y">
-        <label for="rot-z">Z</label>
-        <input type="range" min="1" max="10000" value="5000" class="slider" id="rot-z">
+        <div class="container-tuple">
+          <label for="rot-x">X <input type="input" id="rot-x"></label>
+
+          <label for="rot-y">Y <input type="input" id="rot-y"></label>
+
+          <label for="rot-z">Z <input type="input" id="rot-z"></label>
+        </div>
+
       </div>
       <div class="container-group">
         <span>Scale</span>
-        <label for="scale">Uniform</label>
-        <input type="range" min="1" max="10000" value="5000" class="slider" id="scale">
+        <div class="container-tuple">
+          <label for="scale">Uniform <input type="input" id="scale"></label>
+        </div>
       </div>
     </div>
 

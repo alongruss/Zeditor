@@ -97,10 +97,6 @@
       child.update();
     });
     this.transform(this.translate, this.rotate, this.scale);
-
-    // check for the selected element
-    this.selected = this.id == document.getElementsByTagName('svg')[0].getAttribute("selectedId");
-
   };
 
   Anchor.prototype.reset = function () {
@@ -131,13 +127,17 @@
   };
 
   Anchor.prototype.shapeShifter = function (inputTransform) {
+
     this.flatGraph.forEach(function (item) {
       if (item.selected) {
         item.translate = inputTransform.translation;
         item.rotate = inputTransform.rotation;
         item.scale = inputTransform.scale;
+      } else {
+
       }
     });
+
   };
 
   // custom getter to check for flatGraph before using it

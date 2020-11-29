@@ -15,9 +15,42 @@ html body {
 html body .container-main {
   display: -ms-grid;
   display: grid;
-  -ms-grid-columns: auto 320px;
-      grid-template-columns: auto 320px;
+  -ms-grid-columns: 320px auto 320px;
+      grid-template-columns: 320px auto 320px;
   height: 100%;
+}
+
+html body .container-main .container-tree {
+  z-index: 1;
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+      -ms-flex-direction: column;
+          flex-direction: column;
+  padding: 8px;
+  gap: 8px;
+  background-color: #f0f0f0;
+  -webkit-box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+          box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+html body .container-main .container-tree .container-nook {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+      -ms-flex-direction: column;
+          flex-direction: column;
+  border-radius: 4px;
+  padding: 8px;
+  gap: 8px;
+  font-size: 10px;
+  background-color: lightgray;
+  -webkit-box-shadow: inset 0px 4px 8px rgba(0, 0, 0, 0.2);
+          box-shadow: inset 0px 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 html body .container-main .illo {
@@ -29,6 +62,7 @@ html body .container-main .illo {
 }
 
 html body .container-main .container-gui {
+  z-index: 1;
   display: -webkit-box;
   display: -ms-flexbox;
   display: flex;
@@ -57,6 +91,21 @@ html body .container-main .container-gui .container-group {
   background-color: white;
   -webkit-box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
           box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+html body .container-main .container-gui .container-group .container-tuple {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-orient: horizontal;
+  -webkit-box-direction: normal;
+      -ms-flex-direction: row;
+          flex-direction: row;
+}
+
+html body .container-main .container-gui .container-group .container-tuple input {
+  width: 30%;
+  border-radius: 2px;
 }
 
 label {
