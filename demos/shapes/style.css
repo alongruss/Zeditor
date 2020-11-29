@@ -127,4 +127,10 @@ button {
   -webkit-box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
           box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
 }
+.container-tree span{
+  cursor: pointer;
+}
+.container-tree span:hover{
+  opacity: 0.6;
+}
 /*# sourceMappingURL=style.css.map */

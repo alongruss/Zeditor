@@ -151,9 +151,9 @@ function populateTree() {
     document.getElementById("scene-tree").innerHTML += "<ul>";
     document.getElementById("scene-tree").innerHTML += "<il>";
     if (illo.children[i].selected) {
-      document.getElementById("scene-tree").innerHTML += '<span class="blue">' + illo.children[i].id + '</span>';
+      document.getElementById("scene-tree").innerHTML += '<span class="blue" onclick="selectChild(event);">' + illo.children[i].id + '</span>';
     } else {
-      document.getElementById("scene-tree").innerHTML += '<span>' + illo.children[i].id + '</span>';
+      document.getElementById("scene-tree").innerHTML += '<span onclick="selectChild(event);">' + illo.children[i].id + '</span>';
     }
 
     document.getElementById("scene-tree").innerHTML += "</il>";
@@ -194,7 +194,8 @@ function updateGuiValueOfSelected() {
   }
 
   if (lastSelectedItem != selectedItem && selectedItem != null) {
-    populateTree();
+    // populateTree();
+    highLightTree();
     document.getElementById("itemName").innerText = selectedItem.getAttribute("id");
 
     // get current translation and reset GUI
@@ -294,3 +295,38 @@ document.getElementById("btnSceneExport").addEventListener("click", (e) => {
   }
   document.getElementById("textSceneExport").innerHTML = result;
 });
+
+function selectChild(e){
+  deselectAll();
+
+  var x = illo.children;
+  var i;
+  for (i = 0; i < x.length; i++) {
+    if(x[i].id == e.target.innerText){
+      illo.children[i].selected = "true";
+    }
+  }
+  illo.updateRenderGraph();
+  updateGuiValueOfSelected();
+  requestAnimationFrame(animate);
+  highLightTree();
+}
+
+function deselectAll(){
+  var x = illo.children;
+  var i;
+  for (i = 0; i < x.length; i++) {
+    illo.children[i].selected = "";
+  }
+}
+function highLightTree(){
+  var x = illo.children;
+  var i;
+  for (i = 0; i < x.length; i++) {
+    if(illo.children[i].selected == "true" || illo.children[i].selected == true){
+      document.getElementById("scene-tree").getElementsByTagName("span")[i].className = "blue";
+    }else{
+      document.getElementById("scene-tree").getElementsByTagName("span")[i].className = "";
+    }
+  }
+}
