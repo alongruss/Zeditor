@@ -186,7 +186,6 @@
 
     if (this.selected) {
       color = "#55F";
-
     }
 
     return color;

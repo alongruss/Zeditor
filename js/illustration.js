@@ -236,16 +236,20 @@
     // get element under pointer
     var elementMouseIsOver = document.elementFromPoint(pointer.pageX, pointer.pageY);
     //console.log(elementMouseIsOver.id);
-    this.selectElement(elementMouseIsOver.id);
+    this.selectElement(this.children, elementMouseIsOver.id);
 
   };
 
-  Illustration.prototype.selectElement = function (id) {
-    for (let i = 0; i < this.children.length; i++) {
-      if (this.children[i].id == id) {
-        this.children[i].selected = true;
+  Illustration.prototype.selectElement = function (children, id) {
+    for (let i = 0; i < children.length; i++) {
+      if (children[i].id == id) {
+        children[i].selected = true;
       } else {
-        this.children[i].selected = false;
+        if (children[i]) {
+          this.selectElement(children[i].children, id);
+        }
+
+        children[i].selected = false;
       }
     }
 
