@@ -127,7 +127,6 @@
   };
 
   Anchor.prototype.shapeShifter = function (inputTransform) {
-
     this.flatGraph.forEach(function (item) {
       if (item.selected) {
         item.translate = inputTransform.translation;
@@ -137,7 +136,16 @@
 
       }
     });
+  };
 
+  Anchor.prototype.colorShifter = function (inputColor) {
+    this.flatGraph.forEach(function (item) {
+      if (item.selected) {
+        item.color = inputColor.color;
+      } else {
+
+      }
+    });
   };
 
   // custom getter to check for flatGraph before using it

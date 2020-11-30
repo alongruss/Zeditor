@@ -3,12 +3,18 @@
 var sceneSize = 24;
 var isSpinning = false;
 var TAU = Zdog.TAU;
-var offWhite = '#FED';
-var gold = '#EA0';
-var orange = '#E62';
-var garnet = '#C25';
-var eggplant = '#636';
+var offWhite = '#FFEEDD';
+var gold = '#EEAA00';
+var orange = '#EE6622';
+var garnet = '#CC2255';
+var eggplant = '#663366';
+
 var lastSelectedItem;
+
+var currentColor = {
+  color: '#888888',
+  stroke: '#888888',
+};
 
 var currentTransform = {
   translation: {
@@ -213,6 +219,9 @@ function updateGuiValueOfSelected() {
     // get current scale and reset GUI
     currentTransform.scale = JSON.parse(selectedItem.getAttribute("scale"));
     document.getElementById("scale").value = currentTransform.scale.x;
+
+    currentColor.color = selectedItem.getAttribute("originalColor") ?? '#888888';
+    document.getElementById("color").value = currentColor.color;
   }
   else {
     document.getElementById("itemName").innerText = "";
@@ -226,6 +235,7 @@ function updateGuiValueOfSelected() {
 function updateIllustration() {
   //console.log(currentTransform);
   illo.shapeShifter(currentTransform);
+  illo.colorShifter(currentColor);
 
 }
 
@@ -260,6 +270,10 @@ document.getElementById("scale").addEventListener("input", (e) => {
   currentTransform.scale.z = parseFloat(e.target.value);
   updateIllustration();
 });
+document.getElementById("color").addEventListener("input", (e) => {
+  currentColor.color = e.target.value;
+  updateIllustration();
+});
 document.getElementById("btnSceneExport").addEventListener("click", (e) => {
   var result = "";
   result += "var sceneSize = 24;";
@@ -267,16 +281,6 @@ document.getElementById("btnSceneExport").addEventListener("click", (e) => {
   result += "var isSpinning = false;";
   result += "<br>";
   result += "var TAU = Zdog.TAU;";
-  result += "<br>";
-  result += "var offWhite = '#FED';";
-  result += "<br>";
-  result += "var gold = '#EA0';";
-  result += "<br>";
-  result += "var orange = '#E62';";
-  result += "<br>";
-  result += "var garnet = '#C25';";
-  result += "<br>";
-  result += "var eggplant = '#636';";
   result += "<br>";
   result += "<br>";
   for (let i = 0; i < illo.children.length; i++) {
@@ -289,38 +293,47 @@ document.getElementById("btnSceneExport").addEventListener("click", (e) => {
     result += "<br>";
     result += "addTo : illo";
     result += "<br>";
-    if (illo.children[i].width) {
-      result += "width : " + illo.children[i].width;
-      result += "<br>";
-    }
-    if (illo.children[i].height) {
-      result += "height : " + illo.children[i].height;
-      result += "<br>";
-    }
-    if (illo.children[i].depth) {
-      result += "depth : " + illo.children[i].depth;
-      result += "<br>";
-    }
-    if (illo.children[i].translate) {
-      result += "translate : " + JSON.stringify(illo.children[i].translate);
-      result += "<br>";
-    }
-    if (illo.children[i].rotate) {
-      result += "rotate : " + JSON.stringify(illo.children[i].rotate);
-      result += "<br>";
-    }
-    if (illo.children[i].scale) {
-      result += "scale : " + JSON.stringify(illo.children[i].scale);
-      result += "<br>";
-    }
-    result += "color : \"" + illo.children[i].color + "\"";
-    result += "<br>";
+    result += returnIlloValue(i, "diameter", false);
+    result += returnIlloValue(i, "length", false);
+    result += returnIlloValue(i, "stroke", false);
+    result += returnIlloValue(i, "fill", false);
+    result += returnIlloValue(i, "closed", false);
+    result += returnIlloValue(i, "visible", false);
+    result += returnIlloValue(i, "width", false);
+    result += returnIlloValue(i, "height", false);
+    result += returnIlloValue(i, "depth", false);
+    result += returnIlloValue(i, "translate", true);
+    result += returnIlloValue(i, "rotate", true);
+    result += returnIlloValue(i, "scale", true);
+    result += returnIlloValue(i, "color", true);
+    result += returnIlloValue(i, "path", true);
+    result += returnIlloValue(i, "front", true);
+    result += returnIlloValue(i, "backface", false);
+    result += returnIlloValue(i, 'rearFace', false);
+    result += returnIlloValue(i, 'leftFace', false);
+    result += returnIlloValue(i, 'rightFace', false);
+    result += returnIlloValue(i, 'topFace', false);
+    result += returnIlloValue(i, 'bottomFace', false);
+    result += returnIlloValue(i, "frontface", false);
     result += "});";
     result += "<br>";
     result += "<br>";
   }
   document.getElementById("textSceneExport").innerHTML = result;
 });
+
+function returnIlloValue(index, valueName, isObject) {
+  let result = '';
+  if (illo.children[index][valueName]) {
+    if (isObject) {
+      result += valueName + " : " + JSON.stringify(illo.children[index][valueName]);
+    } else {
+      result += valueName + " : " + illo.children[index][valueName];
+    }
+    result += "<br>";
+  }
+  return result;
+}
 
 function selectChild(e) {
   deselectAll();

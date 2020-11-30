@@ -98,7 +98,7 @@ html body .container-main .container-gui .container-group .container-tuple {
 }
 
 html body .container-main .container-gui .container-group .container-tuple input {
-  width: 30%;
+  width: 80%;
   border-radius: 2px;
 }
 
@@ -111,7 +111,7 @@ label {
 }
 
 .nook {
-  max-height: 40vh;
+  max-height: 30vh;
   overflow-y: scroll;
   border-radius: 4px;
   padding: 8px;

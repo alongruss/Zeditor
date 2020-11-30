@@ -18,7 +18,7 @@
   var Shape = Anchor.subclass({
     stroke: 1,
     fill: false,
-    color: '#333',
+    color: '#333333',
     closed: true,
     visible: true,
     path: [{}],
@@ -187,7 +187,7 @@
     var color = isBackfaceColor ? this.backface : this.color;
 
     if (this.selected) {
-      color = "#55F";
+      color = "#5555FF";
     }
 
     return color;
@@ -204,6 +204,7 @@
     this.svgElement.setAttribute('rotation', JSON.stringify(this.rotate));
     this.svgElement.setAttribute('scale', JSON.stringify(this.scale));
     this.svgElement.setAttribute('type', this.type);
+    this.svgElement.setAttribute('originalColor', this.color);
     renderer.renderPath(ctx, elem, this.pathCommands, isClosed);
     renderer.stroke(ctx, elem, this.stroke, color, this.getLineWidth());
     renderer.fill(ctx, elem, this.fill, color);
@@ -227,6 +228,7 @@
       this.svgElement.setAttribute('rotation', JSON.stringify(this.rotate));
       this.svgElement.setAttribute('scale', JSON.stringify(this.scale));
       this.svgElement.setAttribute('type', this.type);
+      this.svgElement.setAttribute('originalColor', this.color);
     }
     return this.svgElement;
   };
