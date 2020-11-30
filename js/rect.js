@@ -2,35 +2,36 @@
  * Rect
  */
 
-( function( root, factory ) {
+(function (root, factory) {
   // module definition
-  if ( typeof module == 'object' && module.exports ) {
+  if (typeof module == 'object' && module.exports) {
     // CommonJS
-    module.exports = factory( require('./shape') );
+    module.exports = factory(require('./shape'));
   } else {
     // browser global
     var Zdog = root.Zdog;
-    Zdog.Rect = factory( Zdog.Shape );
+    Zdog.Rect = factory(Zdog.Shape);
   }
-}( this, function factory( Shape ) {
+}(this, function factory(Shape) {
 
-var Rect = Shape.subclass({
-  width: 1,
-  height: 1,
-});
+  var Rect = Shape.subclass({
+    width: 1,
+    height: 1,
+    type: "Rect",
+  });
 
-Rect.prototype.setPath = function() {
-  var x = this.width / 2;
-  var y = this.height / 2;
-  /* eslint key-spacing: "off" */
-  this.path = [
-    { x: -x, y: -y },
-    { x:  x, y: -y },
-    { x:  x, y:  y },
-    { x: -x, y:  y },
-  ];
-};
+  Rect.prototype.setPath = function () {
+    var x = this.width / 2;
+    var y = this.height / 2;
+    /* eslint key-spacing: "off" */
+    this.path = [
+      { x: -x, y: -y },
+      { x: x, y: -y },
+      { x: x, y: y },
+      { x: -x, y: y },
+    ];
+  };
 
-return Rect;
+  return Rect;
 
-} ) );
+}));

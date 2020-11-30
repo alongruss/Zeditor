@@ -24,6 +24,7 @@
     path: [{}],
     front: { z: 1 },
     backface: true,
+    type: "Shape",
   });
 
   Shape.prototype.create = function (options) {
@@ -33,6 +34,7 @@
     this.front = new Vector(options.front || this.front);
     this.renderFront = new Vector(this.front);
     this.renderNormal = new Vector();
+    this.id = this.type + " (" + this.id + ")";
   };
 
   var actionNames = [
@@ -201,6 +203,7 @@
     this.svgElement.setAttribute('translation', JSON.stringify(this.translate));
     this.svgElement.setAttribute('rotation', JSON.stringify(this.rotate));
     this.svgElement.setAttribute('scale', JSON.stringify(this.scale));
+    this.svgElement.setAttribute('type', this.type);
     renderer.renderPath(ctx, elem, this.pathCommands, isClosed);
     renderer.stroke(ctx, elem, this.stroke, color, this.getLineWidth());
     renderer.fill(ctx, elem, this.fill, color);
@@ -223,6 +226,7 @@
       this.svgElement.setAttribute('translation', JSON.stringify(this.translate));
       this.svgElement.setAttribute('rotation', JSON.stringify(this.rotate));
       this.svgElement.setAttribute('scale', JSON.stringify(this.scale));
+      this.svgElement.setAttribute('type', this.type);
     }
     return this.svgElement;
   };

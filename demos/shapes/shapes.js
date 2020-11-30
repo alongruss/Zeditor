@@ -147,8 +147,9 @@ var cycleCount = 360;
 function populateTree() {
   document.getElementById("scene-tree").innerHTML = "";
   document.getElementById("scene-tree").innerHTML += "root";
+  document.getElementById("scene-tree").innerHTML += "<ul>";
   for (let i = 0; i < illo.children.length; i++) {
-    document.getElementById("scene-tree").innerHTML += "<ul>";
+
     document.getElementById("scene-tree").innerHTML += "<il>";
     if (illo.children[i].selected) {
       document.getElementById("scene-tree").innerHTML += '<span class="blue" onclick="selectChild(event);">' + illo.children[i].id + '</span>';
@@ -157,8 +158,9 @@ function populateTree() {
     }
 
     document.getElementById("scene-tree").innerHTML += "</il>";
-    document.getElementById("scene-tree").innerHTML += "</ul>";
+
   }
+  document.getElementById("scene-tree").innerHTML += "</ul>";
 }
 
 function animate() {
@@ -196,7 +198,7 @@ function updateGuiValueOfSelected() {
   if (lastSelectedItem != selectedItem && selectedItem != null) {
     // populateTree();
     highLightTree();
-    document.getElementById("itemName").innerText = selectedItem.getAttribute("id");
+    document.getElementById("itemName").innerText = selectedItem.getAttribute("type");
 
     // get current translation and reset GUI
     currentTransform.translation = JSON.parse(selectedItem.getAttribute("translation"));
@@ -260,8 +262,30 @@ document.getElementById("scale").addEventListener("input", (e) => {
 });
 document.getElementById("btnSceneExport").addEventListener("click", (e) => {
   var result = "";
+  result += "var sceneSize = 24;";
+  result += "<br>";
+  result += "var isSpinning = false;";
+  result += "<br>";
+  result += "var TAU = Zdog.TAU;";
+  result += "<br>";
+  result += "var offWhite = '#FED';";
+  result += "<br>";
+  result += "var gold = '#EA0';";
+  result += "<br>";
+  result += "var orange = '#E62';";
+  result += "<br>";
+  result += "var garnet = '#C25';";
+  result += "<br>";
+  result += "var eggplant = '#636';";
+  result += "<br>";
+  result += "<br>";
   for (let i = 0; i < illo.children.length; i++) {
-    result += illo.children[i].id;
+    // result += illo.children[i].id;
+    //result += "<br>";
+
+
+
+    result += "new Zdog." + illo.children[i].type + "({";
     result += "<br>";
     result += "addTo : illo";
     result += "<br>";
@@ -290,6 +314,8 @@ document.getElementById("btnSceneExport").addEventListener("click", (e) => {
       result += "<br>";
     }
     result += "color : \"" + illo.children[i].color + "\"";
+    result += "<br>";
+    result += "});";
     result += "<br>";
     result += "<br>";
   }
