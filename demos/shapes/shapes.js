@@ -236,7 +236,6 @@ function updateIllustration() {
   //console.log(currentTransform);
   illo.shapeShifter(currentTransform);
   illo.colorShifter(currentColor);
-
 }
 
 
@@ -276,19 +275,7 @@ document.getElementById("color").addEventListener("input", (e) => {
 });
 document.getElementById("btnSceneExport").addEventListener("click", (e) => {
   var result = "";
-  result += "var sceneSize = 24;";
-  result += "<br>";
-  result += "var isSpinning = false;";
-  result += "<br>";
-  result += "var TAU = Zdog.TAU;";
-  result += "<br>";
-  result += "<br>";
   for (let i = 0; i < illo.children.length; i++) {
-    // result += illo.children[i].id;
-    //result += "<br>";
-
-
-
     result += "new Zdog." + illo.children[i].type + "({";
     result += "<br>";
     result += "addTo : illo,";

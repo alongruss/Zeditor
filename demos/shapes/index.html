@@ -17,6 +17,26 @@
         this is where we should show all the items inside the svg element and their children
 
       </div>
+      <div class="container-group">
+        <button onclick="(e)=>{
+          illo.children.push(new Zdog.Rect({
+          addTo: illo,
+          width: 4,
+          height: 4,
+          translate: { x: 0, y: 0, z: 0 },
+          //rotate: { x: 0, y: 0, z: 0 },
+          scale: 1.0,
+          stroke: 1,
+          color: orange,
+        }));}">Add rect</button>
+        <button>Add rounded rect</button>
+        <button>Add polygon</button>
+        <button>Add shape</button>
+        <button>Add box</button>
+        <button>Add cylinder</button>
+        <button>Add cone</button>
+        <button>Add hemisphere</button>
+      </div>
     </div>
     <svg class="illo"></svg>
     <div class="container-gui">
