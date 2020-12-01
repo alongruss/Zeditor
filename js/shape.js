@@ -187,7 +187,7 @@
     var color = isBackfaceColor ? this.backface : this.color;
 
     if (this.selected) {
-      if (Math.sin(new Date().getTime() * 0.01) > 0) {
+      if (Math.sin(new Date().getTime() * 0.02) > 0) {
         color = "#5555FF";
       }
     }
