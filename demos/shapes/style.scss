@@ -98,7 +98,9 @@ html {
 
     }
 }
-
+input:disabled{
+    opacity: 0.3;
+}
 label {
     font-size: 12px;
 }

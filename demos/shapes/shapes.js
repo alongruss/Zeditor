@@ -218,8 +218,10 @@ function updateGuiValueOfSelected() {
 
     currentColor.color = selectedItem.getAttribute("originalColor") ?? '#888888';
     document.getElementById("color").value = currentColor.color;
+    resetControls();
   }
   else {
+    resetControls();
     document.getElementById("itemName").innerText = "";
     currentTransform.translation = { x: 0, y: 0, z: 0 };
     currentTransform.rotation = { x: 0, y: 0, z: 0 };
@@ -354,6 +356,22 @@ function highLightTree() {
       document.getElementById("scene-tree").getElementsByTagName("li")[i].className = "blue";
     } else {
       document.getElementById("scene-tree").getElementsByTagName("li")[i].className = "";
+    }
+  }
+}
+
+function resetControls(){
+  if(document.getElementById("itemName").innerText == ""){
+    var x = document.getElementsByTagName("input");
+    var i;
+    for (i = 0; i < x.length; i++) {
+      x[i].disabled = true;
+    }
+  }else{
+    var x = document.getElementsByTagName("input");
+    var i;
+    for (i = 0; i < x.length; i++) {
+      x[i].disabled = false;
     }
   }
 }

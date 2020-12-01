@@ -111,6 +111,9 @@ html body .container-main .container-tree li {
 html body .container-main .container-tree li:hover {
   opacity: 0.6;
 }
+input:disabled {
+  opacity: 0.3;
+}
 label {
   font-size: 12px;
 }
