@@ -41,6 +41,16 @@ html {
 
 
                 }
+                ul{
+                    list-style-type: circle;
+                    margin: 0;
+                }
+                li{
+                    cursor: pointer;
+                }
+                li:hover{
+                    opacity: 0.6;
+                }
             }
 
             .illo {

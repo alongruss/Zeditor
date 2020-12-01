@@ -101,7 +101,16 @@ html body .container-main .container-gui .container-group .container-tuple input
   width: 80%;
   border-radius: 2px;
 }
-
+html body .container-main .container-tree ul {
+  list-style-type: circle;
+  margin: 0;
+}
+html body .container-main .container-tree li {
+  cursor: pointer;
+}
+html body .container-main .container-tree li:hover {
+  opacity: 0.6;
+}
 label {
   font-size: 12px;
 }

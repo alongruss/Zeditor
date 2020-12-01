@@ -153,20 +153,16 @@ var cycleCount = 360;
 function populateTree() {
   document.getElementById("scene-tree").innerHTML = "";
   document.getElementById("scene-tree").innerHTML += "root";
-  document.getElementById("scene-tree").innerHTML += "<ul>";
+  document.getElementById("scene-tree").innerHTML += "<ul id='treeList'></ul>";
   for (let i = 0; i < illo.children.length; i++) {
 
-    document.getElementById("scene-tree").innerHTML += "<il>";
     if (illo.children[i].selected) {
-      document.getElementById("scene-tree").innerHTML += '<span class="blue" onclick="selectChild(event);">' + illo.children[i].id + '</span>';
+      document.getElementById("treeList").innerHTML += "<li class='blue' onclick='selectChild(event);'>" + illo.children[i].id + "</li>";
     } else {
-      document.getElementById("scene-tree").innerHTML += '<span onclick="selectChild(event);">' + illo.children[i].id + '</span>';
+      document.getElementById("treeList").innerHTML += "<li onclick='selectChild(event);'>" + illo.children[i].id + "</li>";
     }
 
-    document.getElementById("scene-tree").innerHTML += "</il>";
-
   }
-  document.getElementById("scene-tree").innerHTML += "</ul>";
 }
 
 function animate() {
@@ -355,9 +351,9 @@ function highLightTree() {
   var i;
   for (i = 0; i < x.length; i++) {
     if (illo.children[i].selected == "true" || illo.children[i].selected == true) {
-      document.getElementById("scene-tree").getElementsByTagName("span")[i].className = "blue";
+      document.getElementById("scene-tree").getElementsByTagName("li")[i].className = "blue";
     } else {
-      document.getElementById("scene-tree").getElementsByTagName("span")[i].className = "";
+      document.getElementById("scene-tree").getElementsByTagName("li")[i].className = "";
     }
   }
 }
