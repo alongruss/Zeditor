@@ -291,8 +291,11 @@ document.getElementById("btnSceneExport").addEventListener("click", (e) => {
 
     result += "new Zdog." + illo.children[i].type + "({";
     result += "<br>";
-    result += "addTo : illo";
+    result += "addTo : illo,";
     result += "<br>";
+    result += returnIlloValue(i, "sides", false);
+    result += returnIlloValue(i, "radius", false);
+    result += returnIlloValue(i, "cornerRadius", false);
     result += returnIlloValue(i, "diameter", false);
     result += returnIlloValue(i, "length", false);
     result += returnIlloValue(i, "stroke", false);
@@ -308,13 +311,13 @@ document.getElementById("btnSceneExport").addEventListener("click", (e) => {
     result += returnIlloValue(i, "color", true);
     result += returnIlloValue(i, "path", true);
     result += returnIlloValue(i, "front", true);
-    result += returnIlloValue(i, "backface", false);
-    result += returnIlloValue(i, 'rearFace', false);
-    result += returnIlloValue(i, 'leftFace', false);
-    result += returnIlloValue(i, 'rightFace', false);
-    result += returnIlloValue(i, 'topFace', false);
-    result += returnIlloValue(i, 'bottomFace', false);
-    result += returnIlloValue(i, "frontface", false);
+    result += returnIlloValue(i, "backface", true);
+    result += returnIlloValue(i, 'rearFace', true);
+    result += returnIlloValue(i, 'leftFace', true);
+    result += returnIlloValue(i, 'rightFace', true);
+    result += returnIlloValue(i, 'topFace', true);
+    result += returnIlloValue(i, 'bottomFace', true);
+    result += returnIlloValue(i, "frontface", true);
     result += "});";
     result += "<br>";
     result += "<br>";
@@ -325,11 +328,13 @@ document.getElementById("btnSceneExport").addEventListener("click", (e) => {
 function returnIlloValue(index, valueName, isObject) {
   let result = '';
   if (illo.children[index][valueName]) {
+    result += valueName + " : ";
     if (isObject) {
-      result += valueName + " : " + JSON.stringify(illo.children[index][valueName]);
+      result += JSON.stringify(illo.children[index][valueName]);
     } else {
-      result += valueName + " : " + illo.children[index][valueName];
+      result += illo.children[index][valueName];
     }
+    result += ",";
     result += "<br>";
   }
   return result;
