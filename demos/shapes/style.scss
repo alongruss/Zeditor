@@ -41,14 +41,17 @@ html {
 
 
                 }
-                ul{
+
+                ul {
                     list-style-type: circle;
                     margin: 0;
                 }
-                li{
+
+                li {
                     cursor: pointer;
                 }
-                li:hover{
+
+                li:hover {
                     opacity: 0.6;
                 }
             }
@@ -98,9 +101,11 @@ html {
 
     }
 }
-input:disabled{
+
+input:disabled {
     opacity: 0.3;
 }
+
 label {
     font-size: 12px;
 }
@@ -129,5 +134,15 @@ button {
     font-size: 10px;
 
     background-color: lightgray;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+input[type="color"] {
+    -webkit-appearance: none;
+    border: none;
+    width: 32px;
+
+    padding: 0;
+    margin: 0;
     box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
 }
