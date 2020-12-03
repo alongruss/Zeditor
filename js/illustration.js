@@ -19,11 +19,12 @@
   var TAU = utils.TAU;
 
   var Illustration = Anchor.subclass({
-    element: undefined,
+
     centered: true,
-    zoom: 1,
-    dragRotate: false,
-    resize: false,
+    element: '.illo',
+    dragRotate: true,
+    resize: 'fullscreen',
+    zoom: 24,
     onPrerender: noop,
     onDragStart: noop,
     onDragMove: noop,
