@@ -1,5 +1,30 @@
 // ----- setup ----- //
 
+// Let's build the GUI from script alone
+
+
+function buildGui() {
+  buildTreeGui();
+}
+
+function buildTreeGui() {
+  let svg = document.getElementsByTagName("svg")[0];
+  let tree = document.createElement("DIV");
+  let title = document.createElement("SPAN");
+  let nook = document.createElement("DIV");
+  tree.classList.add("container-tree");
+  title.innerText = "Scene tree";
+  tree.appendChild(title);
+  nook.classList.add("container-nook");
+  nook.classList.add("nook");
+  nook.id = "scene-tree";
+  tree.appendChild(nook);
+  svg.parentElement.insertBefore(tree, svg);
+}
+
+buildGui();
+
+
 var sceneSize = 24;
 var isSpinning = false;
 var TAU = Zdog.TAU;
@@ -360,14 +385,14 @@ function highLightTree() {
   }
 }
 
-function resetControls(){
-  if(document.getElementById("itemName").innerText == ""){
+function resetControls() {
+  if (document.getElementById("itemName").innerText == "") {
     var x = document.getElementsByTagName("input");
     var i;
     for (i = 0; i < x.length; i++) {
       x[i].disabled = true;
     }
-  }else{
+  } else {
     var x = document.getElementsByTagName("input");
     var i;
     for (i = 0; i < x.length; i++) {
