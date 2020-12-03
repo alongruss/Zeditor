@@ -1,10 +1,9 @@
 // ----- setup ----- //
 
 // Let's build the GUI from script alone
-
-
 function buildGui() {
   buildTreeGui();
+  buildInspectorGui();
 }
 
 function buildTreeGui() {
@@ -20,6 +19,56 @@ function buildTreeGui() {
   nook.id = "scene-tree";
   tree.appendChild(nook);
   svg.parentElement.insertBefore(tree, svg);
+}
+
+function buildInspectorGui() {
+  let svg = document.getElementsByTagName("svg")[0];
+  svg.parentElement.insertAdjacentHTML('beforeend', `
+  <div class="container-gui">
+      <span>Inspector</span>
+      <span id="itemName"></span>
+      <div class="container-group">
+        <span>Position</span>
+        <div class="container-tuple">
+          <label for="pos-x">X <input type="number" step="any" id="pos-x"></label>
+
+          <label for="pos-y">Y <input type="number" step="any" id="pos-y"></label>
+
+          <label for="pos-z">Z <input type="number" step="any" id="pos-z"></label>
+        </div>
+      </div>
+
+      <div class="container-group">
+        <span>Rotation</span>
+        <div class="container-tuple">
+          <label for="rot-x">X <input type="number" step="any" id="rot-x"></label>
+
+          <label for="rot-y">Y <input type="number" step="any" id="rot-y"></label>
+
+          <label for="rot-z">Z <input type="number" step="any" id="rot-z"></label>
+        </div>
+
+      </div>
+      <div class="container-group">
+        <span>Scale</span>
+        <div class="container-tuple">
+          <label for="scale">Uniform <input type="number" step="any" id="scale"></label>
+        </div>
+      </div>
+      <div class="container-group">
+        <span>Colors</span>
+        <div class="container-tuple">
+          <label for="color">Color <input type="color" id="color"></label>
+        </div>
+      </div>
+      <div class="container-group">
+        <button id="btnSceneExport">Export scene</button>
+        <div class="container-nook nook" id="textSceneExport">
+          this is where we should export the scene to
+        </div>
+      </div>
+    </div>
+  `);
 }
 
 buildGui();
