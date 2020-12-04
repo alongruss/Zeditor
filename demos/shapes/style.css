@@ -139,10 +139,11 @@ label {
 }
 
 button {
+  border: none;
   border-radius: 4px;
   padding: 8px;
   font-size: 10px;
-  background-color: lightgray;
+  background-color: white;
   -webkit-box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
           box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
 }
