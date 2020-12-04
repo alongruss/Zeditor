@@ -179,7 +179,7 @@ function animate() {
 }
 
 populateTree();
-buildContextMenu();
+buildContextMenus();
 animate();
 
 
@@ -236,14 +236,11 @@ function updateIllustration() {
   illo.colorShifter(currentColor);
 }
 
-function buildContextMenu() {
+function buildContextMenus() {
   let contextMenu = document.createElement("DIV");
   contextMenu.innerHTML = `
-  <div id="context-menu"> 
-    <button>Add</button>
-    <button>Reset</button>
-    <button>Delete</button> 
-    <button onclick="{illo.children=[];populateTree();}">Clear all</button> 
+  <div id="svg-context-menu"> 
+    
   </div>
   `
   document.body.appendChild(contextMenu);
@@ -251,10 +248,40 @@ function buildContextMenu() {
 
 function clickContextMenu(e) {
   e.preventDefault();
-  document.getElementById("context-menu").style.display = "block";
-  document.getElementById("context-menu").style.position = "absolute";
-  document.getElementById("context-menu").style.top = e.pageY + "px";
-  document.getElementById("context-menu").style.left = e.pageX + "px";
+  closeAllMenus();
+  elementMouseIsOver = document.elementFromPoint(e.pageX, e.pageY);
+  document.getElementById("svg-context-menu").style.display = "block";
+  document.getElementById("svg-context-menu").style.position = "absolute";
+  document.getElementById("svg-context-menu").style.top = e.pageY + "px";
+  document.getElementById("svg-context-menu").style.left = e.pageX + "px";
+  if (elementMouseIsOver.tagName == 'svg') {
+    document.getElementById("svg-context-menu").innerHTML = `
+    <button onclick="{illo.children.push(new Zdog.Box({
+      addTo: illo,
+      width: 5,
+      height: 5,
+      depth: 5,
+      translate: { x: 8, y: 8, z: 0 },
+      color: orange,
+      topFace: gold,
+      leftFace: garnet,
+      rightFace: garnet,
+      bottomFace: eggplant,
+      stroke: false,
+    }));populateTree();closeAllMenus();}">Add</button>
+    <button onclick="{illo.children=[];populateTree();closeAllMenus();}">Clear all</button>
+    `
+  }
+  else {
+    document.getElementById("svg-context-menu").innerHTML = `
+    <button onclick="{closeAllMenus();}">Remove</button>
+    <button onclick="{closeAllMenus();}">Reset</button>
+    `
+  }
+}
+
+function closeAllMenus() {
+  document.getElementById("svg-context-menu").style.display = "none";
 }
 
 document.getElementsByTagName("svg")[0].addEventListener("contextmenu", (e) => { clickContextMenu(e) });
