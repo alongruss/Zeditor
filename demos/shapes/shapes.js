@@ -274,10 +274,24 @@ function clickContextMenu(e) {
   }
   else {
     document.getElementById("svg-context-menu").innerHTML = `
-    <button onclick="{closeAllMenus();}">Remove</button>
+    <button onclick="{
+      removeIlloChildById(elementMouseIsOver.id);
+   
+      closeAllMenus();
+    }">Remove</button>
     <button onclick="{closeAllMenus();}">Reset</button>
     `
   }
+}
+
+function removeIlloChildById(id) {
+  console.log("removing " + id);
+  for (let i = 0; i < illo.children.length; i++) {
+    if (illo.children[i].id == id) {
+      illo.children.splice(i, 1);
+    }
+  }
+  populateTree();
 }
 
 function closeAllMenus() {
