@@ -209,9 +209,9 @@ function updateGuiValueOfSelected() {
     document.getElementById("pos-z").value = currentTransform.translation.z;
     // get current rotation and reset GUI
     currentTransform.rotation = JSON.parse(selectedItem.getAttribute("rotation"));
-    document.getElementById("rot-x").value = currentTransform.rotation.x * 180 / Math.PI;
-    document.getElementById("rot-y").value = currentTransform.rotation.y * 180 / Math.PI;
-    document.getElementById("rot-z").value = currentTransform.rotation.z * 180 / Math.PI;
+    document.getElementById("rot-x").value = currentTransform.rotation.x;
+    document.getElementById("rot-y").value = currentTransform.rotation.y;
+    document.getElementById("rot-z").value = currentTransform.rotation.z;
     // get current scale and reset GUI
     currentTransform.scale = JSON.parse(selectedItem.getAttribute("scale"));
     document.getElementById("scale").value = currentTransform.scale.x;
@@ -329,15 +329,15 @@ document.getElementById("pos-z").addEventListener("input", (e) => {
   updateIllustration();
 });
 document.getElementById("rot-x").addEventListener("input", (e) => {
-  currentTransform.rotation.x = 2 * Math.PI * e.target.value / 360;
+  currentTransform.rotation.x = parseFloat(e.target.value);
   updateIllustration();
 });
 document.getElementById("rot-y").addEventListener("input", (e) => {
-  currentTransform.rotation.y = 2 * Math.PI * e.target.value / 360;
+  currentTransform.rotation.y = parseFloat(e.target.value);
   updateIllustration();
 });
 document.getElementById("rot-z").addEventListener("input", (e) => {
-  currentTransform.rotation.z = 2 * Math.PI * e.target.value / 360;
+  currentTransform.rotation.z = parseFloat(e.target.value);
   updateIllustration();
 });
 document.getElementById("scale").addEventListener("input", (e) => {

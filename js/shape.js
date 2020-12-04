@@ -203,7 +203,11 @@
     var color = this.getRenderColor();
     this.svgElement.setAttribute('selected', this.selected);
     this.svgElement.setAttribute('translation', JSON.stringify(this.translate));
-    this.svgElement.setAttribute('rotation', JSON.stringify(this.rotate));
+    this.svgElement.setAttribute('rotation', JSON.stringify({
+      x: this.rotate.x * 180 / Math.PI,
+      y: this.rotate.y * 180 / Math.PI,
+      z: this.rotate.z * 180 / Math.PI
+    }));
     this.svgElement.setAttribute('scale', JSON.stringify(this.scale));
     this.svgElement.setAttribute('type', this.type);
     this.svgElement.setAttribute('originalColor', this.color);
@@ -227,7 +231,11 @@
       this.svgElement.setAttribute('id', this.id);
       this.svgElement.setAttribute('selected', this.selected);
       this.svgElement.setAttribute('translation', JSON.stringify(this.translate));
-      this.svgElement.setAttribute('rotation', JSON.stringify(this.rotate));
+      this.svgElement.setAttribute('rotation', JSON.stringify({
+        x: this.rotate.x * 180 / Math.PI,
+        y: this.rotate.y * 180 / Math.PI,
+        z: this.rotate.z * 180 / Math.PI
+      }));
       this.svgElement.setAttribute('scale', JSON.stringify(this.scale));
       this.svgElement.setAttribute('type', this.type);
       this.svgElement.setAttribute('originalColor', this.color);

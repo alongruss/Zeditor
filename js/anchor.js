@@ -130,7 +130,11 @@
     this.flatGraph.forEach(function (item) {
       if (item.selected) {
         item.translate = inputTransform.translation;
-        item.rotate = inputTransform.rotation;
+        item.rotate = {
+          x: inputTransform.rotation.x * Math.PI / 180,
+          y: inputTransform.rotation.y * Math.PI / 180,
+          z: inputTransform.rotation.z * Math.PI / 180
+        };
         item.scale = inputTransform.scale;
       } else {
 
