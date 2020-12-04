@@ -146,3 +146,14 @@ input[type="color"] {
     margin: 0;
     box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
 }
+
+#context-menu {
+    z-index: 99;
+    display: none;
+    width: 100px;
+    //height: 200px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    //background-color: lightgray;
+}

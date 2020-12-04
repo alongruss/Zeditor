@@ -179,14 +179,15 @@ function animate() {
 }
 
 populateTree();
+buildContextMenu();
 animate();
 
 
 function updateGuiValueOfSelected() {
-  var svg = document.getElementsByTagName('svg')[0];
+  let svg = document.getElementsByTagName('svg')[0];
 
   // get selected item
-  var selectedItem;
+  let selectedItem;
 
   for (let i = 0; i < svg.children.length; i++) {
     if (svg.children[i] != null) {
@@ -234,6 +235,29 @@ function updateIllustration() {
   illo.shapeShifter(currentTransform);
   illo.colorShifter(currentColor);
 }
+
+function buildContextMenu() {
+  let contextMenu = document.createElement("DIV");
+  contextMenu.innerHTML = `
+  <div id="context-menu"> 
+    <button>Add</button>
+    <button>Reset</button>
+    <button>Delete</button> 
+    <button onclick="{illo.children=[];populateTree();}">Clear all</button> 
+  </div>
+  `
+  document.body.appendChild(contextMenu);
+}
+
+function clickContextMenu(e) {
+  e.preventDefault();
+  document.getElementById("context-menu").style.display = "block";
+  document.getElementById("context-menu").style.position = "absolute";
+  document.getElementById("context-menu").style.top = e.pageY + "px";
+  document.getElementById("context-menu").style.left = e.pageX + "px";
+}
+
+document.getElementsByTagName("svg")[0].addEventListener("contextmenu", (e) => { clickContextMenu(e) });
 
 
 document.getElementById("pos-x").addEventListener("input", (e) => {
