@@ -284,7 +284,6 @@ function resetIllo() {
 
 function addIlloChild() {
   illo.children.push(new Zdog.Box({
-    addTo: illo,
     width: 5,
     height: 5,
     depth: 5,
