@@ -256,32 +256,47 @@ function clickContextMenu(e) {
   document.getElementById("svg-context-menu").style.left = e.pageX + "px";
   if (elementMouseIsOver.tagName == 'svg') {
     document.getElementById("svg-context-menu").innerHTML = `
-    <button onclick="{illo.children.push(new Zdog.Box({
-      addTo: illo,
-      width: 5,
-      height: 5,
-      depth: 5,
-      translate: { x: 8, y: 8, z: 0 },
-      color: orange,
-      topFace: gold,
-      leftFace: garnet,
-      rightFace: garnet,
-      bottomFace: eggplant,
-      stroke: false,
-    }));populateTree();closeAllMenus();}">Add</button>
-    <button onclick="{illo.children=[];populateTree();closeAllMenus();}">Clear all</button>
+    <button onclick="{
+      addIlloChild();
+      closeAllMenus();
+    }">Add</button>
+    <button onclick="{
+      resetIllo();
+      closeAllMenus();
+    }">Clear all</button>
     `
   }
   else {
     document.getElementById("svg-context-menu").innerHTML = `
     <button onclick="{
       removeIlloChildById(elementMouseIsOver.id);
-   
       closeAllMenus();
     }">Remove</button>
     <button onclick="{closeAllMenus();}">Reset</button>
     `
   }
+}
+
+function resetIllo() {
+  illo.children = [];
+  populateTree();
+}
+
+function addIlloChild() {
+  illo.children.push(new Zdog.Box({
+    addTo: illo,
+    width: 5,
+    height: 5,
+    depth: 5,
+    translate: { x: 8, y: 8, z: 0 },
+    color: orange,
+    topFace: gold,
+    leftFace: garnet,
+    rightFace: garnet,
+    bottomFace: eggplant,
+    stroke: false,
+  }));
+  populateTree();
 }
 
 function removeIlloChildById(id) {
