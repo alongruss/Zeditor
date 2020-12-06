@@ -85,7 +85,7 @@
   };
 
   Dragger.prototype.dragStart = function (event, pointer) {
-    event.preventDefault();
+    // event.preventDefault();
     this.dragStartX = pointer.pageX;
     this.dragStartY = pointer.pageY;
 
@@ -108,7 +108,7 @@
     };
 
   Dragger.prototype.dragMove = function (event, pointer) {
-    event.preventDefault();
+    //event.preventDefault();
     var moveX = pointer.pageX - this.dragStartX;
     var moveY = pointer.pageY - this.dragStartY;
     this.onDragMove(pointer, moveX, moveY);

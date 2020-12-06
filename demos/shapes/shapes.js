@@ -333,6 +333,7 @@ document.getElementsByTagName("svg")[0].addEventListener("contextmenu", (e) => {
 document.getElementsByTagName("svg")[0].addEventListener("click", (e) => { closeAllMenus() });
 
 
+
 document.getElementById("pos-x").addEventListener("input", (e) => {
   currentTransform.translation.x = parseFloat(e.target.value);
   updateIllustration();
