@@ -213,6 +213,7 @@ function updateGuiValueOfSelected() {
   }
 
   if (lastSelectedItem != selectedItem && selectedItem != null) {
+    lastSelectedItem = selectedItem;
     // populateTree();
     highLightTree();
     document.getElementById("itemName").innerText = selectedItem.getAttribute("type") + " " + selectedItem.getAttribute("name");
@@ -236,7 +237,6 @@ function updateGuiValueOfSelected() {
     resetControls();
   }
   else {
-    resetControls();
     document.getElementById("itemName").innerText = "";
     currentTransform.translation = { x: 0, y: 0, z: 0 };
     currentTransform.rotation = { x: 0, y: 0, z: 0 };
@@ -326,6 +326,7 @@ function removeIlloChildById(element, id) {
 }
 
 function closeAllMenus() {
+  console.log("closeAllMenus");
   document.getElementById("svg-context-menu").style.display = "none";
 }
 
@@ -423,6 +424,7 @@ function returnIlloValue(index, valueName, isObject) {
 }
 
 function selectChild(e) {
+  console.log("selectChild");
   deselectAll();
 
   var x = illo.children;
@@ -439,6 +441,7 @@ function selectChild(e) {
 }
 
 function deselectAll() {
+  console.log("deselectAll");
   var x = illo.children;
   var i;
   for (i = 0; i < x.length; i++) {
@@ -447,6 +450,7 @@ function deselectAll() {
   highLightTree();
 }
 function highLightTree() {
+  console.log("highLightTree");
   var x = illo.children;
   var i;
   for (i = 0; i < x.length; i++) {
@@ -459,6 +463,7 @@ function highLightTree() {
 }
 
 function resetControls() {
+  console.log("resetControls");
   if (document.getElementById("itemName").innerText == "") {
     var x = document.getElementsByTagName("input");
     var i;

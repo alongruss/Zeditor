@@ -26,11 +26,6 @@
         // call super
         Ellipse.prototype.create.apply(this, arguments);
         // composite shape, create child shapes
-    };
-
-
-
-    Gizmo.prototype.render = function (ctx, renderer) {
         this.children.push(new Zdog.Cone({
             name: "gizmoX",
             translate: { x: 4 },
@@ -64,6 +59,12 @@
             stroke: 0.1,
             color: offWhite,
         }));
+    };
+
+
+
+    Gizmo.prototype.render = function (ctx, renderer) {
+
     };
 
     return Gizmo;
