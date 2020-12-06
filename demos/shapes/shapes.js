@@ -39,6 +39,7 @@ var currentTransform = {
 
 var illo = new Zdog.Illustration({
   onDragStart: function () {
+    deselectAll();
     isSpinning = false;
   },
   onResize: function (width, height) {
@@ -193,6 +194,10 @@ function updateGuiValueOfSelected() {
     if (svg.children[i] != null) {
       if (svg.children[i].getAttribute("selected") == "true") {
         selectedItem = svg.children[i];
+        window.selectedItem = svg.children[i];
+        svg.children[i].style.outline = "0.1px solid rgba(0,0,0,.2)";
+      }else{
+        svg.children[i].style.outline = "none";
       }
     }
   }
@@ -426,6 +431,7 @@ function deselectAll() {
   for (i = 0; i < x.length; i++) {
     illo.children[i].selected = "";
   }
+  highLightTree();
 }
 function highLightTree() {
   var x = illo.children;
