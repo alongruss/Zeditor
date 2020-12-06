@@ -185,7 +185,7 @@ function animate() {
     ticker++;
   }
   illo.updateRenderGraph();
-  updateGuiValueOfSelected();
+
   requestAnimationFrame(animate);
 }
 
@@ -212,9 +212,10 @@ function updateGuiValueOfSelected() {
     }
   }
 
+  // If we've selected a different and non-null item
   if (lastSelectedItem != selectedItem && selectedItem != null) {
     lastSelectedItem = selectedItem;
-    // populateTree();
+
     highLightTree();
     document.getElementById("itemName").innerText = selectedItem.getAttribute("type") + " " + selectedItem.getAttribute("name");
 
@@ -237,6 +238,7 @@ function updateGuiValueOfSelected() {
     resetControls();
   }
   else {
+
     document.getElementById("itemName").innerText = "";
     currentTransform.translation = { x: 0, y: 0, z: 0 };
     currentTransform.rotation = { x: 0, y: 0, z: 0 };
@@ -331,7 +333,10 @@ function closeAllMenus() {
 }
 
 document.getElementsByTagName("svg")[0].addEventListener("contextmenu", (e) => { clickContextMenu(e) });
-document.getElementsByTagName("svg")[0].addEventListener("click", (e) => { closeAllMenus() });
+document.getElementsByTagName("svg")[0].addEventListener("click", (e) => {
+  updateGuiValueOfSelected();
+  closeAllMenus();
+});
 
 
 
