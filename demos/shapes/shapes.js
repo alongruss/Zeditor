@@ -196,7 +196,7 @@ function updateGuiValueOfSelected() {
         selectedItem = svg.children[i];
         window.selectedItem = svg.children[i];
         svg.children[i].style.outline = "0.1px solid rgba(0,0,0,.2)";
-      }else{
+      } else {
         svg.children[i].style.outline = "none";
       }
     }
@@ -274,7 +274,7 @@ function clickContextMenu(e) {
   else {
     document.getElementById("svg-context-menu").innerHTML = `
     <button onclick="{
-      removeIlloChildById(elementMouseIsOver.id);
+      removeIlloChildById(illo,elementMouseIsOver.id);
       closeAllMenus();
     }">Remove</button>
     <button onclick="{closeAllMenus();}">Reset</button>
@@ -303,11 +303,13 @@ function addIlloChild() {
   populateTree();
 }
 
-function removeIlloChildById(id) {
+function removeIlloChildById(element, id) {
   console.log("removing " + id);
-  for (let i = 0; i < illo.children.length; i++) {
-    if (illo.children[i].id == id) {
-      illo.children.splice(i, 1);
+  for (let i = 0; i < element.children.length; i++) {
+    if (element.children[i].id == id) {
+      element.children.splice(i, 1);
+    } else {
+      removeIlloChildById(element.children[i], id);
     }
   }
   populateTree();
