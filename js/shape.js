@@ -186,11 +186,11 @@
     var isBackfaceColor = typeof this.backface == 'string' && this.isFacingBack;
     var color = isBackfaceColor ? this.backface : this.color;
 
-    if (this.selected) {
-      if (Math.sin(new Date().getTime() * 0.02) > 0) {
-        color = "#5555FF";
-      }
-    }
+    /* if (this.selected) {
+       if (Math.sin(new Date().getTime() * 0.02) > 0) {
+         color = "#5555FF";
+       }
+     }*/
 
     return color;
   };
