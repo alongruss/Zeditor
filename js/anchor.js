@@ -37,7 +37,7 @@
     this.origin = new Vector();
     this.renderOrigin = new Vector();
     // id
-    this.id = Math.random(999);
+    this.id = Math.random(1);
     this.selected = false;
 
     if (this.addTo) {

@@ -32,21 +32,21 @@
 
     Gizmo.prototype.render = function (ctx, renderer) {
         this.children.push(new Zdog.Cone({
-            // diameter: 1,
+            name: "gizmoX",
             translate: { x: 4 },
             rotate: { y: -Math.PI * 0.5 },
             // stroke: 1,
             color: "#ff0000",
         }));
         this.children.push(new Zdog.Cone({
-            // diameter: 1,
+            name: "gizmoY",
             translate: { y: -4 },
             rotate: { x: Math.PI * 0.5 },
             //stroke: 1,
             color: "#00FF00",
         }));
         this.children.push(new Zdog.Cone({
-            //diameter: 1,
+            name: "gizmoZ",
             translate: { z: 4 },
 
             //stroke: 1,

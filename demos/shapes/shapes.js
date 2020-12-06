@@ -215,7 +215,7 @@ function updateGuiValueOfSelected() {
   if (lastSelectedItem != selectedItem && selectedItem != null) {
     // populateTree();
     highLightTree();
-    document.getElementById("itemName").innerText = selectedItem.getAttribute("type");
+    document.getElementById("itemName").innerText = selectedItem.getAttribute("type") + " " + selectedItem.getAttribute("name");
 
     // get current translation and reset GUI
     currentTransform.translation = JSON.parse(selectedItem.getAttribute("translation"));

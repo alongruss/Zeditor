@@ -25,6 +25,7 @@
     front: { z: 1 },
     backface: true,
     type: "Shape",
+    name: undefined,
   });
 
   Shape.prototype.create = function (options) {
@@ -210,6 +211,7 @@
     }));
     this.svgElement.setAttribute('scale', JSON.stringify(this.scale));
     this.svgElement.setAttribute('type', this.type);
+    this.svgElement.setAttribute('name', this.name);
     this.svgElement.setAttribute('originalColor', this.color);
     renderer.renderPath(ctx, elem, this.pathCommands, isClosed);
     renderer.stroke(ctx, elem, this.stroke, color, this.getLineWidth());
@@ -238,6 +240,7 @@
       }));
       this.svgElement.setAttribute('scale', JSON.stringify(this.scale));
       this.svgElement.setAttribute('type', this.type);
+      this.svgElement.setAttribute('name', this.name);
       this.svgElement.setAttribute('originalColor', this.color);
     }
     return this.svgElement;
