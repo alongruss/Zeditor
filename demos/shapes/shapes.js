@@ -121,7 +121,17 @@ new Zdog.Cylinder({
   stroke: false,
 });
 
-new Zdog.Cone({
+/*new Zdog.Cone({
+  addTo: illo,
+  diameter: 5,
+  length: 4,
+  translate: { x: 4, y: -4, z: 4 },
+  color: eggplant,
+  backface: garnet,
+  stroke: false,
+});*/
+
+new Zdog.Gizmo({
   addTo: illo,
   diameter: 5,
   length: 4,
