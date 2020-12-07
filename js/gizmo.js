@@ -18,6 +18,7 @@
 
     var Gizmo = Ellipse.subclass({
         type: "Gizmo",
+        name: "Gizmo",
     });
 
     var TAU = utils.TAU;

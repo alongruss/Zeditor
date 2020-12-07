@@ -257,14 +257,16 @@
   };
 
   Illustration.prototype.dragMove = function (event, pointer) {
-    var moveX = pointer.pageX - this.dragStartX;
-    var moveY = pointer.pageY - this.dragStartY;
-    var displaySize = Math.min(this.width, this.height);
-    var moveRY = moveX / displaySize * TAU;
-    var moveRX = moveY / displaySize * TAU;
-    this.dragRotate.rotate.x = this.dragStartRX - moveRX;
-    this.dragRotate.rotate.y = this.dragStartRY - moveRY;
-    Dragger.prototype.dragMove.apply(this, arguments);
+    if (manipulationInProgress) { } else {
+      var moveX = pointer.pageX - this.dragStartX;
+      var moveY = pointer.pageY - this.dragStartY;
+      var displaySize = Math.min(this.width, this.height);
+      var moveRY = moveX / displaySize * TAU;
+      var moveRX = moveY / displaySize * TAU;
+      this.dragRotate.rotate.x = this.dragStartRX - moveRX;
+      this.dragRotate.rotate.y = this.dragStartRY - moveRY;
+      Dragger.prototype.dragMove.apply(this, arguments);
+    }
   };
 
   return Illustration;

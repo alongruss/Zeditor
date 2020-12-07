@@ -86,6 +86,8 @@
 
   Dragger.prototype.dragStart = function (event, pointer) {
     // event.preventDefault();
+
+    if (manipulationInProgress) console.log("dragStart");
     this.dragStartX = pointer.pageX;
     this.dragStartY = pointer.pageY;
 

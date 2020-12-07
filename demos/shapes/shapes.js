@@ -13,6 +13,7 @@ var garnet = '#CC2255';
 var eggplant = '#663366';
 
 var lastSelectedItem;
+var manipulationInProgress = false;
 
 var currentColor = {
   color: '#888888',
@@ -205,6 +206,8 @@ function updateGuiValueOfSelected() {
       if (svg.children[i].getAttribute("selected") == "true") {
         selectedItem = svg.children[i];
         window.selectedItem = svg.children[i];
+        if (selectedItem.getAttribute("name") == "gizmoX") { manipulationInProgress = true; } else { manipulationInProgress = false; }
+        // Draw selection rectangle
         svg.children[i].style.outline = "0.1px solid rgba(0,0,0,.2)";
       } else {
         svg.children[i].style.outline = "none";
@@ -214,6 +217,7 @@ function updateGuiValueOfSelected() {
 
   // If we've selected a different and non-null item
   if (lastSelectedItem != selectedItem && selectedItem != null) {
+    // set lastSelectedItem
     lastSelectedItem = selectedItem;
 
     highLightTree();
