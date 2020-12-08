@@ -47,22 +47,30 @@
     type: 'Box',
   });
 
-  var Box = Anchor.subclass(boxDefaults);
+  var Box = Shape.subclass(boxDefaults);
 
   /* eslint-disable no-self-assign */
   Box.prototype.create = function (options) {
-    Anchor.prototype.create.call(this, options);
+    Shape.prototype.create.call(this, options);
+
     this.updatePath();
     // HACK reset fill to trigger face setter
     this.fill = this.fill;
   };
 
   Box.prototype.updatePath = function () {
+    this.setPath();
+    this.updatePathCommands();
     // reset all faces to trigger setters
     faceNames.forEach(function (faceName) {
       this[faceName] = this[faceName];
     }, this);
   };
+
+  Box.prototype.render = function (ctx, renderer) {
+    Shape.prototype.render.apply(this, arguments);
+  };
+
   /* eslint-enable no-self-assign */
 
   faceNames.forEach(function (faceName) {
