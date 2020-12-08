@@ -282,7 +282,8 @@ function clickContextMenu(e) {
       closeAllMenus();
     }">Add</button>
     <button onclick="{
-      resetIllo();
+      illo.clearAll(true);
+      updateTree();
       closeAllMenus();
     }">Clear all</button>
     `
@@ -298,24 +299,10 @@ function clickContextMenu(e) {
   }
 }
 
-function resetIllo() {
-  illo.children = [];
-  updateTree();
-}
 
-function addIlloChild() {
-  illo.children.push(new Zdog.Box({
-    width: 5,
-    height: 5,
-    depth: 5,
-    translate: { x: 8, y: 8, z: 0 },
-    color: "#ee6622",
-    topFace: "#eeaa00",
-    leftFace: "#cc2255",
-    rightFace: "#cc2255",
-    bottomFace: "#663366",
-    stroke: false,
-  }));
+
+function addIlloChild(newElement) {
+  illo.children.push(new Zdog.Box({ width: 5, height: 5, depth: 5, color: "#ee6622", stroke: false }));
   updateTree();
 }
 
@@ -461,6 +448,7 @@ function deselectAll(element) {
   }
   highLightTree();
 }
+
 function highLightTree() {
   console.log("highLightTree");
   var x = illo.children;

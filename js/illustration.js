@@ -42,6 +42,12 @@
     this.setResize(this.resize);
   };
 
+  // Clear all the children of the illustration
+  Illustration.prototype.clearAll = function (reset) {
+    if (reset) this.children = [];
+  };
+
+
   Illustration.prototype.setElement = function (element) {
     element = this.getQueryElement(element);
     if (!element) {
