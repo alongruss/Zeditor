@@ -270,6 +270,7 @@
     for (let i = 0; i < children.length; i++) {
       if (children[i].id == id) {
         children[i].selected = true;
+        children[i].children.push(new Zdog.Gizmo());
       } else {
         if (children[i]) {
           this.selectElement(children[i].children, id);
@@ -282,7 +283,17 @@
 
   Illustration.prototype.dragMove = function (event, pointer) {
     if (gizmoXSelected || gizmoYSelected || gizmoZSelected) {
-
+      let a = pointer.pageX - this.dragStartX;
+      let b = pointer.pageY - this.dragStartY;
+      let sign = (a + b) / Math.abs(a + b);
+      let dist = Math.sqrt(a * a + b * b);
+      if (gizmoXSelected) {
+        this.children[0].translate.x = dist * sign;
+      } else if (gizmoYSelected) {
+        this.children[0].translate.y = dist * sign;
+      } else {
+        this.children[0].translate.z = dist * sign;
+      }
     } else {
       var moveX = pointer.pageX - this.dragStartX;
       var moveY = pointer.pageY - this.dragStartY;
