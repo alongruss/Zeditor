@@ -60,7 +60,7 @@
                 { z: 4 },
             ],
             stroke: 0.1,
-            color: offWhite,
+            color: "#FFEEDD",
         }));
     };
 

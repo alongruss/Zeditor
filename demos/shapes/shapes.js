@@ -1,23 +1,7 @@
 // ----- setup ----- //
-
-
-
-
-var sceneSize = 24;
-var isSpinning = false;
-var TAU = Zdog.TAU;
-var offWhite = '#FFEEDD';
-var gold = '#EEAA00';
-var orange = '#EE6622';
-var garnet = '#CC2255';
-var eggplant = '#663366';
-
-var svg;
-var selectedItem;
-var lastSelectedItem;
-var gizmoXSelected = false;
-var gizmoYSelected = false;
-var gizmoZSelected = false;
+var svg = document.getElementsByTagName('svg')[0];
+var selectedItem = lastSelectedItem = null;
+var gizmoXSelected = gizmoYSelected = gizmoZSelected = false;
 
 var currentColor = {
   color: '#888888',
@@ -42,13 +26,14 @@ var currentTransform = {
   },
 };
 
+
+// Create an illustration for rendering
 var illo = new Zdog.Illustration({
   onDragStart: function () {
-    deselectAll();
-    isSpinning = false;
+    deselectAll(illo);
   },
   onResize: function (width, height) {
-    this.zoom = Math.floor(Math.min(width, height) / sceneSize);
+    this.zoom = Math.floor(Math.min(width, height) / 24);
   },
 });
 
@@ -62,7 +47,7 @@ new Zdog.Rect({
   //rotate: { x: 0, y: 0, z: 0 },
   scale: 1.0,
   stroke: 1,
-  color: orange,
+  color: "#ee6622",
 });
 
 new Zdog.RoundedRect({
@@ -80,7 +65,7 @@ new Zdog.Ellipse({
   diameter: 4,
   translate: { x: 4, y: 4, z: 4 },
   stroke: 1,
-  color: garnet,
+  color: "#cc2255",
 });
 
 new Zdog.Polygon({
@@ -89,7 +74,7 @@ new Zdog.Polygon({
   radius: 2.5,
   translate: { x: 4, y: -4, z: -4 },
   stroke: 1,
-  color: orange,
+  color: "#ee6622",
 });
 
 new Zdog.Shape({
@@ -104,15 +89,15 @@ new Zdog.Shape({
   ],
   scale: 1.25,
   stroke: 1,
-  color: offWhite,
+  color: "#FFEEDD",
 });
 
 new Zdog.Hemisphere({
   addTo: illo,
   diameter: 5,
   translate: { x: -4, y: -4, z: -4 },
-  color: garnet,
-  backface: gold,
+  color: "#cc2255",
+  backface: "#eeaa00",
   stroke: false,
 });
 
@@ -121,28 +106,28 @@ new Zdog.Cylinder({
   diameter: 5,
   length: 4,
   translate: { x: -4, y: 4, z: 4 },
-  color: gold,
-  backface: offWhite,
+  color: "#eeaa00",
+  backface: "#FFEEDD",
   stroke: false,
 });
 
-/*new Zdog.Cone({
+new Zdog.Cone({
   addTo: illo,
   diameter: 5,
   length: 4,
-  translate: { x: 4, y: -4, z: 4 },
-  color: eggplant,
-  backface: garnet,
+  translate: { x: 12, y: -4, z: 4 },
+  color: "#663366",
+  backface: "#cc2255",
   stroke: false,
-});*/
+});
 
 new Zdog.Gizmo({
   addTo: illo,
   diameter: 5,
   length: 4,
   translate: { x: 4, y: -4, z: 4 },
-  color: eggplant,
-  backface: garnet,
+  color: "#663366",
+  backface: "#cc2255",
   stroke: false,
 });
 
@@ -152,20 +137,18 @@ new Zdog.Box({
   height: 5,
   depth: 5,
   translate: { x: 4, y: 4, z: -4 },
-  color: orange,
-  topFace: gold,
-  leftFace: garnet,
-  rightFace: garnet,
-  bottomFace: eggplant,
+  color: "#ee6622",
+  topFace: "#eeaa00",
+  leftFace: "#cc2255",
+  rightFace: "#cc2255",
+  bottomFace: "#663366",
   stroke: false,
 });
 
 // ----- animate ----- //
 
-var ticker = 0;
-var cycleCount = 360;
 
-function populateTree() {
+function updateTree() {
   document.getElementById("scene-tree").innerHTML = "";
   document.getElementById("scene-tree").innerHTML += "root";
   document.getElementById("scene-tree").innerHTML += "<ul id='treeList'></ul>";
@@ -176,31 +159,28 @@ function populateTree() {
     } else {
       document.getElementById("treeList").innerHTML += "<li onclick='selectChild(event);'>" + illo.children[i].id + "</li>";
     }
-
   }
 }
 
 function animate() {
-
-  if (isSpinning) {
-    var progress = ticker / cycleCount;
-    var theta = Zdog.easeInOut(progress % 1, 3) * TAU;
-    illo.rotate.y = theta * 2;
-    illo.rotate.x = Math.sin(theta) * 0.5;
-    ticker++;
-  }
   illo.updateRenderGraph();
-
   requestAnimationFrame(animate);
 }
 
-populateTree();
+// Populate the scene tree
+updateTree();
+
+// Build context menus HTML
 buildContextMenus();
+
+addEventListeners();
+
+// Start animation loop
 animate();
 
 
 function updateGuiValueOfSelected() {
-  svg = document.getElementsByTagName('svg')[0];
+
 
   // get selected item
   selectedItem;
@@ -320,7 +300,7 @@ function clickContextMenu(e) {
 
 function resetIllo() {
   illo.children = [];
-  populateTree();
+  updateTree();
 }
 
 function addIlloChild() {
@@ -329,14 +309,14 @@ function addIlloChild() {
     height: 5,
     depth: 5,
     translate: { x: 8, y: 8, z: 0 },
-    color: orange,
-    topFace: gold,
-    leftFace: garnet,
-    rightFace: garnet,
-    bottomFace: eggplant,
+    color: "#ee6622",
+    topFace: "#eeaa00",
+    leftFace: "#cc2255",
+    rightFace: "#cc2255",
+    bottomFace: "#663366",
     stroke: false,
   }));
-  populateTree();
+  updateTree();
 }
 
 function removeIlloChildById(element, id) {
@@ -348,7 +328,7 @@ function removeIlloChildById(element, id) {
       removeIlloChildById(element.children[i], id);
     }
   }
-  populateTree();
+  updateTree();
 }
 
 function closeAllMenus() {
@@ -363,80 +343,82 @@ document.getElementsByTagName("svg")[0].addEventListener("click", (e) => {
 });
 
 
+function addEventListeners() {
+  document.getElementById("pos-x").addEventListener("input", (e) => {
+    currentTransform.translation.x = parseFloat(e.target.value);
+    updateIllustration();
+  });
+  document.getElementById("pos-y").addEventListener("input", (e) => {
+    currentTransform.translation.y = parseFloat(e.target.value);
+    updateIllustration();
+  });
+  document.getElementById("pos-z").addEventListener("input", (e) => {
+    currentTransform.translation.z = parseFloat(e.target.value);
+    updateIllustration();
+  });
+  document.getElementById("rot-x").addEventListener("input", (e) => {
+    currentTransform.rotation.x = parseFloat(e.target.value);
+    updateIllustration();
+  });
+  document.getElementById("rot-y").addEventListener("input", (e) => {
+    currentTransform.rotation.y = parseFloat(e.target.value);
+    updateIllustration();
+  });
+  document.getElementById("rot-z").addEventListener("input", (e) => {
+    currentTransform.rotation.z = parseFloat(e.target.value);
+    updateIllustration();
+  });
+  document.getElementById("scale").addEventListener("input", (e) => {
+    currentTransform.scale.x = parseFloat(e.target.value);
+    currentTransform.scale.y = parseFloat(e.target.value);
+    currentTransform.scale.z = parseFloat(e.target.value);
+    updateIllustration();
+  });
+  document.getElementById("color").addEventListener("input", (e) => {
+    currentColor.color = e.target.value;
+    updateIllustration();
+  });
+  document.getElementById("btnSceneExport").addEventListener("click", (e) => {
+    var result = "";
+    for (let i = 0; i < illo.children.length; i++) {
+      result += "new Zdog." + illo.children[i].type + "({";
+      result += "<br>";
+      result += "addTo : illo,";
+      result += "<br>";
+      result += returnIlloValue(i, "sides", false);
+      result += returnIlloValue(i, "radius", false);
+      result += returnIlloValue(i, "cornerRadius", false);
+      result += returnIlloValue(i, "diameter", false);
+      result += returnIlloValue(i, "length", false);
+      result += returnIlloValue(i, "stroke", false);
+      result += returnIlloValue(i, "fill", false);
+      result += returnIlloValue(i, "closed", false);
+      result += returnIlloValue(i, "visible", false);
+      result += returnIlloValue(i, "width", false);
+      result += returnIlloValue(i, "height", false);
+      result += returnIlloValue(i, "depth", false);
+      result += returnIlloValue(i, "translate", true);
+      result += returnIlloValue(i, "rotate", true);
+      result += returnIlloValue(i, "scale", true);
+      result += returnIlloValue(i, "color", true);
+      result += returnIlloValue(i, "path", true);
+      result += returnIlloValue(i, "front", true);
+      result += returnIlloValue(i, "backface", true);
+      result += returnIlloValue(i, 'rearFace', true);
+      result += returnIlloValue(i, 'leftFace', true);
+      result += returnIlloValue(i, 'rightFace', true);
+      result += returnIlloValue(i, 'topFace', true);
+      result += returnIlloValue(i, 'bottomFace', true);
+      result += returnIlloValue(i, "frontface", true);
+      result += "});";
+      result += "<br>";
+      result += "<br>";
+    }
+    document.getElementById("textSceneExport").innerHTML = result;
+  });
+}
 
 
-document.getElementById("pos-x").addEventListener("input", (e) => {
-  currentTransform.translation.x = parseFloat(e.target.value);
-  updateIllustration();
-});
-document.getElementById("pos-y").addEventListener("input", (e) => {
-  currentTransform.translation.y = parseFloat(e.target.value);
-  updateIllustration();
-});
-document.getElementById("pos-z").addEventListener("input", (e) => {
-  currentTransform.translation.z = parseFloat(e.target.value);
-  updateIllustration();
-});
-document.getElementById("rot-x").addEventListener("input", (e) => {
-  currentTransform.rotation.x = parseFloat(e.target.value);
-  updateIllustration();
-});
-document.getElementById("rot-y").addEventListener("input", (e) => {
-  currentTransform.rotation.y = parseFloat(e.target.value);
-  updateIllustration();
-});
-document.getElementById("rot-z").addEventListener("input", (e) => {
-  currentTransform.rotation.z = parseFloat(e.target.value);
-  updateIllustration();
-});
-document.getElementById("scale").addEventListener("input", (e) => {
-  currentTransform.scale.x = parseFloat(e.target.value);
-  currentTransform.scale.y = parseFloat(e.target.value);
-  currentTransform.scale.z = parseFloat(e.target.value);
-  updateIllustration();
-});
-document.getElementById("color").addEventListener("input", (e) => {
-  currentColor.color = e.target.value;
-  updateIllustration();
-});
-document.getElementById("btnSceneExport").addEventListener("click", (e) => {
-  var result = "";
-  for (let i = 0; i < illo.children.length; i++) {
-    result += "new Zdog." + illo.children[i].type + "({";
-    result += "<br>";
-    result += "addTo : illo,";
-    result += "<br>";
-    result += returnIlloValue(i, "sides", false);
-    result += returnIlloValue(i, "radius", false);
-    result += returnIlloValue(i, "cornerRadius", false);
-    result += returnIlloValue(i, "diameter", false);
-    result += returnIlloValue(i, "length", false);
-    result += returnIlloValue(i, "stroke", false);
-    result += returnIlloValue(i, "fill", false);
-    result += returnIlloValue(i, "closed", false);
-    result += returnIlloValue(i, "visible", false);
-    result += returnIlloValue(i, "width", false);
-    result += returnIlloValue(i, "height", false);
-    result += returnIlloValue(i, "depth", false);
-    result += returnIlloValue(i, "translate", true);
-    result += returnIlloValue(i, "rotate", true);
-    result += returnIlloValue(i, "scale", true);
-    result += returnIlloValue(i, "color", true);
-    result += returnIlloValue(i, "path", true);
-    result += returnIlloValue(i, "front", true);
-    result += returnIlloValue(i, "backface", true);
-    result += returnIlloValue(i, 'rearFace', true);
-    result += returnIlloValue(i, 'leftFace', true);
-    result += returnIlloValue(i, 'rightFace', true);
-    result += returnIlloValue(i, 'topFace', true);
-    result += returnIlloValue(i, 'bottomFace', true);
-    result += returnIlloValue(i, "frontface", true);
-    result += "});";
-    result += "<br>";
-    result += "<br>";
-  }
-  document.getElementById("textSceneExport").innerHTML = result;
-});
 
 function returnIlloValue(index, valueName, isObject) {
   let result = '';
@@ -455,7 +437,7 @@ function returnIlloValue(index, valueName, isObject) {
 
 function selectChild(e) {
   console.log("selectChild");
-  deselectAll();
+  deselectAll(illo);
 
   var x = illo.children;
   var i;
@@ -470,12 +452,12 @@ function selectChild(e) {
   highLightTree();
 }
 
-function deselectAll() {
+function deselectAll(element) {
   console.log("deselectAll");
-  var x = illo.children;
+  var x = element.children;
   var i;
   for (i = 0; i < x.length; i++) {
-    illo.children[i].selected = "";
+    element.children[i].selected = "";
   }
   highLightTree();
 }
