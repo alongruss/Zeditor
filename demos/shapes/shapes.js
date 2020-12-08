@@ -12,8 +12,12 @@ var orange = '#EE6622';
 var garnet = '#CC2255';
 var eggplant = '#663366';
 
+var svg;
+var selectedItem;
 var lastSelectedItem;
-var manipulationInProgress = false;
+var gizmoXSelected = false;
+var gizmoYSelected = false;
+var gizmoZSelected = false;
 
 var currentColor = {
   color: '#888888',
@@ -196,17 +200,33 @@ animate();
 
 
 function updateGuiValueOfSelected() {
-  let svg = document.getElementsByTagName('svg')[0];
+  svg = document.getElementsByTagName('svg')[0];
 
   // get selected item
-  let selectedItem;
+  selectedItem;
 
   for (let i = 0; i < svg.children.length; i++) {
     if (svg.children[i] != null) {
       if (svg.children[i].getAttribute("selected") == "true") {
         selectedItem = svg.children[i];
         window.selectedItem = svg.children[i];
-        if (selectedItem.getAttribute("name") == "gizmoX") { manipulationInProgress = true; } else { manipulationInProgress = false; }
+        if (selectedItem.getAttribute("name") == "gizmoX") {
+          gizmoXSelected = true;
+          gizmoYSelected = false;
+          gizmoZSelected = false;
+        } else if (selectedItem.getAttribute("name") == "gizmoY") {
+          gizmoXSelected = false;
+          gizmoYSelected = true;
+          gizmoZSelected = false;
+        } else if (selectedItem.getAttribute("name") == "gizmoZ") {
+          gizmoXSelected = false;
+          gizmoYSelected = false;
+          gizmoZSelected = true;
+        } else {
+          gizmoXSelected = false;
+          gizmoYSelected = false;
+          gizmoZSelected = false;
+        }
         // Draw selection rectangle
         svg.children[i].style.outline = "0.1px solid rgba(0,0,0,.2)";
       } else {
@@ -341,6 +361,7 @@ document.getElementsByTagName("svg")[0].addEventListener("click", (e) => {
   updateGuiValueOfSelected();
   closeAllMenus();
 });
+
 
 
 

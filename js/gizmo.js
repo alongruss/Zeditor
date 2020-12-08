@@ -12,20 +12,21 @@
         // browser global
         var Zdog = root.Zdog;
         Zdog.Gizmo = factory(Zdog, Zdog.Vector, Zdog.PathCommand,
-            Zdog.Anchor, Zdog.Ellipse);
+            Zdog.Anchor, Zdog.Shape);
     }
-}(this, function factory(utils, Vector, PathCommand, Anchor, Ellipse) {
+}(this, function factory(utils, Vector, PathCommand, Anchor, Shape) {
 
-    var Gizmo = Ellipse.subclass({
+    var Gizmo = Shape.subclass({
         type: "Gizmo",
         name: "Gizmo",
+        fill: true,
     });
 
     var TAU = utils.TAU;
 
     Gizmo.prototype.create = function ( /* options */) {
         // call super
-        Ellipse.prototype.create.apply(this, arguments);
+        Shape.prototype.create.apply(this, arguments);
         // composite shape, create child shapes
         this.children.push(new Zdog.Cone({
             name: "gizmoX",
@@ -49,6 +50,7 @@
             color: "#0000FF",
         }));
         this.children.push(new Zdog.Shape({
+            name: "gizmoBase",
             path: [
                 { x: 0 },
                 { x: 4 },
@@ -65,7 +67,7 @@
 
 
     Gizmo.prototype.render = function (ctx, renderer) {
-
+        Shape.prototype.render.apply(this, arguments);
     };
 
     return Gizmo;

@@ -257,7 +257,13 @@
   };
 
   Illustration.prototype.dragMove = function (event, pointer) {
-    if (manipulationInProgress) { } else {
+    if (gizmoXSelected) {
+      currentTransform.translation.x = pointer.pageX - this.dragStartX;
+    } else if (gizmoYSelected) {
+      currentTransform.translation.x = pointer.pageX - this.dragStartX;
+    } else if (gizmoZSelected) {
+      currentTransform.translation.x = pointer.pageX - this.dragStartX;
+    } else {
       var moveX = pointer.pageX - this.dragStartX;
       var moveY = pointer.pageY - this.dragStartY;
       var displaySize = Math.min(this.width, this.height);

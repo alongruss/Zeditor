@@ -24,6 +24,7 @@
   var CylinderGroup = Group.subclass({
     color: '#333',
     updateSort: true,
+    type: "Group",
   });
 
   CylinderGroup.prototype.create = function () {
@@ -109,6 +110,7 @@
       addTo: this,
       color: this.color,
       visible: this.visible,
+      type: "Cylinder",
     });
     var baseZ = this.length / 2;
     var baseColor = this.backface || true;

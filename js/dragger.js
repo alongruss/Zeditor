@@ -87,7 +87,7 @@
   Dragger.prototype.dragStart = function (event, pointer) {
     // event.preventDefault();
 
-    if (manipulationInProgress) console.log("dragStart");
+    if (gizmoXSelected) console.log("dragStart");
     this.dragStartX = pointer.pageX;
     this.dragStartY = pointer.pageY;
 
@@ -113,6 +113,8 @@
     //event.preventDefault();
     var moveX = pointer.pageX - this.dragStartX;
     var moveY = pointer.pageY - this.dragStartY;
+
+
     this.onDragMove(pointer, moveX, moveY);
   };
 
