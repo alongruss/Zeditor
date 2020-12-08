@@ -153,7 +153,6 @@ function updateTree() {
   document.getElementById("scene-tree").innerHTML += "root";
   document.getElementById("scene-tree").innerHTML += "<ul id='treeList'></ul>";
   for (let i = 0; i < illo.children.length; i++) {
-
     if (illo.children[i].selected) {
       document.getElementById("treeList").innerHTML += "<li class='blue' onclick='selectChild(event);'>" + illo.children[i].id + "</li>";
     } else {
@@ -180,11 +179,7 @@ animate();
 
 
 function updateGuiValueOfSelected() {
-
-
   // get selected item
-  selectedItem;
-
   for (let i = 0; i < svg.children.length; i++) {
     if (svg.children[i] != null) {
       if (svg.children[i].getAttribute("selected") == "true") {
@@ -242,7 +237,6 @@ function updateGuiValueOfSelected() {
     resetControls();
   }
   else {
-
     document.getElementById("itemName").innerText = "";
     currentTransform.translation = { x: 0, y: 0, z: 0 };
     currentTransform.rotation = { x: 0, y: 0, z: 0 };
