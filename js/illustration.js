@@ -278,11 +278,15 @@
         children[i].selected = false;
       }
     }
-
   };
 
   Illustration.prototype.dragMove = function (event, pointer) {
     if (gizmoXSelected || gizmoYSelected || gizmoZSelected) {
+      /*for (let i = 0; i < illo.children.length; i++) {
+        if (this.children[i].selected) {
+         
+        }
+      }*/
       let a = pointer.pageX - this.dragStartX;
       let b = pointer.pageY - this.dragStartY;
       let sign = (a + b) / Math.abs(a + b);
