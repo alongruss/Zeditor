@@ -32,22 +32,35 @@
             name: "gizmoX",
             translate: { x: 4 },
             rotate: { y: -Math.PI * 0.5 },
-            // stroke: 1,
+            stroke: false,
             color: "#ff0000",
         }));
         this.children.push(new Zdog.Cone({
             name: "gizmoY",
             translate: { y: -4 },
             rotate: { x: Math.PI * 0.5 },
-            //stroke: 1,
+            stroke: false,
             color: "#00FF00",
         }));
         this.children.push(new Zdog.Cone({
             name: "gizmoZ",
             translate: { z: 4 },
 
-            //stroke: 1,
+            stroke: false,
             color: "#0000FF",
+        }));
+        this.children.push(new Zdog.Shape({
+            name: "gizmoBase",
+            path: [
+                { x: 0 },
+                { x: 4 },
+                { move: { y: 0 } },
+                { y: -4 },
+                { move: { z: 0 } },
+                { z: 4 },
+            ],
+            stroke: 0.2,
+            color: "#000000",
         }));
         this.children.push(new Zdog.Shape({
             name: "gizmoBase",
