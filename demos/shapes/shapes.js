@@ -423,8 +423,9 @@ function deselectAll(element) {
   var i;
   for (i = 0; i < x.length; i++) {
     element.children[i].selected = "";
+    deselectAll(element.children[i]);
     for (j = 0; j < element.children[i].children.length; j++) {
-      //deselectAll(element.children[i].children[j]);
+
       if (element.children[i].children[j].type == "Gizmo") {
         element.children[i].children.splice(j, 1);
       }
