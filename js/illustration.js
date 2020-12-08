@@ -243,7 +243,26 @@
     // get element under pointer
     var elementMouseIsOver = document.elementFromPoint(pointer.pageX, pointer.pageY);
     //console.log(elementMouseIsOver.id);
-    this.selectElement(this.children, elementMouseIsOver.id);
+    if (elementMouseIsOver.getAttribute("name") == "gizmoX") {
+      gizmoXSelected = true;
+      gizmoYSelected = false;
+      gizmoZSelected = false;
+    } else if (elementMouseIsOver.getAttribute("name") == "gizmoY") {
+      gizmoXSelected = false;
+      gizmoYSelected = true;
+      gizmoZSelected = false;
+    } else if (elementMouseIsOver.getAttribute("name") == "gizmoZ") {
+      gizmoXSelected = false;
+      gizmoYSelected = false;
+      gizmoZSelected = true;
+    } else {
+      gizmoXSelected = false;
+      gizmoYSelected = false;
+      gizmoZSelected = false;
+      this.selectElement(this.children, elementMouseIsOver.id);
+    }
+
+
 
   };
 
@@ -255,7 +274,6 @@
         if (children[i]) {
           this.selectElement(children[i].children, id);
         }
-
         children[i].selected = false;
       }
     }
@@ -263,12 +281,8 @@
   };
 
   Illustration.prototype.dragMove = function (event, pointer) {
-    if (gizmoXSelected) {
-      currentTransform.translation.x = pointer.pageX - this.dragStartX;
-    } else if (gizmoYSelected) {
-      currentTransform.translation.x = pointer.pageX - this.dragStartX;
-    } else if (gizmoZSelected) {
-      currentTransform.translation.x = pointer.pageX - this.dragStartX;
+    if (gizmoXSelected || gizmoYSelected || gizmoZSelected) {
+
     } else {
       var moveX = pointer.pageX - this.dragStartX;
       var moveY = pointer.pageY - this.dragStartY;

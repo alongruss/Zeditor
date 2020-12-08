@@ -185,23 +185,7 @@ function updateGuiValueOfSelected() {
       if (svg.children[i].getAttribute("selected") == "true") {
         selectedItem = svg.children[i];
         window.selectedItem = svg.children[i];
-        if (selectedItem.getAttribute("name") == "gizmoX") {
-          gizmoXSelected = true;
-          gizmoYSelected = false;
-          gizmoZSelected = false;
-        } else if (selectedItem.getAttribute("name") == "gizmoY") {
-          gizmoXSelected = false;
-          gizmoYSelected = true;
-          gizmoZSelected = false;
-        } else if (selectedItem.getAttribute("name") == "gizmoZ") {
-          gizmoXSelected = false;
-          gizmoYSelected = false;
-          gizmoZSelected = true;
-        } else {
-          gizmoXSelected = false;
-          gizmoYSelected = false;
-          gizmoZSelected = false;
-        }
+
         // Draw selection rectangle
         svg.children[i].style.outline = "0.1px solid rgba(0,0,0,.2)";
       } else {
