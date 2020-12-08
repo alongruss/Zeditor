@@ -25,6 +25,7 @@
     var TAU = utils.TAU;
 
     Gizmo.prototype.create = function ( /* options */) {
+        let arcDist = 6;
         // call super
         Shape.prototype.create.apply(this, arguments);
         // composite shape, create child shapes
@@ -35,6 +36,13 @@
             stroke: 1,
             color: "#ff0000",
         }));
+        this.children.push(new Zdog.Ellipse({
+            quarters: 1,
+            diameter: arcDist,
+            rotate: { y: Math.PI * 0.5 },
+            stroke: 0.5,
+            color: "#ff0000",
+        }));
         this.children.push(new Zdog.Cone({
             name: "gizmoY",
             translate: { y: -4 },
@@ -42,11 +50,24 @@
             stroke: 1,
             color: "#00FF00",
         }));
+        this.children.push(new Zdog.Ellipse({
+            quarters: 1,
+            diameter: arcDist,
+            rotate: { x: -Math.PI * 0.5 },
+            stroke: 0.5,
+            color: "#00FF00",
+        }));
         this.children.push(new Zdog.Cone({
             name: "gizmoZ",
             translate: { z: 4 },
 
             stroke: 1,
+            color: "#0000FF",
+        }));
+        this.children.push(new Zdog.Ellipse({
+            quarters: 1,
+            diameter: arcDist,
+            stroke: 0.5,
             color: "#0000FF",
         }));
         this.children.push(new Zdog.Shape({
