@@ -135,7 +135,9 @@
   };
 
   // Cylinder shape does not render anything
-  Cylinder.prototype.render = function () { };
+  Cylinder.prototype.render = function () {
+    Shape.prototype.render.apply(this, arguments);
+  };
 
   // ----- set child properties ----- //
 
