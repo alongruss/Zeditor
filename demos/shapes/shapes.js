@@ -72,7 +72,7 @@ new Zdog.RoundedRect({
   cornerRadius: 1,
   translate: { x: -4, y: 4, z: -4 },
   stroke: 1,
-  color: eggplant,
+  color: "#33AA6633",
 });
 
 new Zdog.Ellipse({
