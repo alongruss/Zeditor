@@ -380,6 +380,14 @@ function addEventListeners() {
       result += "<br>";
     }
     document.getElementById("textSceneExport").innerHTML = result;
+    var text = result.replaceAll("<br>", "\n"),
+    blob = new Blob([text], { type: 'text/plain' }),
+    anchor = document.createElement('a');
+
+    anchor.download = "zeditor.js";
+    anchor.href = (window.webkitURL || window.URL).createObjectURL(blob);
+    anchor.dataset.downloadurl = ['text/plain', anchor.download, anchor.href].join(':');
+    anchor.click();
   });
 }
 
