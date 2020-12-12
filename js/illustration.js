@@ -243,13 +243,20 @@
     // get element under pointer
     var elementMouseIsOver = document.elementFromPoint(pointer.pageX, pointer.pageY);
     //console.log(elementMouseIsOver.id);
+
+
     if (elementMouseIsOver.getAttribute("name") == "gizmoX") {
       currentGizmoMode = gizmoMode.POSX;
-
     } else if (elementMouseIsOver.getAttribute("name") == "gizmoY") {
       currentGizmoMode = gizmoMode.POSY;
     } else if (elementMouseIsOver.getAttribute("name") == "gizmoZ") {
       currentGizmoMode = gizmoMode.POSZ;
+    } else if (elementMouseIsOver.getAttribute("name") == "gizmoRotX") {
+      currentGizmoMode = gizmoMode.ROTX;
+    } else if (elementMouseIsOver.getAttribute("name") == "gizmoRotY") {
+      currentGizmoMode = gizmoMode.ROTY;
+    } else if (elementMouseIsOver.getAttribute("name") == "gizmoRotZ") {
+      currentGizmoMode = gizmoMode.ROTZ;
     } else {
       currentGizmoMode = gizmoMode.NONE;
       this.selectElement(this.children, elementMouseIsOver.id);
@@ -284,13 +291,33 @@
       let b = pointer.pageY - this.dragStartY;
       let sign = (a + b) / Math.abs(a + b);
       let dist = Math.sqrt(a * a + b * b);
-      if (currentGizmoMode == gizmoMode.POSX) {
+
+      console.log(currentGizmoMode);
+      switch (currentGizmoMode) {
+        case gizmoMode.POSX:
+          this.children[0].translate.x = dist * sign;
+        case gizmoMode.POSY:
+          this.children[0].translate.y = dist * sign;
+        case gizmoMode.POSZ:
+          this.children[0].translate.z = dist * sign;
+        case gizmoMode.ROTX:
+          this.children[0].rotate.x = dist * sign * Math.PI / 180;
+        case gizmoMode.ROTY:
+          this.children[0].rotate.y = dist * sign * Math.PI / 180;
+        case gizmoMode.ROTZ:
+          this.children[0].rotate.z = dist * sign * Math.PI / 180;
+        default:
+
+      }
+
+      /*if (currentGizmoMode == gizmoMode.POSX) {
         this.children[0].translate.x = dist * sign;
       } else if (currentGizmoMode == gizmoMode.POSY) {
         this.children[0].translate.y = dist * sign;
       } else if (currentGizmoMode == gizmoMode.POSZ) {
         this.children[0].translate.z = dist * sign;
-      }
+      }*/
+
     } else {
       var moveX = pointer.pageX - this.dragStartX;
       var moveY = pointer.pageY - this.dragStartY;
