@@ -312,7 +312,7 @@ function removeIlloChildById(element, id) {
 }
 
 function closeAllMenus() {
-  console.log("closeAllMenus");
+  //console.log("closeAllMenus");
   document.getElementById("svg-context-menu").style.display = "none";
 }
 
@@ -458,7 +458,7 @@ function deselectAll(element) {
 }
 
 function highLightTree() {
-  console.log("highLightTree");
+  //console.log("highLightTree");
   var x = illo.children;
   var i;
   for (i = 0; i < x.length; i++) {
@@ -471,7 +471,7 @@ function highLightTree() {
 }
 
 function resetControls() {
-  console.log("resetControls");
+  //console.log("resetControls");
   if (document.getElementById("itemName").innerText == "") {
     var x = document.getElementsByTagName("input");
     var i;

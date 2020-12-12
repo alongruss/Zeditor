@@ -296,18 +296,24 @@
       switch (currentGizmoMode) {
         case gizmoMode.POSX:
           this.children[0].translate.x = dist * sign;
+          break;
         case gizmoMode.POSY:
           this.children[0].translate.y = dist * sign;
+          break;
         case gizmoMode.POSZ:
           this.children[0].translate.z = dist * sign;
+          break;
         case gizmoMode.ROTX:
           this.children[0].rotate.x = dist * sign * Math.PI / 180;
+          break;
         case gizmoMode.ROTY:
           this.children[0].rotate.y = dist * sign * Math.PI / 180;
+          break;
         case gizmoMode.ROTZ:
           this.children[0].rotate.z = dist * sign * Math.PI / 180;
+          break;
         default:
-
+          break;
       }
 
       /*if (currentGizmoMode == gizmoMode.POSX) {
