@@ -1,7 +1,22 @@
 // ----- setup ----- //
 var svg = document.getElementsByTagName('svg')[0];
 var selectedItem = lastSelectedItem = null;
-var gizmoXSelected = gizmoYSelected = gizmoZSelected = false;
+
+
+const gizmoMode = {
+  NONE: null,
+  POSX: 'posX',
+  POSY: 'posY',
+  POSZ: 'posZ',
+  ROTX: 'rotX',
+  ROTY: 'rotY',
+  ROTZ: 'rotZ',
+  SCALEX: 'scaleX',
+  SCALEY: 'scaleY',
+  SCALEZ: 'scaleZ',
+}
+
+var currentGizmoMode = gizmoMode.NONE;
 
 var currentColor = {
   color: '#888888',
@@ -381,8 +396,8 @@ function addEventListeners() {
     }
     document.getElementById("textSceneExport").innerHTML = result;
     var text = result.replaceAll("<br>", "\n"),
-    blob = new Blob([text], { type: 'text/plain' }),
-    anchor = document.createElement('a');
+      blob = new Blob([text], { type: 'text/plain' }),
+      anchor = document.createElement('a');
 
     anchor.download = "zeditor.js";
     anchor.href = (window.webkitURL || window.URL).createObjectURL(blob);

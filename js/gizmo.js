@@ -37,6 +37,7 @@
             color: "#ff0000",
         }));
         this.children.push(new Zdog.Ellipse({
+            name: "gizmoRotX",
             quarters: 1,
             diameter: arcDist,
             rotate: { y: Math.PI * 0.5 },
@@ -51,6 +52,7 @@
             color: "#00FF00",
         }));
         this.children.push(new Zdog.Ellipse({
+            name: "gizmoRotY",
             quarters: 1,
             diameter: arcDist,
             rotate: { x: -Math.PI * 0.5 },
@@ -65,6 +67,7 @@
             color: "#0000FF",
         }));
         this.children.push(new Zdog.Ellipse({
+            name: "gizmoRotZ",
             quarters: 1,
             diameter: arcDist,
             stroke: 0.5,

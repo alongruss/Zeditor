@@ -244,21 +244,14 @@
     var elementMouseIsOver = document.elementFromPoint(pointer.pageX, pointer.pageY);
     //console.log(elementMouseIsOver.id);
     if (elementMouseIsOver.getAttribute("name") == "gizmoX") {
-      gizmoXSelected = true;
-      gizmoYSelected = false;
-      gizmoZSelected = false;
+      currentGizmoMode = gizmoMode.POSX;
+
     } else if (elementMouseIsOver.getAttribute("name") == "gizmoY") {
-      gizmoXSelected = false;
-      gizmoYSelected = true;
-      gizmoZSelected = false;
+      currentGizmoMode = gizmoMode.POSY;
     } else if (elementMouseIsOver.getAttribute("name") == "gizmoZ") {
-      gizmoXSelected = false;
-      gizmoYSelected = false;
-      gizmoZSelected = true;
+      currentGizmoMode = gizmoMode.POSZ;
     } else {
-      gizmoXSelected = false;
-      gizmoYSelected = false;
-      gizmoZSelected = false;
+      currentGizmoMode = gizmoMode.NONE;
       this.selectElement(this.children, elementMouseIsOver.id);
     }
 
@@ -281,7 +274,7 @@
   };
 
   Illustration.prototype.dragMove = function (event, pointer) {
-    if (gizmoXSelected || gizmoYSelected || gizmoZSelected) {
+    if (currentGizmoMode != null) {
       /*for (let i = 0; i < illo.children.length; i++) {
         if (this.children[i].selected) {
          
@@ -291,11 +284,11 @@
       let b = pointer.pageY - this.dragStartY;
       let sign = (a + b) / Math.abs(a + b);
       let dist = Math.sqrt(a * a + b * b);
-      if (gizmoXSelected) {
+      if (currentGizmoMode == gizmoMode.POSX) {
         this.children[0].translate.x = dist * sign;
-      } else if (gizmoYSelected) {
+      } else if (currentGizmoMode == gizmoMode.POSY) {
         this.children[0].translate.y = dist * sign;
-      } else {
+      } else if (currentGizmoMode == gizmoMode.POSZ) {
         this.children[0].translate.z = dist * sign;
       }
     } else {
