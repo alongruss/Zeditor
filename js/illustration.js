@@ -273,6 +273,7 @@
         new Zdog.Gizmo(
           { addTo: illo, translate: children[i].translate }
         );
+        indexOfLastChild = i;
       } else {
         if (children[i]) {
           this.selectElement(children[i].children, id);
@@ -297,22 +298,22 @@
       console.log(currentGizmoMode);
       switch (currentGizmoMode) {
         case gizmoMode.POSX:
-          this.children[0].translate.x = dist * sign;
+          this.children[indexOfLastChild].translate.x = dist * sign;
           break;
         case gizmoMode.POSY:
-          this.children[0].translate.y = dist * sign;
+          this.children[indexOfLastChild].translate.y = dist * sign;
           break;
         case gizmoMode.POSZ:
-          this.children[0].translate.z = dist * sign;
+          this.children[indexOfLastChild].translate.z = dist * sign;
           break;
         case gizmoMode.ROTX:
-          this.children[0].rotate.x = dist * sign * Math.PI / 180;
+          this.children[indexOfLastChild].rotate.x = dist * sign * Math.PI / 180;
           break;
         case gizmoMode.ROTY:
-          this.children[0].rotate.y = dist * sign * Math.PI / 180;
+          this.children[indexOfLastChild].rotate.y = dist * sign * Math.PI / 180;
           break;
         case gizmoMode.ROTZ:
-          this.children[0].rotate.z = dist * sign * Math.PI / 180;
+          this.children[indexOfLastChild].rotate.z = dist * sign * Math.PI / 180;
           break;
         default:
           break;

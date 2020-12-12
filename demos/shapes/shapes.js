@@ -1,6 +1,7 @@
 // ----- setup ----- //
 var svg = document.getElementsByTagName('svg')[0];
 var selectedItem = lastSelectedItem = null;
+var indexOfLastChild = 0;
 
 
 const gizmoMode = {
