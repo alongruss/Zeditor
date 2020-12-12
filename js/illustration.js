@@ -270,7 +270,9 @@
     for (let i = 0; i < children.length; i++) {
       if (children[i].id == id) {
         children[i].selected = true;
-        children[i].children.push(new Zdog.Gizmo());
+        new Zdog.Gizmo(
+          { addTo: illo, translate: children[i].translate }
+        );
       } else {
         if (children[i]) {
           this.selectElement(children[i].children, id);

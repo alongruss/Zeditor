@@ -447,11 +447,8 @@ function deselectAll(element) {
   for (i = 0; i < x.length; i++) {
     element.children[i].selected = "";
     deselectAll(element.children[i]);
-    for (j = 0; j < element.children[i].children.length; j++) {
-
-      if (element.children[i].children[j].type == "Gizmo") {
-        element.children[i].children.splice(j, 1);
-      }
+    if (element.children[i].type == "Gizmo") {
+      element.children.splice(i, 1);
     }
   }
   highLightTree();
@@ -462,10 +459,12 @@ function highLightTree() {
   var x = illo.children;
   var i;
   for (i = 0; i < x.length; i++) {
-    if (illo.children[i].selected == "true" || illo.children[i].selected == true) {
-      document.getElementById("scene-tree").getElementsByTagName("li")[i].className = "blue";
-    } else {
-      document.getElementById("scene-tree").getElementsByTagName("li")[i].className = "";
+    if (illo.children[i].type != "Gizmo") {
+      if (illo.children[i].selected == "true" || illo.children[i].selected == true) {
+        document.getElementById("scene-tree").getElementsByTagName("li")[i].className = "blue";
+      } else {
+        document.getElementById("scene-tree").getElementsByTagName("li")[i].className = "";
+      }
     }
   }
 }
