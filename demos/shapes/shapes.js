@@ -2,6 +2,7 @@
 var svg = document.getElementsByTagName('svg')[0];
 var selectedItem = lastSelectedItem = null;
 var indexOfLastChild = 0;
+var indexOfGizmo = 0;
 
 
 const gizmoMode = {
@@ -46,7 +47,8 @@ var currentTransform = {
 // Create an illustration for rendering
 var illo = new Zdog.Illustration({
   onDragStart: function () {
-    deselectAll(illo);
+    //console.log(selectedItem);
+    //deselectAll(illo);
   },
   onResize: function (width, height) {
     this.zoom = Math.floor(Math.min(width, height) / 24);
@@ -212,6 +214,7 @@ function updateGuiValueOfSelected() {
 
   // If we've selected a different and non-null item
   if (lastSelectedItem != selectedItem && selectedItem != null) {
+    deselectAll(illo);
     // set lastSelectedItem
     lastSelectedItem = selectedItem;
 

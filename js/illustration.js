@@ -270,10 +270,13 @@
     for (let i = 0; i < children.length; i++) {
       if (children[i].id == id) {
         children[i].selected = true;
+        indexOfGizmo = illo.children[illo.children.length];
         new Zdog.Gizmo(
           { addTo: illo, translate: children[i].translate }
         );
+
         indexOfLastChild = i;
+
       } else {
         if (children[i]) {
           this.selectElement(children[i].children, id);
@@ -285,26 +288,31 @@
 
   Illustration.prototype.dragMove = function (event, pointer) {
     if (currentGizmoMode != null) {
-      /*for (let i = 0; i < illo.children.length; i++) {
-        if (this.children[i].selected) {
-         
+      for (let i = 0; i < illo.children.length; i++) {
+        if (this.children[i].type == "Gizmo") {
+          indexOfGizmo = i;
         }
-      }*/
+      }
       let a = pointer.pageX - this.dragStartX;
       let b = pointer.pageY - this.dragStartY;
       let sign = (a + b) / Math.abs(a + b);
       let dist = Math.sqrt(a * a + b * b);
 
+      //TODO: need to update gizmo location
+
       console.log(currentGizmoMode);
       switch (currentGizmoMode) {
         case gizmoMode.POSX:
           this.children[indexOfLastChild].translate.x = dist * sign;
+          this.children[indexOfGizmo].translate.x = dist * sign;
           break;
         case gizmoMode.POSY:
           this.children[indexOfLastChild].translate.y = dist * sign;
+          this.children[indexOfGizmo].translate.y = dist * sign;
           break;
         case gizmoMode.POSZ:
           this.children[indexOfLastChild].translate.z = dist * sign;
+          this.children[indexOfGizmo].translate.z = dist * sign;
           break;
         case gizmoMode.ROTX:
           this.children[indexOfLastChild].rotate.x = dist * sign * Math.PI / 180;
