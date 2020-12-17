@@ -46,9 +46,11 @@ var currentTransform = {
 
 // Create an illustration for rendering
 var illo = new Zdog.Illustration({
+  onDragMove: function () {
+    reselect(illo);
+  },
   onDragStart: function () {
-    //console.log(selectedItem);
-    //deselectAll(illo);
+    deselectAll(illo);
   },
   onResize: function (width, height) {
     this.zoom = Math.floor(Math.min(width, height) / 24);
@@ -447,17 +449,27 @@ function selectChild(e) {
 
 function deselectAll(element) {
   console.log("deselectAll");
+  window.lastDragElement = null;
   var x = element.children;
   var i;
   for (i = 0; i < x.length; i++) {
-    element.children[i].selected = "";
-    deselectAll(element.children[i]);
+    if(x[i].selected == "true"){
+      window.lastDragElement = element.children[i];
+      element.children[i].selected = "";
+    }else{
+    // deselectAll(element.children[i]);
     if (element.children[i].type == "Gizmo") {
       element.children.splice(i, 1);
     }
-  }
+  }}
   setTimeout(function(){ testGizmo(); }, 500);
   highLightTree();
+}
+
+function reselect(){
+  if(window.lastDragElement != null){
+    window.lastDragElement.selected = "true";
+  }
 }
 
 function highLightTree() {
