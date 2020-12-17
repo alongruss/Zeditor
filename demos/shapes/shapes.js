@@ -46,9 +46,11 @@ var currentTransform = {
 
 // Create an illustration for rendering
 var illo = new Zdog.Illustration({
+  onDragEnd: function () {
+    // reselect(illo);
+  },
   onDragStart: function () {
-    //console.log(selectedItem);
-    //deselectAll(illo);
+    deselectAll(illo);
   },
   onResize: function (width, height) {
     this.zoom = Math.floor(Math.min(width, height) / 24);
@@ -214,7 +216,7 @@ function updateGuiValueOfSelected() {
 
   // If we've selected a different and non-null item
   if (lastSelectedItem != selectedItem && selectedItem != null) {
-    deselectAll(illo);
+    // deselectAll(illo);
     // set lastSelectedItem
     lastSelectedItem = selectedItem;
 
@@ -304,7 +306,7 @@ function addIlloChild(newElement) {
 }
 
 function removeIlloChildById(element, id) {
-  //console.log("removing " + id);
+  console.log("removing " + id);
   for (let i = 0; i < element.children.length; i++) {
     if (element.children[i].id == id) {
       element.children.splice(i, 1);
@@ -429,7 +431,7 @@ function returnIlloValue(index, valueName, isObject) {
 }
 
 function selectChild(e) {
-  //console.log("selectChild");
+  console.log("selectChild");
   deselectAll(illo);
 
   var x = illo.children;
@@ -446,18 +448,53 @@ function selectChild(e) {
 }
 
 function deselectAll(element) {
-  //console.log("deselectAll");
+  console.log("deselectAll");
+  window.lastDragElement = null;
   var x = element.children;
   var i;
   for (i = 0; i < x.length; i++) {
-    element.children[i].selected = "";
-    deselectAll(element.children[i]);
-    if (element.children[i].type == "Gizmo") {
-      element.children.splice(i, 1);
+    if (x[i].selected == "true") {
+      window.lastDragElement = element.children[i];
+      element.children[i].selected = "";
+      x[i].selected = "false";
+    } else {
+      // deselectAll(element.children[i]);
+      if (element.children[i].type == "Gizmo") {
+        element.children.splice(i, 1);
+      }
     }
   }
-  setTimeout(function () { testGizmo(); }, 500);
+  // setTimeout(function(){ testGizmo(); }, 500);
   highLightTree();
+}
+
+function reselect() {
+  if (window.lastDragElement != null) {
+    var x = illo.children;
+    var i;
+    for (i = 0; i < x.length; i++) {
+      if (x[i].id == window.lastDragElement.id) {
+        console.log(x[i].id)
+        x[i].selected = "true";
+      }
+    }
+  }
+  addGizmo();
+}
+function addGizmo() {
+  var x = illo.children;
+  var i;
+  for (i = 0; i < x.length; i++) {
+    // if (x[i].type == "Gizmo") {
+    //   x[i].remove(this);
+    // }
+    if (x[i].selected == "true") {
+      new Zdog.Gizmo(
+        { addTo: illo, translate: x[i].translate }
+      );
+    }
+  }
+
 }
 
 function highLightTree() {
@@ -479,7 +516,7 @@ function testGizmo() {
   var i;
   for (i = 0; i < x.length - 1; i++) {
     if (illo.children[i].renderFront.x == illo.children[illo.children.length - 1].renderFront.x && illo.children[i].renderFront.y == illo.children[illo.children.length - 1].renderFront.y && illo.children[i].renderFront.z == illo.children[illo.children.length - 1].renderFront.z) {
-      //console.log(illo.children[i].type);
+      console.log(illo.children[i].type);
       illo.children[i].selected = "true";
       highLightTree();
     }
