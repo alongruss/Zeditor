@@ -304,7 +304,7 @@ function addIlloChild(newElement) {
 }
 
 function removeIlloChildById(element, id) {
-  console.log("removing " + id);
+  //console.log("removing " + id);
   for (let i = 0; i < element.children.length; i++) {
     if (element.children[i].id == id) {
       element.children.splice(i, 1);
@@ -429,7 +429,7 @@ function returnIlloValue(index, valueName, isObject) {
 }
 
 function selectChild(e) {
-  console.log("selectChild");
+  //console.log("selectChild");
   deselectAll(illo);
 
   var x = illo.children;
@@ -446,7 +446,7 @@ function selectChild(e) {
 }
 
 function deselectAll(element) {
-  console.log("deselectAll");
+  //console.log("deselectAll");
   var x = element.children;
   var i;
   for (i = 0; i < x.length; i++) {
@@ -456,7 +456,7 @@ function deselectAll(element) {
       element.children.splice(i, 1);
     }
   }
-  setTimeout(function(){ testGizmo(); }, 500);
+  setTimeout(function () { testGizmo(); }, 500);
   highLightTree();
 }
 
@@ -474,16 +474,16 @@ function highLightTree() {
     }
   }
 }
-function testGizmo(){
+function testGizmo() {
   var x = illo.children;
   var i;
-  for (i = 0; i < x.length-1; i++) {
-    if(illo.children[i].renderFront.x == illo.children[illo.children.length-1].renderFront.x && illo.children[i].renderFront.y == illo.children[illo.children.length-1].renderFront.y && illo.children[i].renderFront.z == illo.children[illo.children.length-1].renderFront.z){
-      console.log(illo.children[i].type);
+  for (i = 0; i < x.length - 1; i++) {
+    if (illo.children[i].renderFront.x == illo.children[illo.children.length - 1].renderFront.x && illo.children[i].renderFront.y == illo.children[illo.children.length - 1].renderFront.y && illo.children[i].renderFront.z == illo.children[illo.children.length - 1].renderFront.z) {
+      //console.log(illo.children[i].type);
       illo.children[i].selected = "true";
       highLightTree();
     }
-}
+  }
 }
 
 function resetControls() {
