@@ -46,8 +46,8 @@ var currentTransform = {
 
 // Create an illustration for rendering
 var illo = new Zdog.Illustration({
-  onDragMove: function () {
-    reselect(illo);
+  onDragEnd: function () {
+    // reselect(illo);
   },
   onDragStart: function () {
     deselectAll(illo);
@@ -216,7 +216,7 @@ function updateGuiValueOfSelected() {
 
   // If we've selected a different and non-null item
   if (lastSelectedItem != selectedItem && selectedItem != null) {
-    deselectAll(illo);
+    // deselectAll(illo);
     // set lastSelectedItem
     lastSelectedItem = selectedItem;
 
@@ -456,20 +456,44 @@ function deselectAll(element) {
     if(x[i].selected == "true"){
       window.lastDragElement = element.children[i];
       element.children[i].selected = "";
+      x[i].selected = "false";
     }else{
     // deselectAll(element.children[i]);
     if (element.children[i].type == "Gizmo") {
       element.children.splice(i, 1);
     }
   }}
-  setTimeout(function(){ testGizmo(); }, 500);
+  // setTimeout(function(){ testGizmo(); }, 500);
   highLightTree();
 }
 
 function reselect(){
   if(window.lastDragElement != null){
-    window.lastDragElement.selected = "true";
+    var x = illo.children;
+    var i;
+    for (i = 0; i < x.length; i++) {
+      if(x[i].id == window.lastDragElement.id){
+        console.log(x[i].id)
+        x[i].selected = "true";
+      }
+    }
   }
+  addGizmo();
+}
+function addGizmo(){
+  var x = illo.children;
+  var i;
+  for (i = 0; i < x.length; i++) {
+    // if (x[i].type == "Gizmo") {
+    //   x[i].remove(this);
+    // }
+    if(x[i].selected == "true"){
+      new Zdog.Gizmo(
+        { addTo: illo, translate: x[i].translate }
+      );
+    }
+  }
+ 
 }
 
 function highLightTree() {

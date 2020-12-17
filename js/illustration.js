@@ -270,11 +270,13 @@
     for (let i = 0; i < children.length; i++) {
       if (children[i].id == id) {
         children[i].selected = true;
+        // selectedItem = children[i];
+        
         indexOfGizmo = illo.children[illo.children.length];
+        setTimeout(function(){ updateGuiValueOfSelected(); }, 100);
         new Zdog.Gizmo(
           { addTo: illo, translate: children[i].translate }
         );
-
         indexOfLastChild = i;
 
       } else {
