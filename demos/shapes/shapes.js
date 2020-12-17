@@ -46,9 +46,6 @@ var currentTransform = {
 
 // Create an illustration for rendering
 var illo = new Zdog.Illustration({
-  onDragEnd: function () {
-    // reselect(illo);
-  },
   onDragStart: function () {
     deselectAll(illo);
   },
@@ -208,6 +205,7 @@ function updateGuiValueOfSelected() {
 
         // Draw selection rectangle
         svg.children[i].style.outline = "0.1px solid rgba(0,0,0,.2)";
+        addGizmo();
       } else {
         svg.children[i].style.outline = "none";
       }
@@ -458,36 +456,18 @@ function deselectAll(element) {
       element.children[i].selected = "";
       x[i].selected = "false";
     } else {
-      // deselectAll(element.children[i]);
       if (element.children[i].type == "Gizmo") {
         element.children.splice(i, 1);
       }
     }
   }
-  // setTimeout(function(){ testGizmo(); }, 500);
   highLightTree();
 }
 
-function reselect() {
-  if (window.lastDragElement != null) {
-    var x = illo.children;
-    var i;
-    for (i = 0; i < x.length; i++) {
-      if (x[i].id == window.lastDragElement.id) {
-        console.log(x[i].id)
-        x[i].selected = "true";
-      }
-    }
-  }
-  addGizmo();
-}
 function addGizmo() {
   var x = illo.children;
   var i;
   for (i = 0; i < x.length; i++) {
-    // if (x[i].type == "Gizmo") {
-    //   x[i].remove(this);
-    // }
     if (x[i].selected == "true") {
       new Zdog.Gizmo(
         { addTo: illo, translate: x[i].translate }
@@ -498,7 +478,6 @@ function addGizmo() {
 }
 
 function highLightTree() {
-  //console.log("highLightTree");
   var x = illo.children;
   var i;
   for (i = 0; i < x.length; i++) {
@@ -524,7 +503,6 @@ function testGizmo() {
 }
 
 function resetControls() {
-  //console.log("resetControls");
   if (document.getElementById("itemName").innerText == "") {
     var x = document.getElementsByTagName("input");
     var i;
