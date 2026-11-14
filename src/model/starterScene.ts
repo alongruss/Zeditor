@@ -11,7 +11,7 @@ function shape(
   props: ShapeData['props'],
   scale = 1,
 ): ShapeData {
-  return { id, name, type, translate, rotate: noRotation, scale, props };
+  return { id, name, type, translate, rotate: noRotation, scale, opacity: 1, props };
 }
 
 /** The nine-shape scene the 2020 editor opened with. */

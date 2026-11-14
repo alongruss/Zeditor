@@ -1,7 +1,8 @@
 # Zeditor rebuild plan
 
 Agreed November 2026. This is the plan for turning the 2020 Zeditor prototype into a small editor
-that works. It records what was wrong, what we decided, and what each of the four PRs must deliver.
+that works. It records what was wrong, what we decided, and what each of the five PRs must deliver.
+(It was four PRs; undo/redo, with color alpha and shape opacity, became its own PR 3.)
 
 ## Why rebuild
 
@@ -20,9 +21,9 @@ the editor and engine were tangled together, and the editor stored its state in 
 | Inspector edits also changed shapes you had deselected (`selected` was `true`, `"true"`, `"false"` or `""`, and `"false"` counts as true); edited shapes ended up sharing one `translate` object | PR 2 |
 | The Inspector only filled in if a redraw happened within a 100 ms timer, because it read the selection back from SVG attributes | PR 2 |
 | Clicking a Box or Cylinder face selected the inner face, and then the gizmo moved a different top-level shape | PR 2 |
-| Export dropped `0`/`false` values (so `stroke: false` was lost), only exported top-level shapes, could include the gizmo, and there was no import | PR 3 |
-| Gizmo drag set the position to the drag distance in pixels, took direction from the sign of dx+dy (`NaN` when dx = −dy), and ignored the camera | PR 4 |
-| Gizmos piled up or were not removed (items deleted from a list while looping over it) | PR 4 |
+| Export dropped `0`/`false` values (so `stroke: false` was lost), only exported top-level shapes, could include the gizmo, and there was no import | PR 4 |
+| Gizmo drag set the position to the drag distance in pixels, took direction from the sign of dx+dy (`NaN` when dx = −dy), and ignored the camera | PR 5 |
+| Gizmos piled up or were not removed (items deleted from a list while looping over it) | PR 5 |
 
 ## Decisions
 
@@ -39,6 +40,8 @@ mouse and keyboard. Not a polished public product yet.
   plain imperative zdog. Plain CSS (no Sass).
 - SVG renderer only in the editor, so the browser can tell us which element was clicked. The exported
   script can still target canvas.
+- Undo history lives in the store next to the state: `{ present, past, future }`, where each past
+  or future step is a `{ before, after }` pair of states. Commands stay pure functions of the state.
 
 **Scene data**
 - The scene is versioned JSON: `{ version, settings: { background, zoom }, shapes: [...] }`.
@@ -47,7 +50,11 @@ mouse and keyboard. Not a polished public product yet.
 - Ids are stable and readable (`box-1`, `cone-2`). Names can be edited (double-click in the tree).
 - Each shape type declares its fields (label, kind, step, default), and the Inspector is built from
   that list:
-  - Every shape: position, rotation in degrees, scale, color, stroke, fill.
+  - Every shape: position, rotation in degrees, scale, opacity, color, stroke, fill.
+  - Every color has an alpha percentage next to it, stored in the hex value (`#rrggbbaa`).
+  - Opacity (0–100 %) is stored on the shape. zdog has no opacity setting, so when the shape is
+    drawn, and in the export, it is multiplied into the alpha of each of the shape's colors. Parts of
+    a see-through Box or Cylinder therefore show through each other, as zdog draws them.
   - Sizes, where the type has them: width, height, depth, diameter, length, sides, cornerRadius.
   - Face colors for Box, and backface color for Cylinder, Cone and Hemisphere.
 
@@ -56,12 +63,19 @@ mouse and keyboard. Not a polished public product yet.
   handle turns the camera **without** clearing the selection. A move of under 3 px counts as a click.
 - Mouse wheel zooms; "Reset view" puts the camera back.
 - "Add" toolbar with all 9 shape types: a new shape appears at the origin and is selected.
-  Delete/Backspace removes it, Ctrl+D duplicates it, and the right-click menu offers Duplicate and
+  Delete/Backspace removes it, Ctrl+D duplicates it in place (the copy is selected, ready to move),
+  and the right-click menu offers Duplicate and
   Delete. "New scene" asks for confirmation and can be undone.
-- Undo/redo saves a copy of the scene after each change (Ctrl+Z, Ctrl+Shift+Z / Ctrl+Y, up to 100
-  steps). A drag, or one session of typing in a field, is one step.
+- Undo/redo (Ctrl+Z, Ctrl+Shift+Z / Ctrl+Y, Cmd on a Mac, and toolbar buttons; up to 100 steps).
+  Each step keeps the editor state from just before and just after a change, so Undo and Redo also
+  re-select the shape that changed. Selecting is not a step.
+  - A drag, one visit to a field (focus to blur), or dragging around the color picker is one step.
+    A step that ends where it began (dragged out and back) is dropped.
+  - Number, hex and alpha fields apply each keystroke at once, so Ctrl+Z in them undoes the scene.
+    In the rename box, Ctrl+Z undoes typing as usual.
+  - The shortcuts follow the physical key on non-Latin keyboard layouts (e.g. Hebrew).
 - Shift snaps gizmo moves to whole units and rotation to 15°.
-- Inspector number fields: arrow keys step by one step (0.5 units, 1°, 0.1 scale). With Shift they
+- Inspector number fields: arrow keys step by one step (0.5 units, 1°, 0.1 scale, 1 %). With Shift they
   step by 15° for rotation, or ten steps for everything else. Dragging a field's label or unit
   (e.g. "°") left or right also changes it, one step per 4 px, with the same Shift rule; a click on
   the label without dragging focuses the field. (Drag-to-change was added during PR 2.)
@@ -84,7 +98,8 @@ mouse and keyboard. Not a polished public product yet.
   autosave, opens the 2020 nine-shape scene; "New scene" starts from empty.
 - "Export Zdog JS" generates a complete script that runs when pasted into a page: an Illustration with
   the scene's background and zoom, one named `const` per shape, and a draw loop. It keeps `0`/`false`
-  values and never includes the gizmo. It is copied to the clipboard and downloaded.
+  values, applies opacity the same way the editor does, and never includes the gizmo. It is copied to
+  the clipboard and downloaded.
 
 **Process**
 - One branch and one PR per phase, merged before the next phase starts.
@@ -109,7 +124,7 @@ and the Pages site is live after merge.
 
 ### PR 2: Scene and selection
 - Shape type definitions with their field lists; the scene data; a store holding
-  `{ scene, selectedId }`. The camera stays inside zdog until PR 4 moves it into the store.
+  `{ scene, selectedId }`. The camera stays inside zdog until PR 5 moves it into the store.
 - The viewport creates, updates and removes zdog objects by id. Every SVG element a shape draws
   (including a Box's faces) is tagged with that shape's top-level id, so a click selects the whole shape.
 - Preact panels: scene tree (select, double-click to rename), the Inspector built from field lists
@@ -121,18 +136,38 @@ and the Pages site is live after merge.
 change only that shape. Tests cover the shared-`translate` bug, the Inspector timing bug and the
 Box-face selection bug.
 
-### PR 3: Saving, undo, export
+### PR 3: Undo/redo, alpha and opacity (`rebuild/3-undo`)
+- Undo/redo in the store, with groups so a drag or one visit to a field is one step.
+- Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y and Undo/Redo toolbar buttons.
+- An alpha percentage next to every color, and an Opacity field for every shape.
+  (Alpha and opacity were asked for during this PR.)
+
+**Done when:** every edit, add, delete, rename and New scene can be undone and redone; a label drag
+and one visit to a field undo in one step; opacity fades every part of a shape.
+
+### PR 4: Saving and export
 - Save / Open / autosave, with version checking.
-- Undo/redo, with a way to group a drag or one field's typing into one step.
 - The Zdog JS export.
 
 **Done when:** a reload keeps your work, Save then Open gives the same scene, and a Vitest test runs
 the exported script against zdog and gets the same shapes back.
 
-### PR 4: Gizmo and camera
+### PR 5: Gizmo and camera
 - The overlay gizmo with move arrows and rotation rings, and Shift snapping.
 - Click versus drag handling, wheel zoom and Reset view.
 - A full Playwright test: select, drag along an axis, rotate, undo, save, reload.
 
 **Done when:** a handle moves the shape smoothly along its axis from any camera angle and never
 produces `NaN`, the gizmo is always visible, and each drag is one undo step.
+
+## Later
+
+**Lottie export.** The long-term aim is for the editor to export Lottie animations. Nothing is built
+for it yet; it needs its own planning round. What is known so far:
+- Lottie is 2D. Each frame would be drawn by zdog and its projected paths written out, so the 3D scene
+  becomes 2D shape layers.
+- It needs animation in the scene data: a timeline with keyframes for position, rotation, scale,
+  colors and opacity. The scene's `version` field allows adding that.
+- Shapes change front-to-back order as they turn, but Lottie layers keep a fixed order. That has to
+  be handled (for example by splitting layers where the order changes).
+- Opacity is already stored separately from colors, which matches Lottie's own opacity property.

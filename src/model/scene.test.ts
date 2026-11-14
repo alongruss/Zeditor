@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  DUPLICATE_OFFSET,
   addShape,
   createShape,
   duplicateShape,
@@ -61,6 +60,7 @@ describe('createShape', () => {
     expect(shape.translate).toEqual({ x: 0, y: 0, z: 0 });
     expect(shape.rotate).toEqual({ x: 0, y: 0, z: 0 });
     expect(shape.scale).toBe(1);
+    expect(shape.opacity).toBe(1);
   });
 
   it('every editable field has a default', () => {
@@ -116,6 +116,12 @@ describe('updateShape', () => {
     expect(box.props.width).toBe(5);
   });
 
+  it('sets opacity', () => {
+    const after = updateShape(starterScene(), 'box-1', { opacity: 0.25 });
+    expect(findShape(after, 'box-1')!.opacity).toBe(0.25);
+    expect(findShape(after, 'cone-1')!.opacity).toBe(1);
+  });
+
   it('returns the same scene for an unknown id', () => {
     const scene = starterScene();
     expect(updateShape(scene, 'nope-1', { scale: 3 })).toBe(scene);
@@ -136,8 +142,8 @@ describe('removeShape', () => {
 });
 
 describe('duplicateShape', () => {
-  it('copies settings under a new id, offset, right after the original', () => {
-    const before = starterScene();
+  it('copies settings under a new id, in place, right after the original', () => {
+    const before = updateShape(starterScene(), 'cone-1', { opacity: 0.5 });
     const { scene, id } = duplicateShape(before, 'cone-1');
     expect(id).toBe('cone-2');
     const index = scene.shapes.findIndex((s) => s.id === 'cone-1');
@@ -147,11 +153,9 @@ describe('duplicateShape', () => {
     const copy = findShape(scene, 'cone-2')!;
     expect(copy.name).toBe('Cone 2');
     expect(copy.props).toEqual(original.props);
-    expect(copy.translate).toEqual({
-      x: original.translate.x + DUPLICATE_OFFSET.x,
-      y: original.translate.y + DUPLICATE_OFFSET.y,
-      z: original.translate.z + DUPLICATE_OFFSET.z,
-    });
+    expect(copy.opacity).toBe(0.5);
+    expect(copy.translate).toEqual(original.translate);
+    expect(copy.rotate).toEqual(original.rotate);
   });
 
   it('shares no nested objects with the original', () => {
@@ -161,6 +165,7 @@ describe('duplicateShape', () => {
     expect(copy.props.path).toEqual(original.props.path);
     expect(copy.props.path).not.toBe(original.props.path);
     expect(copy.rotate).not.toBe(original.rotate);
+    expect(copy.translate).not.toBe(original.translate);
   });
 
   it('does nothing for an unknown id', () => {

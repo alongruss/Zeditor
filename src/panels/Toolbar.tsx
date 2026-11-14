@@ -2,13 +2,14 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { SHAPE_TYPE_DEFS } from '../model/shapeTypes';
 import { SHAPE_TYPES } from '../model/types';
 import { addShapeOfType, deleteShape, duplicate, newScene } from '../state/commands';
-import { dispatch, useEditorState } from '../state/store';
+import { dispatch, redo, undo, useEditorState, useUndoAvailability } from '../state/store';
 
-export const NEW_SCENE_PROMPT = 'Start a new, empty scene? The current scene will be cleared.';
+export const NEW_SCENE_PROMPT = 'Start a new, empty scene? You can undo this with Ctrl+Z.';
 
-/** Floating toolbar over the viewport: Add, Duplicate, Delete, New scene. */
+/** Floating toolbar over the viewport: Add, Duplicate, Delete, Undo, Redo, New scene. */
 export function Toolbar() {
   const { scene, selectedId } = useEditorState();
+  const { canUndo, canRedo } = useUndoAvailability();
   const [addOpen, setAddOpen] = useState(false);
   const addRef = useRef<HTMLDivElement>(null);
 
@@ -72,6 +73,12 @@ export function Toolbar() {
         onClick={() => selectedId && dispatch(deleteShape(selectedId))}
       >
         Delete
+      </button>
+      <button type="button" title="Undo (Ctrl+Z)" disabled={!canUndo} onClick={undo}>
+        Undo
+      </button>
+      <button type="button" title="Redo (Ctrl+Shift+Z)" disabled={!canRedo} onClick={redo}>
+        Redo
       </button>
       <button
         type="button"

@@ -1,3 +1,4 @@
+import type { ComponentChildren } from 'preact';
 import { findShape, type ShapePatch } from '../model/scene';
 import { getShapeTypeDef, type FieldDef, type FieldGroup } from '../model/shapeTypes';
 import type { FaceValue, PropValue, ShapeData, Vec3 } from '../model/types';
@@ -9,6 +10,7 @@ const UNIT_STEP = 0.5;
 const ANGLE_STEP = 1;
 const ANGLE_SHIFT_STEP = 15;
 const SCALE_STEP = 0.1;
+const PERCENT_STEP = 1;
 const AXES = ['x', 'y', 'z'] as const;
 
 /** Edits the selected shape. Built from the shape type's field list. */
@@ -22,7 +24,8 @@ export function Inspector() {
 
 function ShapeInspector({ shape }: { shape: ShapeData }) {
   const def = getShapeTypeDef(shape.type);
-  const set = (patch: ShapePatch) => dispatch(update(shape.id, patch));
+  // Changes sharing a group (one drag, one visit to a field) undo as one step.
+  const set: SetPatch = (patch, group) => dispatch(update(shape.id, patch), { group });
   const fieldsIn = (group: FieldGroup) => def.fields.filter((field) => field.group === group);
 
   return (
@@ -36,7 +39,7 @@ function ShapeInspector({ shape }: { shape: ShapeData }) {
         legend="Position"
         value={shape.translate}
         step={UNIT_STEP}
-        onCommit={(translate) => set({ translate })}
+        onCommit={(translate, group) => set({ translate }, group)}
       />
       <VectorGroup
         legend="Rotation"
@@ -44,7 +47,7 @@ function ShapeInspector({ shape }: { shape: ShapeData }) {
         step={ANGLE_STEP}
         shiftStep={ANGLE_SHIFT_STEP}
         suffix="°"
-        onCommit={(rotate) => set({ rotate })}
+        onCommit={(rotate, group) => set({ rotate }, group)}
       />
       <fieldset class="group">
         <legend>Scale</legend>
@@ -54,16 +57,29 @@ function ShapeInspector({ shape }: { shape: ShapeData }) {
           value={shape.scale}
           step={SCALE_STEP}
           min={0}
-          onCommit={(scale) => set({ scale })}
+          onCommit={(scale, group) => set({ scale }, group)}
         />
       </fieldset>
 
       <FieldGroupView legend="Size" fields={fieldsIn('size')} shape={shape} set={set} />
-      <FieldGroupView legend="Appearance" fields={fieldsIn('appearance')} shape={shape} set={set} />
+      <FieldGroupView legend="Appearance" fields={fieldsIn('appearance')} shape={shape} set={set}>
+        <NumberInput
+          label="Opacity"
+          value={Math.round(shape.opacity * 100)}
+          suffix="%"
+          step={PERCENT_STEP}
+          min={0}
+          max={100}
+          integer
+          onCommit={(percent, group) => set({ opacity: percent / 100 }, group)}
+        />
+      </FieldGroupView>
       <FieldGroupView legend="Faces" fields={fieldsIn('faces')} shape={shape} set={set} />
     </div>
   );
 }
+
+type SetPatch = (patch: ShapePatch, group?: string) => void;
 
 interface VectorGroupProps {
   readonly legend: string;
@@ -71,7 +87,7 @@ interface VectorGroupProps {
   readonly step: number;
   readonly shiftStep?: number;
   readonly suffix?: string;
-  readonly onCommit: (patch: Partial<Vec3>) => void;
+  readonly onCommit: (patch: Partial<Vec3>, group: string) => void;
 }
 
 function VectorGroup({ legend, value, step, shiftStep, suffix, onCommit }: VectorGroupProps) {
@@ -88,7 +104,7 @@ function VectorGroup({ legend, value, step, shiftStep, suffix, onCommit }: Vecto
             step={step}
             shiftStep={shiftStep}
             suffix={suffix}
-            onCommit={(n) => onCommit({ [axis]: n })}
+            onCommit={(n, group) => onCommit({ [axis]: n }, group)}
           />
         ))}
       </div>
@@ -100,14 +116,17 @@ interface FieldGroupViewProps {
   readonly legend: string;
   readonly fields: readonly FieldDef[];
   readonly shape: ShapeData;
-  readonly set: (patch: ShapePatch) => void;
+  readonly set: SetPatch;
+  /** Fields every shape has, shown before the type's own fields. */
+  readonly children?: ComponentChildren;
 }
 
-function FieldGroupView({ legend, fields, shape, set }: FieldGroupViewProps) {
-  if (fields.length === 0) return null;
+function FieldGroupView({ legend, fields, shape, set, children }: FieldGroupViewProps) {
+  if (fields.length === 0 && !children) return null;
   return (
     <fieldset class="group">
       <legend>{legend}</legend>
+      {children}
       {fields.map((field) => (
         <FieldControl key={field.key} field={field} shape={shape} set={set} />
       ))}
@@ -115,10 +134,10 @@ function FieldGroupView({ legend, fields, shape, set }: FieldGroupViewProps) {
   );
 }
 
-function FieldControl({ field, shape, set }: { field: FieldDef; shape: ShapeData; set: (patch: ShapePatch) => void }) {
+function FieldControl({ field, shape, set }: { field: FieldDef; shape: ShapeData; set: SetPatch }) {
   const defaults = getShapeTypeDef(shape.type).defaults;
   const raw: PropValue | undefined = shape.props[field.key] ?? defaults[field.key];
-  const commit = (value: PropValue) => set({ props: { [field.key]: value } });
+  const commit = (value: PropValue, group?: string) => set({ props: { [field.key]: value } }, group);
 
   switch (field.kind) {
     case 'number':

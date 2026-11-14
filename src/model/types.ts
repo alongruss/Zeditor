@@ -48,6 +48,11 @@ export interface ShapeData {
   readonly rotate: Vec3;
   /** Uniform scale. */
   readonly scale: number;
+  /**
+   * 0 (invisible) to 1 (solid). zdog has no opacity setting, so this is
+   * multiplied into the alpha of each of the shape's colors when drawn.
+   */
+  readonly opacity: number;
   /** Type-specific settings: size, color, stroke, fill, faces... See shapeTypes.ts. */
   readonly props: Props;
 }

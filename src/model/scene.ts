@@ -12,9 +12,6 @@ import {
 export const DEFAULT_BACKGROUND = '#ffddbb';
 export const ORIGIN: Vec3 = { x: 0, y: 0, z: 0 };
 
-/** How far a duplicate is offset from its original, in world units. */
-export const DUPLICATE_OFFSET: Vec3 = { x: 1, y: 1, z: 0 };
-
 export function emptyScene(): Scene {
   return { version: SCENE_VERSION, settings: { background: DEFAULT_BACKGROUND }, shapes: [] };
 }
@@ -67,6 +64,7 @@ export function createShape(
     translate: { ...at },
     rotate: { ...ORIGIN },
     scale: 1,
+    opacity: 1,
     props: copyProps(def.defaults),
   };
 }
@@ -88,6 +86,7 @@ export interface ShapePatch {
   readonly translate?: Partial<Vec3>;
   readonly rotate?: Partial<Vec3>;
   readonly scale?: number;
+  readonly opacity?: number;
   readonly props?: Readonly<Record<string, PropValue>>;
 }
 
@@ -105,6 +104,7 @@ export function updateShape(scene: Scene, id: string, patch: ShapePatch): Scene 
     translate: patch.translate ? { ...current.translate, ...patch.translate } : current.translate,
     rotate: patch.rotate ? { ...current.rotate, ...patch.rotate } : current.rotate,
     scale: patch.scale ?? current.scale,
+    opacity: patch.opacity ?? current.opacity,
     props: patch.props ? { ...current.props, ...copyProps(patch.props) } : current.props,
   };
   const shapes = [...scene.shapes];
@@ -113,7 +113,7 @@ export function updateShape(scene: Scene, id: string, patch: ShapePatch): Scene 
 }
 
 /**
- * Copies shape `id`, offset slightly so it is visible, and inserts it right
+ * Copies shape `id` in place (same position) and inserts it right
  * after the original. Returns the new scene and the copy's id.
  */
 export function duplicateShape(scene: Scene, id: string): { scene: Scene; id: string | null } {
@@ -123,13 +123,10 @@ export function duplicateShape(scene: Scene, id: string): { scene: Scene; id: st
   const fresh = createShape(scene, original.type);
   const copy: ShapeData = {
     ...fresh,
-    translate: {
-      x: original.translate.x + DUPLICATE_OFFSET.x,
-      y: original.translate.y + DUPLICATE_OFFSET.y,
-      z: original.translate.z + DUPLICATE_OFFSET.z,
-    },
+    translate: { ...original.translate },
     rotate: { ...original.rotate },
     scale: original.scale,
+    opacity: original.opacity,
     props: copyProps(original.props),
   };
   return { scene: addShape(scene, copy, index + 1), id: copy.id };
