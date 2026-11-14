@@ -1,0 +1,193 @@
+import { useRef } from 'preact/hooks';
+import type { ShapeData, Vec3 } from '../model/types';
+import { update } from '../state/commands';
+import { newGroup } from '../state/history';
+import { dispatch } from '../state/store';
+import {
+  AXES,
+  angleBetween,
+  arrowEnabled,
+  arrowPoints,
+  moveAlongAxis,
+  project,
+  ringDirection,
+  ringPoints,
+  ringRotation,
+  screenAngle,
+  type Axis,
+  type ScreenPoint,
+  type ViewTransform,
+} from './gizmoMath';
+
+/** Size of a move arrow's head, in pixels. */
+const ARROW_HEAD_PX = 11;
+
+/** What a handle drag started from. The camera can't change during a gizmo drag. */
+type Drag =
+  | {
+      readonly kind: 'move';
+      readonly axis: Axis;
+      readonly pointerId: number;
+      readonly start: ScreenPoint;
+      readonly translate: Vec3;
+      readonly group: string;
+    }
+  | {
+      readonly kind: 'rotate';
+      readonly axis: Axis;
+      readonly pointerId: number;
+      readonly center: ScreenPoint;
+      readonly startDeg: number;
+      readonly direction: -1 | 1;
+      readonly group: string;
+      lastAngle: number;
+      swept: number;
+    };
+
+const toPoints = (points: readonly ScreenPoint[]) => points.map((p) => `${p.x},${p.y}`).join(' ');
+
+/** A triangle pointing from `from` to `to`, with its tip at `to`. */
+function arrowHead(from: ScreenPoint, to: ScreenPoint): ScreenPoint[] {
+  const length = Math.hypot(to.x - from.x, to.y - from.y) || 1;
+  const ux = (to.x - from.x) / length;
+  const uy = (to.y - from.y) / length;
+  const back = { x: to.x - ux * ARROW_HEAD_PX * 1.6, y: to.y - uy * ARROW_HEAD_PX * 1.6 };
+  return [
+    to,
+    { x: back.x - uy * ARROW_HEAD_PX * 0.6, y: back.y + ux * ARROW_HEAD_PX * 0.6 },
+    { x: back.x + uy * ARROW_HEAD_PX * 0.6, y: back.y - ux * ARROW_HEAD_PX * 0.6 },
+  ];
+}
+
+interface GizmoProps {
+  readonly shape: ShapeData;
+  readonly view: ViewTransform;
+}
+
+/**
+ * Move arrows and rotation rings for the selected shape, drawn on their own
+ * SVG layer above the scene so shapes can never hide them. Only the handles
+ * take the pointer; everywhere else clicks and drags reach the scene.
+ *
+ * Arrows point along the world X/Y/Z axes. Each ring edits the matching
+ * rotation value shown in the Inspector. Hold Shift to snap moves to whole
+ * units and rotation to 15°. Each drag is one undo step.
+ */
+export function Gizmo({ shape, view }: GizmoProps) {
+  const drag = useRef<Drag | null>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
+  const center = project(shape.translate, view);
+
+  /** Converts a point on this SVG to the page coordinates pointer events use. */
+  const toPage = (p: ScreenPoint): ScreenPoint => {
+    const bounds = svgRef.current?.getBoundingClientRect();
+    return bounds ? { x: p.x + bounds.left, y: p.y + bounds.top } : p;
+  };
+
+  const startDrag = (event: PointerEvent, next: Drag) => {
+    event.preventDefault();
+    event.stopPropagation();
+    (event.currentTarget as Element).setPointerCapture(event.pointerId);
+    drag.current = next;
+  };
+
+  const onPointerMove = (event: PointerEvent) => {
+    const current = drag.current;
+    if (!current || event.pointerId !== current.pointerId) return;
+    const point = { x: event.clientX, y: event.clientY };
+    if (current.kind === 'move') {
+      const moved = { x: point.x - current.start.x, y: point.y - current.start.y };
+      const translate = moveAlongAxis(current.translate, current.axis, moved, view, event.shiftKey);
+      dispatch(update(shape.id, { translate }), { group: current.group });
+    } else {
+      const angle = screenAngle(current.center, point);
+      current.swept += angleBetween(current.lastAngle, angle);
+      current.lastAngle = angle;
+      const value = ringRotation(current.startDeg, current.swept, current.direction, event.shiftKey);
+      dispatch(update(shape.id, { rotate: { [current.axis]: value } }), { group: current.group });
+    }
+  };
+
+  const endDrag = (event: PointerEvent) => {
+    if (drag.current?.pointerId === event.pointerId) drag.current = null;
+  };
+
+  const rings = AXES.map((axis) => {
+    const direction = ringDirection(axis, shape.rotate, view);
+    const enabled = direction !== 0;
+    const points = toPoints(ringPoints(shape.translate, axis, shape.rotate, view));
+    return (
+      <g
+        key={`rotate-${axis}`}
+        class={`gizmo-handle gizmo-ring axis-${axis}${enabled ? '' : ' is-off'}`}
+        data-handle={`rotate-${axis}`}
+        onPointerDown={(event) => {
+          if (event.button !== 0 || direction === 0) return;
+          const pageCenter = toPage(center);
+          startDrag(event, {
+            kind: 'rotate',
+            axis,
+            pointerId: event.pointerId,
+            center: pageCenter,
+            startDeg: shape.rotate[axis],
+            direction,
+            group: newGroup(),
+            lastAngle: screenAngle(pageCenter, { x: event.clientX, y: event.clientY }),
+            swept: 0,
+          });
+        }}
+        onPointerMove={onPointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+      >
+        <polyline class="gizmo-hit" points={points} />
+        <polyline class="gizmo-line" points={points} />
+      </g>
+    );
+  });
+
+  const arrows = AXES.map((axis) => {
+    const enabled = arrowEnabled(axis, view);
+    const [from, to] = arrowPoints(shape.translate, axis, view);
+    return (
+      <g
+        key={`move-${axis}`}
+        class={`gizmo-handle gizmo-arrow axis-${axis}${enabled ? '' : ' is-off'}`}
+        data-handle={`move-${axis}`}
+        onPointerDown={(event) => {
+          if (event.button !== 0 || !enabled) return;
+          startDrag(event, {
+            kind: 'move',
+            axis,
+            pointerId: event.pointerId,
+            start: { x: event.clientX, y: event.clientY },
+            translate: shape.translate,
+            group: newGroup(),
+          });
+        }}
+        onPointerMove={onPointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+      >
+        <line class="gizmo-hit" x1={from.x} y1={from.y} x2={to.x} y2={to.y} />
+        <line class="gizmo-line" x1={from.x} y1={from.y} x2={to.x} y2={to.y} />
+        <polygon class="gizmo-head" points={toPoints(arrowHead(from, to))} />
+      </g>
+    );
+  });
+
+  return (
+    <svg
+      ref={svgRef}
+      class="gizmo"
+      width={view.width}
+      height={view.height}
+      aria-hidden="true"
+      data-center={`${center.x},${center.y}`}
+    >
+      {rings}
+      {arrows}
+      <circle class="gizmo-center" cx={center.x} cy={center.y} r={3} />
+    </svg>
+  );
+}

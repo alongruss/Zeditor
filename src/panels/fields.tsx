@@ -1,4 +1,4 @@
-import { useRef, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { alphaPercent, isHexColor, toPickerHex, withAlphaOf, withAlphaPercent } from '../model/color';
 import type { FaceValue } from '../model/types';
 import { newGroup } from '../state/history';
@@ -83,6 +83,50 @@ export function scrubValue(start: number, dx: number, rules: StepRules, coarse: 
   return rules.integer ? Math.round(next) : next;
 }
 
+/** Where a label drag has got to: `offset` pixels right of where it started. */
+export interface ScrubTrack {
+  readonly startX: number;
+  readonly offset: number;
+  /** Whether the pointer was locked (cursor hidden) at the last move. */
+  readonly locked: boolean;
+}
+
+/**
+ * Follows a label drag. Normally the offset is just how far the cursor has
+ * moved. While the pointer is locked, the cursor can't reach the screen edge
+ * and `clientX` stops changing, so the movement comes from `movementX`
+ * instead. If the lock ends mid-drag (Esc), the drag carries on from where it
+ * had got to rather than jumping back.
+ */
+export function trackScrub(
+  track: ScrubTrack,
+  clientX: number,
+  movementX: number,
+  locked: boolean,
+): ScrubTrack {
+  if (locked) return { startX: track.startX, offset: track.offset + movementX, locked };
+  const startX = track.locked ? clientX - track.offset : track.startX;
+  return { startX, offset: clientX - startX, locked };
+}
+
+/**
+ * Hides the cursor and keeps reporting movement past the screen edge. Some
+ * browsers refuse (or need a permission); dragging then simply stops at the
+ * edge as before.
+ */
+function lockPointer(element: Element): void {
+  try {
+    const result: unknown = element.requestPointerLock();
+    if (result instanceof Promise) result.catch(() => {});
+  } catch {
+    // Not available here: plain dragging still works.
+  }
+}
+
+function unlockPointer(): void {
+  if (document.pointerLockElement) document.exitPointerLock();
+}
+
 interface NumberInputProps extends StepRules {
   readonly label: string;
   /** Shorter visible label, when `label` is only for screen readers. */
@@ -99,10 +143,10 @@ interface NumberInputProps extends StepRules {
 }
 
 interface Scrub {
-  readonly startX: number;
   readonly startValue: number;
   /** Every value set during this drag undoes as one step. */
   readonly group: string;
+  track: ScrubTrack;
   dragging: boolean;
 }
 
@@ -111,8 +155,10 @@ interface Scrub {
  * half-typed text while focused, and steps with the arrow keys.
  *
  * Dragging its label (or unit, e.g. "°") left or right also changes the
- * value: one step per few pixels, bigger steps with Shift. A click on the
- * label without dragging focuses the field as usual.
+ * value: one step per few pixels, bigger steps with Shift. Once the drag
+ * starts the cursor is hidden (pointer lock), so the drag keeps going past
+ * the edge of the screen. A click on the label without dragging focuses the
+ * field as usual.
  *
  * Everything typed during one visit to the field (focus to blur), and each
  * drag, is a single undo step. Ctrl+Z in the field undoes the scene, not
@@ -127,6 +173,14 @@ export function NumberInput(props: NumberInputProps) {
   const suppressClick = useRef(false);
   const typing = useEditSession();
 
+  // Never leave the cursor hidden if the field goes away mid-drag.
+  useEffect(
+    () => () => {
+      if (scrub.current?.dragging) unlockPointer();
+    },
+    [],
+  );
+
   const commit = (next: number, group: string) => {
     if (next !== value) onCommit(next, group);
   };
@@ -134,27 +188,44 @@ export function NumberInput(props: NumberInputProps) {
   const scrubHandlers = {
     onPointerDown: (event: PointerEvent) => {
       if (event.button !== 0 || disabled) return;
+      // A locked drag may end without a click, so never carry the flag into a new press.
+      suppressClick.current = false;
       event.preventDefault(); // no text selection while dragging
       (event.currentTarget as Element).setPointerCapture(event.pointerId);
       const startValue = parseNumber(draft ?? '', rules) ?? value;
       // Typing before the drag is its own step; the drag is another.
       typing.end();
-      scrub.current = { startX: event.clientX, startValue, group: newGroup(), dragging: false };
+      scrub.current = {
+        startValue,
+        group: newGroup(),
+        track: { startX: event.clientX, offset: 0, locked: false },
+        dragging: false,
+      };
     },
     onPointerMove: (event: PointerEvent) => {
       const current = scrub.current;
       if (!current) return;
-      const dx = event.clientX - current.startX;
-      if (!current.dragging && Math.abs(dx) < SCRUB_THRESHOLD_PX) return;
-      current.dragging = true;
+      const target = event.currentTarget as Element;
+      const locked = document.pointerLockElement === target;
+      current.track = trackScrub(current.track, event.clientX, event.movementX, locked);
+      const dx = current.track.offset;
+      if (!current.dragging) {
+        if (Math.abs(dx) < SCRUB_THRESHOLD_PX) return;
+        current.dragging = true;
+        lockPointer(target);
+      }
       setDraft(null);
       commit(scrubValue(current.startValue, dx, rules, event.shiftKey), current.group);
     },
     onPointerUp: () => {
-      if (scrub.current?.dragging) suppressClick.current = true;
+      if (scrub.current?.dragging) {
+        suppressClick.current = true;
+        unlockPointer();
+      }
       scrub.current = null;
     },
     onPointerCancel: () => {
+      if (scrub.current?.dragging) unlockPointer();
       scrub.current = null;
     },
     onClick: (event: MouseEvent) => {

@@ -2,14 +2,16 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { SHAPE_TYPE_DEFS } from '../model/shapeTypes';
 import { SHAPE_TYPES } from '../model/types';
 import { addShapeOfType, deleteShape, duplicate, newScene } from '../state/commands';
-import { dispatch, redo, undo, useEditorState, useUndoAvailability } from '../state/store';
+import { dispatch, redo, setCamera, undo, useCamera, useEditorState, useUndoAvailability } from '../state/store';
+import { DEFAULT_CAMERA, isDefaultCamera } from '../viewport/camera';
 
 export const NEW_SCENE_PROMPT = 'Start a new, empty scene? You can undo this with Ctrl+Z.';
 
-/** Floating toolbar over the viewport: Add, Duplicate, Delete, Undo, Redo, New scene. */
+/** Floating toolbar over the viewport: Add, Duplicate, Delete, Undo, Redo, Reset view, New scene. */
 export function Toolbar() {
   const { scene, selectedId } = useEditorState();
   const { canUndo, canRedo } = useUndoAvailability();
+  const camera = useCamera();
   const [addOpen, setAddOpen] = useState(false);
   const addRef = useRef<HTMLDivElement>(null);
 
@@ -79,6 +81,14 @@ export function Toolbar() {
       </button>
       <button type="button" title="Redo (Ctrl+Shift+Z)" disabled={!canRedo} onClick={redo}>
         Redo
+      </button>
+      <button
+        type="button"
+        title="Turn and zoom the view back to the start"
+        disabled={isDefaultCamera(camera)}
+        onClick={() => setCamera(DEFAULT_CAMERA)}
+      >
+        Reset view
       </button>
       <button
         type="button"

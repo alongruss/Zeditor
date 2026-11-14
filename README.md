@@ -3,9 +3,9 @@
 A small visual editor for [Zdog](https://zzz.dog) illustrations: place, move, rotate and color
 Zdog shapes, save your scene, and export it as a ready-to-run Zdog script.
 
-> **Status:** being rebuilt. You can add, select, rename, edit, duplicate and delete shapes, set
-> color alpha and shape opacity, and undo or redo any change. Saving, export and the move/rotate
-> gizmo arrive over the next two PRs.
+> **Status:** being rebuilt. You can add, select, rename, edit, duplicate and delete shapes, move
+> and rotate them with the gizmo, set color alpha and shape opacity, turn and zoom the view, and undo
+> or redo any change. Saving and export arrive in the next PR.
 > See [docs/PLAN.md](docs/PLAN.md). The 2020 editor is preserved at the
 > [`legacy-2020`](https://github.com/alongruss/Zeditor/tree/legacy-2020) tag.
 

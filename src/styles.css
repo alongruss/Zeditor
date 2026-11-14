@@ -87,6 +87,85 @@ body {
   cursor: move;
 }
 
+/* ----- gizmo (over the scene; only its handles take the pointer) ----- */
+
+.gizmo {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+  /* A thin halo keeps the handles visible over shapes of the same color. */
+  filter: drop-shadow(0 0 1px rgb(255 255 255 / 90%));
+}
+
+.gizmo-handle {
+  --axis-color: var(--text);
+  cursor: grab;
+}
+
+.gizmo-handle:active {
+  cursor: grabbing;
+}
+
+.gizmo-handle.axis-x {
+  --axis-color: #e5484d;
+}
+
+.gizmo-handle.axis-y {
+  --axis-color: #2f9e5a;
+}
+
+.gizmo-handle.axis-z {
+  --axis-color: #3e63dd;
+}
+
+/* A wide invisible stroke makes thin handles easy to grab. */
+.gizmo-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 14px;
+  pointer-events: stroke;
+}
+
+.gizmo-line {
+  fill: none;
+  stroke: var(--axis-color);
+  stroke-width: 3px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.gizmo-ring .gizmo-line {
+  stroke-width: 2px;
+}
+
+.gizmo-head {
+  fill: var(--axis-color);
+  pointer-events: all;
+}
+
+.gizmo-handle:hover .gizmo-line,
+.gizmo-handle:active .gizmo-line {
+  stroke-width: 4.5px;
+}
+
+/* Handles seen end-on (arrows) or edge-on (rings) can't be dragged sensibly. */
+.gizmo-handle.is-off {
+  opacity: 0.25;
+  cursor: default;
+}
+
+.gizmo-handle.is-off .gizmo-hit,
+.gizmo-handle.is-off .gizmo-head {
+  pointer-events: none;
+}
+
+.gizmo-center {
+  fill: white;
+  stroke: var(--text);
+  stroke-width: 1.5px;
+}
+
 .selection-outline {
   position: absolute;
   border: 1.5px dashed var(--accent);

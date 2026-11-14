@@ -1,5 +1,6 @@
 import { useEffect, useReducer } from 'preact/hooks';
 import { starterScene } from '../model/starterScene';
+import { DEFAULT_CAMERA, type Camera } from '../viewport/camera';
 import type { Command, EditorState } from './commands';
 import * as history from './history';
 
@@ -61,26 +62,41 @@ export function redo(): void {
   tracked.dispatch(history.redo);
 }
 
-/** Re-renders the calling component whenever the store changes. */
-function useTracked(): history.History {
+/**
+ * The camera. Kept apart from the editor state so that turning or zooming the
+ * view is never an undo step, and Undo never moves the camera.
+ */
+export const camera: Store<Camera> = createStore<Camera>(DEFAULT_CAMERA);
+
+export function setCamera(update: Camera | ((current: Camera) => Camera)): void {
+  camera.dispatch(typeof update === 'function' ? update : () => update);
+}
+
+/** The store's current value; re-renders the calling component whenever it changes. */
+function useStore<T>(store: Store<T>): T {
   const [, forceRender] = useReducer((count: number) => count + 1, 0);
-  const current = tracked.get();
+  const current = store.get();
   useEffect(() => {
-    const unsubscribe = tracked.subscribe(() => forceRender(undefined));
+    const unsubscribe = store.subscribe(() => forceRender(undefined));
     // Catch a change that landed between this render and subscribing.
-    if (tracked.get() !== current) forceRender(undefined);
+    if (store.get() !== current) forceRender(undefined);
     return unsubscribe;
-  }, []); // subscribe once; `current` is only compared on the first run
+  }, [store]); // `current` is only compared on the first run
   return current;
 }
 
 /** The current editor state; re-renders the component when it changes. */
 export function useEditorState(): EditorState {
-  return useTracked().present;
+  return useStore(tracked).present;
 }
 
 /** Whether Undo and Redo have anything to do; re-renders the component when that changes. */
 export function useUndoAvailability(): { canUndo: boolean; canRedo: boolean } {
-  const current = useTracked();
+  const current = useStore(tracked);
   return { canUndo: history.canUndo(current), canRedo: history.canRedo(current) };
+}
+
+/** The current camera; re-renders the component when it changes. */
+export function useCamera(): Camera {
+  return useStore(camera);
 }

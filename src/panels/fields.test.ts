@@ -6,6 +6,8 @@ import {
   scrubValue,
   stepNumber,
   stepSize,
+  trackScrub,
+  type ScrubTrack,
 } from './fields';
 
 describe('parseNumber', () => {
@@ -83,5 +85,30 @@ describe('scrubValue (dragging a field label)', () => {
     expect(scrubValue(3, -SCRUB_PIXELS_PER_STEP * 10, { step: 1, min: 3, integer: true }, false)).toBe(3);
     expect(scrubValue(1, -SCRUB_PIXELS_PER_STEP * 10, { step: 0.1, min: 0 }, false)).toBe(0);
     expect(scrubValue(95, SCRUB_PIXELS_PER_STEP * 10, { step: 1, max: 100 }, false)).toBe(100);
+  });
+});
+
+describe('trackScrub (label drag with the pointer locked)', () => {
+  const start: ScrubTrack = { startX: 100, offset: 0, locked: false };
+
+  it('follows the cursor while the pointer is free', () => {
+    expect(trackScrub(start, 130, 999, false).offset).toBe(30);
+  });
+
+  it('adds up movement while locked, when the cursor itself stays put', () => {
+    let track = trackScrub(start, 110, 10, false); // 10 px, then the lock starts
+    track = trackScrub(track, 110, 25, true);
+    track = trackScrub(track, 110, 25, true); // past the screen edge
+    expect(track.offset).toBe(60);
+  });
+
+  it('carries on from where it got to if the lock ends mid-drag', () => {
+    let track = trackScrub(start, 110, 10, false);
+    track = trackScrub(track, 110, 50, true); // offset 60
+    // Esc: the cursor reappears where the lock started.
+    track = trackScrub(track, 110, 0, false);
+    expect(track.offset).toBe(60);
+    track = trackScrub(track, 115, 5, false);
+    expect(track.offset).toBe(65);
   });
 });
