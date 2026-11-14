@@ -1,20 +1,20 @@
 import { useEffect } from 'preact/hooks';
 import { Inspector } from './panels/Inspector';
 import { SceneTree } from './panels/SceneTree';
-import { isTypingTarget, shortcutCommand } from './state/shortcuts';
-import { dispatch, editor } from './state/store';
+import { shortcutAllowedIn, shortcutFor } from './state/shortcuts';
+import { dispatch, editor, redo, undo } from './state/store';
 import { Viewport } from './viewport/Viewport';
 
 function useKeyboardShortcuts() {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.defaultPrevented || isTypingTarget(event.target)) return;
-      const command = shortcutCommand(event, editor.get().selectedId);
-      // Ctrl+D would otherwise bookmark the page, even with nothing selected.
-      if (command || ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'd')) {
-        event.preventDefault();
-      }
-      if (command) dispatch(command);
+      if (event.defaultPrevented) return;
+      const shortcut = shortcutFor(event, editor.get().selectedId);
+      if (!shortcut || !shortcutAllowedIn(event.target, shortcut)) return;
+      event.preventDefault();
+      if (shortcut === 'undo') undo();
+      else if (shortcut === 'redo') redo();
+      else dispatch(shortcut);
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);

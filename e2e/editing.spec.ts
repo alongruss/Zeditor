@@ -1,81 +1,7 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
+import { emptyPoint, inspector, openEditorForEachTest, pointOnShape, shapeBounds, treeItem } from './helpers';
 
-/**
- * A point on screen where the topmost element belongs to shape `id`, so a
- * real mouse click there hits that shape (not one in front of it).
- */
-async function pointOnShape(page: Page, id: string): Promise<{ x: number; y: number }> {
-  let point: { x: number; y: number } | null = null;
-  await expect
-    .poll(async () => {
-      point = await page.locator('svg.scene').evaluate((svg, shapeId) => {
-        const fractions = [0.5, 0.35, 0.65, 0.2, 0.8];
-        const elements = [...svg.querySelectorAll(`[data-shape-id="${shapeId}"]`)];
-        for (const element of elements) {
-          const rect = element.getBoundingClientRect();
-          if (rect.width === 0 && rect.height === 0) continue;
-          for (const fx of fractions) {
-            for (const fy of fractions) {
-              const x = rect.left + rect.width * fx;
-              const y = rect.top + rect.height * fy;
-              const hit = document.elementFromPoint(x, y)?.closest('[data-shape-id]');
-              if (hit?.getAttribute('data-shape-id') === shapeId) return { x, y };
-            }
-          }
-        }
-        return null;
-      }, id);
-      return point;
-    }, { message: `a clickable point on ${id}` })
-    .not.toBeNull();
-  return point!;
-}
-
-/** A point inside the viewport with no shape under it. */
-async function emptyPoint(page: Page): Promise<{ x: number; y: number }> {
-  const box = (await page.locator('svg.scene').boundingBox())!;
-  const point = { x: box.x + 24, y: box.y + box.height - 24 };
-  const isEmpty = await page.evaluate(
-    ({ x, y }) => document.elementFromPoint(x, y)?.matches('svg.scene') ?? false,
-    point,
-  );
-  expect(isEmpty, 'bottom-left of the viewport is empty').toBe(true);
-  return point;
-}
-
-async function shapeBounds(page: Page, id: string) {
-  return page.locator('svg.scene').evaluate((svg, shapeId) => {
-    const rects = [...svg.querySelectorAll(`[data-shape-id="${shapeId}"]`)]
-      .filter((element) => element.isConnected)
-      .map((element) => element.getBoundingClientRect())
-      .filter((rect) => rect.width > 0 || rect.height > 0);
-    if (rects.length === 0) return null;
-    return {
-      left: Math.min(...rects.map((r) => r.left)),
-      right: Math.max(...rects.map((r) => r.right)),
-      top: Math.min(...rects.map((r) => r.top)),
-      bottom: Math.max(...rects.map((r) => r.bottom)),
-    };
-  }, id);
-}
-
-const treeItem = (page: Page, name: string) =>
-  page.getByRole('list', { name: 'Shapes' }).getByRole('button', { name: new RegExp(`^${name}\\b`) });
-
-const inspector = (page: Page) => page.getByRole('complementary', { name: 'Inspector' });
-
-let pageErrors: string[] = [];
-
-test.beforeEach(async ({ page }) => {
-  pageErrors = [];
-  page.on('pageerror', (error) => pageErrors.push(error.message));
-  await page.goto('./');
-  await expect(page.locator('svg.scene [data-shape-id]').first()).toBeAttached();
-});
-
-test.afterEach(() => {
-  expect(pageErrors, 'uncaught errors in the page').toEqual([]);
-});
+openEditorForEachTest(test);
 
 // 2020 bug: clicking a Box face selected the inner face, and the gizmo then
 // moved a different shape.
@@ -222,7 +148,15 @@ test('add, rename, duplicate and delete shapes', async ({ page }) => {
 
   await page.keyboard.press('Control+d');
   await expect(treeItem(page, 'Box 3')).toHaveAttribute('aria-pressed', 'true');
+  // The copy sits exactly on the original, and moving it leaves the original alone.
+  await expect.poll(() => shapeBounds(page, 'box-3')).toEqual(await shapeBounds(page, 'box-2'));
+  const originalBounds = await shapeBounds(page, 'box-2');
+  await page.getByLabel('Position X', { exact: true }).fill('6');
+  await expect.poll(() => shapeBounds(page, 'box-3')).not.toEqual(originalBounds);
+  expect(await shapeBounds(page, 'box-2')).toEqual(originalBounds);
 
+  // Delete acts once focus has left the text fields.
+  await treeItem(page, 'Box 3').click();
   await page.keyboard.press('Delete');
   await expect(treeItem(page, 'Box 3')).toHaveCount(0);
   await expect(page.locator('svg.scene [data-shape-id="box-3"]')).toHaveCount(0);

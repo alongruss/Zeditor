@@ -281,6 +281,17 @@ kbd {
   color: var(--text-muted);
 }
 
+/* Alpha percentage next to a color: "100 %" */
+.field-alpha {
+  flex: none;
+  gap: 2px;
+}
+
+.field-alpha input {
+  width: 3.2em;
+  text-align: right;
+}
+
 /* Number field labels and units can be dragged left/right to change the value. */
 .scrub {
   cursor: ew-resize;
@@ -292,17 +303,23 @@ kbd {
   color: var(--accent);
 }
 
+/* Face rows hold a label, picker, hex, alpha and a checkbox: keep them tight. */
 .field-face {
   justify-content: space-between;
+  gap: 4px;
 }
 
-.field-face .field-label {
-  width: 4em;
+.field-face .field-color {
+  gap: 4px;
+}
+
+.field-face .field-color > .field-label {
+  width: 3.5em;
 }
 
 .field-face .field-hex {
   flex: none;
-  width: 6.5em;
+  width: 5.6em;
 }
 
 .field-checkbox {

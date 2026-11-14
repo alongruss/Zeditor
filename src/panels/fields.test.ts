@@ -2,13 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
   SCRUB_PIXELS_PER_STEP,
   formatNumber,
-  isHexColor,
   parseNumber,
   scrubValue,
   stepNumber,
   stepSize,
-  toPickerHex,
-  withAlphaOf,
 } from './fields';
 
 describe('parseNumber', () => {
@@ -29,6 +26,8 @@ describe('parseNumber', () => {
     expect(parseNumber('3', { min: 3 })).toBe(3);
     expect(parseNumber('3.5', { integer: true })).toBeNull();
     expect(parseNumber('5', { integer: true })).toBe(5);
+    expect(parseNumber('101', { max: 100 })).toBeNull();
+    expect(parseNumber('100', { max: 100 })).toBe(100);
   });
 });
 
@@ -36,6 +35,11 @@ describe('stepNumber', () => {
   it('steps without float noise', () => {
     expect(stepNumber(0.1, 0.2)).toBe(0.3);
     expect(stepNumber(1, -0.5)).toBe(0.5);
+  });
+
+  it('keeps within max', () => {
+    expect(stepNumber(98, 5, 0, 100)).toBe(100);
+    expect(stepNumber(100, -5, 0, 100)).toBe(95);
   });
 
   it('respects min', () => {
@@ -47,24 +51,6 @@ describe('formatNumber', () => {
   it('trims float noise', () => {
     expect(formatNumber(0.1 + 0.2)).toBe('0.3');
     expect(formatNumber(-4)).toBe('-4');
-  });
-});
-
-describe('colors', () => {
-  it('recognises hex colors', () => {
-    for (const ok of ['#abc', '#abcd', '#aabbcc', '#AABBCC33']) expect(isHexColor(ok)).toBe(true);
-    for (const bad of ['abc', '#ab', '#abcde', 'red', '#gggggg']) expect(isHexColor(bad)).toBe(false);
-  });
-
-  it('gives the color picker a #rrggbb value', () => {
-    expect(toPickerHex('#33AA6633')).toBe('#33aa66');
-    expect(toPickerHex('#fed')).toBe('#ffeedd');
-    expect(toPickerHex('red')).toBe('#000000');
-  });
-
-  it('keeps transparency when a new color is picked', () => {
-    expect(withAlphaOf('#112233', '#33AA6633')).toBe('#11223333');
-    expect(withAlphaOf('#112233', '#33aa66')).toBe('#112233');
   });
 });
 
@@ -96,5 +82,6 @@ describe('scrubValue (dragging a field label)', () => {
   it('respects min and whole numbers', () => {
     expect(scrubValue(3, -SCRUB_PIXELS_PER_STEP * 10, { step: 1, min: 3, integer: true }, false)).toBe(3);
     expect(scrubValue(1, -SCRUB_PIXELS_PER_STEP * 10, { step: 0.1, min: 0 }, false)).toBe(0);
+    expect(scrubValue(95, SCRUB_PIXELS_PER_STEP * 10, { step: 1, max: 100 }, false)).toBe(100);
   });
 });

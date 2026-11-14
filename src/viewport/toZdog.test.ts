@@ -14,6 +14,19 @@ describe('zdogOptions', () => {
     expect(rotate.z).toBeCloseTo(-Math.PI / 4);
   });
 
+  it('fades every color by the shape opacity', () => {
+    const cone = { ...createShape(emptyScene(), 'Cone'), opacity: 0.5 };
+    const options = zdogOptions(cone);
+    expect(options.color).toBe('#66336680');
+    expect(options.backface).toBe('#cc225580');
+
+    const box = { ...starterScene().shapes.find((s) => s.id === 'box-1')!, opacity: 0.5 };
+    const boxOptions = zdogOptions(box);
+    expect(boxOptions.topFace).toBe('#eeaa0080');
+    expect(boxOptions.frontFace).toBe(true); // uses the main color, which is faded
+    expect(zdogOptions({ ...box, opacity: 1 }).color).toBe(box.props.color);
+  });
+
   it('copies props, so zdog never holds the scene data', () => {
     const shape = starterScene().shapes.find((s) => s.type === 'Shape')!;
     const options = zdogOptions(shape);

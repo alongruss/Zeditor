@@ -1,5 +1,7 @@
 import * as Zdog from 'zdog';
-import type { ShapeData, ShapeType } from '../model/types';
+import { fadeColor } from '../model/color';
+import { getShapeTypeDef } from '../model/shapeTypes';
+import type { Props, ShapeData, ShapeType } from '../model/types';
 
 const DEG_TO_RAD = Math.PI / 180;
 
@@ -17,12 +19,29 @@ const CONSTRUCTORS: Record<ShapeType, ZdogConstructor> = {
   Box: Zdog.Box as unknown as ZdogConstructor,
 };
 
+/**
+ * The shape's props with its opacity multiplied into every color it has
+ * (main, back and face colors), since zdog itself has no opacity setting.
+ */
+function fadedProps(shape: ShapeData): Props {
+  if (shape.opacity >= 1) return shape.props;
+  const faded: Record<string, Props[string]> = { ...shape.props };
+  const { fields, defaults } = getShapeTypeDef(shape.type);
+  for (const field of fields) {
+    if (field.kind !== 'color' && field.kind !== 'face') continue;
+    const value = shape.props[field.key] ?? defaults[field.key];
+    // A face set to `true` uses the main color, which is faded already.
+    if (typeof value === 'string') faded[field.key] = fadeColor(value, shape.opacity);
+  }
+  return faded;
+}
+
 /** zdog constructor options for a shape (rotation converted from degrees to radians). */
 export function zdogOptions(shape: ShapeData): Record<string, unknown> {
   const { translate, rotate } = shape;
   return {
     // Copy, so zdog never holds a reference into the (immutable) scene data.
-    ...structuredClone(shape.props),
+    ...structuredClone(fadedProps(shape)),
     translate: { x: translate.x, y: translate.y, z: translate.z },
     rotate: { x: rotate.x * DEG_TO_RAD, y: rotate.y * DEG_TO_RAD, z: rotate.z * DEG_TO_RAD },
     scale: shape.scale,
