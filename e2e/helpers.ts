@@ -1,6 +1,7 @@
-import { expect, type Page, type test as baseTest } from '@playwright/test';
+import type { Page } from '@playwright/test';
+import { expect, type test as fixtureTest } from './fixtures';
 
-type TestType = typeof baseTest;
+type TestType = typeof fixtureTest;
 
 /**
  * A point on screen where the topmost element belongs to shape `id`, so a
@@ -157,12 +158,29 @@ export async function drag(page: Page, path: Point[], options: { shift?: boolean
 }
 
 /** Turns the camera by dragging empty space. */
+/**
+ * Waits until the scene has been redrawn. The viewport redraws on the next
+ * animation frame, while panels and the gizmo update at once, so reading the
+ * drawing straight after a change can see the old picture (on a slow machine
+ * the gap is long enough to matter). Two frames: the redraw that was already
+ * asked for comes first.
+ */
+export async function afterRedraw(page: Page): Promise<void> {
+  await page.evaluate(
+    () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))),
+  );
+}
+
+/** Turns the camera by dragging empty space, then waits for the scene to be redrawn. */
 export async function orbit(page: Page, dx: number, dy: number) {
   const start = await emptyPoint(page);
   await drag(page, [start, { x: start.x + dx, y: start.y + dy }]);
+  await afterRedraw(page);
 }
 
-export const centerOf = (bounds: { left: number; right: number; top: number; bottom: number }) => ({
-  x: (bounds.left + bounds.right) / 2,
-  y: (bounds.top + bounds.bottom) / 2,
-});
+/** The middle of a shape's drawn bounds, or null while it isn't drawn (e.g. mid-redraw). */
+export const centerOf = (bounds: { left: number; right: number; top: number; bottom: number } | null) =>
+  bounds && {
+    x: (bounds.left + bounds.right) / 2,
+    y: (bounds.top + bounds.bottom) / 2,
+  };
