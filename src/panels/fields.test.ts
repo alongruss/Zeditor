@@ -6,6 +6,8 @@ import {
   scrubValue,
   stepNumber,
   stepSize,
+  EDGE_LOCK_PX,
+  atWindowEdge,
   trackScrub,
   type ScrubTrack,
 } from './fields';
@@ -88,27 +90,44 @@ describe('scrubValue (dragging a field label)', () => {
   });
 });
 
-describe('trackScrub (label drag with the pointer locked)', () => {
-  const start: ScrubTrack = { startX: 100, offset: 0, locked: false };
+describe('trackScrub (label drag, with or without the pointer locked)', () => {
+  const start: ScrubTrack = { offset: 0, lastX: 100 };
+  const follow = (moves: [clientX: number, movementX: number, locked: boolean][]) =>
+    moves.reduce((track, [x, mx, locked]) => trackScrub(track, x, mx, locked), start).offset;
 
-  it('follows the cursor while the pointer is free', () => {
-    expect(trackScrub(start, 130, 999, false).offset).toBe(30);
+  it('follows the cursor while the pointer is free, ignoring movementX', () => {
+    expect(follow([[110, 999, false], [130, -999, false]])).toBe(30);
   });
 
-  it('adds up movement while locked, when the cursor itself stays put', () => {
-    let track = trackScrub(start, 110, 10, false); // 10 px, then the lock starts
-    track = trackScrub(track, 110, 25, true);
-    track = trackScrub(track, 110, 25, true); // past the screen edge
-    expect(track.offset).toBe(60);
+  it('adds up movementX while locked and the cursor stays put (past the screen edge)', () => {
+    // 10 px, then the lock starts and the cursor freezes at 110.
+    expect(follow([[110, 10, false], [110, 25, true], [110, 25, true]])).toBe(60);
+  });
+
+  // CI: Chromium on Linux reported huge movementX values for test-driven
+  // mouse moves once locked, turning a 40 px drag into -1000 px.
+  it('trusts the cursor over movementX whenever the cursor moves, even while locked', () => {
+    expect(follow([[105, 5, false], [110, -800, true], [140, 900, true]])).toBe(40);
   });
 
   it('carries on from where it got to if the lock ends mid-drag', () => {
-    let track = trackScrub(start, 110, 10, false);
-    track = trackScrub(track, 110, 50, true); // offset 60
-    // Esc: the cursor reappears where the lock started.
-    track = trackScrub(track, 110, 0, false);
-    expect(track.offset).toBe(60);
-    track = trackScrub(track, 115, 5, false);
-    expect(track.offset).toBe(65);
+    // Locked at 110 after 10 px, then 50 px of locked movement; Esc shows the
+    // cursor again at 110, and it moves on 5 px.
+    expect(follow([[110, 10, false], [110, 50, true], [110, 0, false], [115, 5, false]])).toBe(65);
+  });
+
+  it('ignores movementX while not locked and the cursor stays put', () => {
+    expect(follow([[100, 7, false]])).toBe(0);
+  });
+});
+
+describe('atWindowEdge (when a label drag locks the pointer)', () => {
+  it('only near or past the left or right edge of the window', () => {
+    expect(atWindowEdge(500, 1280)).toBe(false);
+    expect(atWindowEdge(EDGE_LOCK_PX + 1, 1280)).toBe(false);
+    expect(atWindowEdge(EDGE_LOCK_PX, 1280)).toBe(true);
+    expect(atWindowEdge(1280 - EDGE_LOCK_PX, 1280)).toBe(true);
+    expect(atWindowEdge(-40, 1280)).toBe(true);
+    expect(atWindowEdge(1400, 1280)).toBe(true);
   });
 });

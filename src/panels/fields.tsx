@@ -85,18 +85,21 @@ export function scrubValue(start: number, dx: number, rules: StepRules, coarse: 
 
 /** Where a label drag has got to: `offset` pixels right of where it started. */
 export interface ScrubTrack {
-  readonly startX: number;
   readonly offset: number;
-  /** Whether the pointer was locked (cursor hidden) at the last move. */
-  readonly locked: boolean;
+  /** The pointer's `clientX` at the last move. */
+  readonly lastX: number;
 }
 
 /**
- * Follows a label drag. Normally the offset is just how far the cursor has
- * moved. While the pointer is locked, the cursor can't reach the screen edge
- * and `clientX` stops changing, so the movement comes from `movementX`
- * instead. If the lock ends mid-drag (Esc), the drag carries on from where it
- * had got to rather than jumping back.
+ * Follows a label drag, one pointer move at a time.
+ *
+ * Whenever the cursor itself moves, that movement is used. Only while the
+ * pointer is locked and the cursor stays put (a real lock hides the cursor
+ * and freezes `clientX`, so it never stops at the screen edge) does the
+ * movement come from `movementX`. Never trusting `movementX` otherwise
+ * matters: some browsers report wild values for it, for example Chromium on
+ * Linux when the mouse is driven by a test. If the lock ends mid-drag (Esc),
+ * the drag carries on from where it had got to.
  */
 export function trackScrub(
   track: ScrubTrack,
@@ -104,9 +107,21 @@ export function trackScrub(
   movementX: number,
   locked: boolean,
 ): ScrubTrack {
-  if (locked) return { startX: track.startX, offset: track.offset + movementX, locked };
-  const startX = track.locked ? clientX - track.offset : track.startX;
-  return { startX, offset: clientX - startX, locked };
+  const moved = clientX !== track.lastX ? clientX - track.lastX : locked ? movementX : 0;
+  return { offset: track.offset + moved, lastX: clientX };
+}
+
+/** How close to the window's left or right edge a label drag locks the pointer. */
+export const EDGE_LOCK_PX = 24;
+
+/**
+ * Whether a label drag at `clientX` has reached (or passed) the edge of a
+ * window `windowWidth` wide. Only then is the pointer locked: normal drags
+ * keep a visible cursor and follow it exactly, and the lock only takes over
+ * where the cursor would otherwise stop.
+ */
+export function atWindowEdge(clientX: number, windowWidth: number): boolean {
+  return clientX <= EDGE_LOCK_PX || clientX >= windowWidth - EDGE_LOCK_PX;
 }
 
 /**
@@ -148,6 +163,8 @@ interface Scrub {
   readonly group: string;
   track: ScrubTrack;
   dragging: boolean;
+  /** Pointer lock was asked for (once per drag, at the window edge). */
+  lockRequested: boolean;
 }
 
 /**
@@ -155,10 +172,10 @@ interface Scrub {
  * half-typed text while focused, and steps with the arrow keys.
  *
  * Dragging its label (or unit, e.g. "°") left or right also changes the
- * value: one step per few pixels, bigger steps with Shift. Once the drag
- * starts the cursor is hidden (pointer lock), so the drag keeps going past
- * the edge of the screen. A click on the label without dragging focuses the
- * field as usual.
+ * value: one step per few pixels, bigger steps with Shift. If the drag
+ * reaches the edge of the window, the cursor is hidden (pointer lock) so the
+ * drag keeps going past the edge of the screen. A click on the label without
+ * dragging focuses the field as usual.
  *
  * Everything typed during one visit to the field (focus to blur), and each
  * drag, is a single undo step. Ctrl+Z in the field undoes the scene, not
@@ -198,8 +215,9 @@ export function NumberInput(props: NumberInputProps) {
       scrub.current = {
         startValue,
         group: newGroup(),
-        track: { startX: event.clientX, offset: 0, locked: false },
+        track: { offset: 0, lastX: event.clientX },
         dragging: false,
+        lockRequested: false,
       };
     },
     onPointerMove: (event: PointerEvent) => {
@@ -212,6 +230,9 @@ export function NumberInput(props: NumberInputProps) {
       if (!current.dragging) {
         if (Math.abs(dx) < SCRUB_THRESHOLD_PX) return;
         current.dragging = true;
+      }
+      if (!current.lockRequested && atWindowEdge(event.clientX, window.innerWidth)) {
+        current.lockRequested = true;
         lockPointer(target);
       }
       setDraft(null);
