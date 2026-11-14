@@ -1,10 +1,14 @@
 import type { ComponentChildren } from 'preact';
+import { groupKeyState, keyState } from '../model/animation';
+import { shapeAtFrame } from '../model/evaluate';
 import { findShape, type ShapePatch } from '../model/scene';
 import { getShapeTypeDef, type FieldDef, type FieldGroup } from '../model/shapeTypes';
-import type { FaceValue, PropValue, ShapeData, Vec3 } from '../model/types';
-import { update } from '../state/commands';
+import type { FaceValue, PropValue, PropertyPath, ShapeData, Vec3 } from '../model/types';
+import { edit, toggleKey } from '../state/commands';
 import { dispatch, useEditorState } from '../state/store';
+import { pause, useTimeline } from '../state/timeline';
 import { CheckboxInput, ColorInput, FaceInput, NumberInput } from './fields';
+import { KeyButton, type KeyButtonState } from './KeyButton';
 
 const UNIT_STEP = 0.5;
 const ANGLE_STEP = 1;
@@ -22,10 +26,45 @@ export function Inspector() {
   return <ShapeInspector key={shape.id} shape={shape} />;
 }
 
+type SetPatch = (patch: ShapePatch, group?: string) => void;
+
+/** What each field needs to show and change its animation. */
+interface Keys {
+  readonly frame: number;
+  /** The button state for one or more properties. */
+  state(paths: readonly PropertyPath[]): KeyButtonState;
+  toggle(paths: readonly PropertyPath[]): void;
+}
+
+/** Field tint: a key on this frame, animated, or not animated. */
+function tint(state: KeyButtonState): string {
+  if (state === 'key') return 'anim-key';
+  if (state === 'none') return '';
+  return 'anim-track';
+}
+
+/**
+ * The Inspector shows the shape as it is on the playhead's frame. Editing an
+ * animated value keys it on that frame; editing any other value changes it
+ * for the whole animation.
+ */
 function ShapeInspector({ shape }: { shape: ShapeData }) {
+  const { frame } = useTimeline();
+  const posed = shapeAtFrame(shape, frame);
   const def = getShapeTypeDef(shape.type);
   // Changes sharing a group (one drag, one visit to a field) undo as one step.
-  const set: SetPatch = (patch, group) => dispatch(update(shape.id, patch), { group });
+  const set: SetPatch = (patch, group) => {
+    pause();
+    dispatch(edit(shape.id, patch, frame), { group });
+  };
+  const keys: Keys = {
+    frame,
+    state: (paths) => (paths.length === 1 ? keyState(shape, paths[0], frame) : groupKeyState(shape, paths, frame)),
+    toggle: (paths) => {
+      pause();
+      dispatch(toggleKey(shape.id, paths, frame));
+    },
+  };
   const fieldsIn = (group: FieldGroup) => def.fields.filter((field) => field.group === group);
 
   return (
@@ -37,69 +76,104 @@ function ShapeInspector({ shape }: { shape: ShapeData }) {
 
       <VectorGroup
         legend="Position"
-        value={shape.translate}
+        property="translate"
+        value={posed.translate}
         step={UNIT_STEP}
+        keys={keys}
         onCommit={(translate, group) => set({ translate }, group)}
       />
       <VectorGroup
         legend="Rotation"
-        value={shape.rotate}
+        property="rotate"
+        value={posed.rotate}
         step={ANGLE_STEP}
         shiftStep={ANGLE_SHIFT_STEP}
         suffix="°"
+        keys={keys}
         onCommit={(rotate, group) => set({ rotate }, group)}
       />
       <fieldset class="group">
         <legend>Scale</legend>
-        <NumberInput
-          label="Scale"
-          shortLabel="Uniform"
-          value={shape.scale}
-          step={SCALE_STEP}
-          min={0}
-          onCommit={(scale, group) => set({ scale }, group)}
-        />
+        <KeyedRow label="Scale" paths={['scale']} keys={keys}>
+          <NumberInput
+            label="Scale"
+            shortLabel="Uniform"
+            value={posed.scale}
+            step={SCALE_STEP}
+            min={0}
+            onCommit={(scale, group) => set({ scale }, group)}
+          />
+        </KeyedRow>
       </fieldset>
 
-      <FieldGroupView legend="Size" fields={fieldsIn('size')} shape={shape} set={set} />
-      <FieldGroupView legend="Appearance" fields={fieldsIn('appearance')} shape={shape} set={set}>
-        <NumberInput
-          label="Opacity"
-          value={Math.round(shape.opacity * 100)}
-          suffix="%"
-          step={PERCENT_STEP}
-          min={0}
-          max={100}
-          integer
-          onCommit={(percent, group) => set({ opacity: percent / 100 }, group)}
-        />
+      <FieldGroupView legend="Size" fields={fieldsIn('size')} shape={posed} set={set} keys={keys} />
+      <FieldGroupView legend="Appearance" fields={fieldsIn('appearance')} shape={posed} set={set} keys={keys}>
+        <KeyedRow label="Opacity" paths={['opacity']} keys={keys}>
+          <NumberInput
+            label="Opacity"
+            value={Math.round(posed.opacity * 100)}
+            suffix="%"
+            step={PERCENT_STEP}
+            min={0}
+            max={100}
+            integer
+            onCommit={(percent, group) => set({ opacity: percent / 100 }, group)}
+          />
+        </KeyedRow>
       </FieldGroupView>
-      <FieldGroupView legend="Faces" fields={fieldsIn('faces')} shape={shape} set={set} />
+      <FieldGroupView legend="Faces" fields={fieldsIn('faces')} shape={posed} set={set} keys={keys} />
     </div>
   );
 }
 
-type SetPatch = (patch: ShapePatch, group?: string) => void;
+/** A field with its keyframe button in front, tinted when animated. */
+function KeyedRow({
+  label,
+  paths,
+  keys,
+  children,
+}: {
+  label: string;
+  paths: readonly PropertyPath[];
+  keys: Keys;
+  children: ComponentChildren;
+}) {
+  const state = keys.state(paths);
+  return (
+    <div class={`keyed-row ${tint(state)}`}>
+      <KeyButton label={label} state={state} frame={keys.frame} onToggle={() => keys.toggle(paths)} />
+      {children}
+    </div>
+  );
+}
 
 interface VectorGroupProps {
   readonly legend: string;
+  readonly property: 'translate' | 'rotate';
   readonly value: Vec3;
   readonly step: number;
   readonly shiftStep?: number;
   readonly suffix?: string;
+  readonly keys: Keys;
   readonly onCommit: (patch: Partial<Vec3>, group: string) => void;
 }
 
-function VectorGroup({ legend, value, step, shiftStep, suffix, onCommit }: VectorGroupProps) {
+/** Position or Rotation: one keyframe button keys x, y and z together. */
+function VectorGroup({ legend, property, value, step, shiftStep, suffix, keys, onCommit }: VectorGroupProps) {
+  const paths = AXES.map((axis) => `${property}.${axis}`);
   return (
     <fieldset class="group">
-      <legend>{legend}</legend>
+      <legend class="keyed-legend">
+        <KeyButton label={legend} state={keys.state(paths)} frame={keys.frame} onToggle={() => keys.toggle(paths)} />
+        {legend}
+      </legend>
       <div class="tuple">
         {AXES.map((axis) => (
           <NumberInput
             key={axis}
             label={`${legend} ${axis.toUpperCase()}`}
             shortLabel={axis.toUpperCase()}
+            className={tint(keys.state([`${property}.${axis}`]))}
             value={value[axis]}
             step={step}
             shiftStep={shiftStep}
@@ -115,20 +189,29 @@ function VectorGroup({ legend, value, step, shiftStep, suffix, onCommit }: Vecto
 interface FieldGroupViewProps {
   readonly legend: string;
   readonly fields: readonly FieldDef[];
+  /** The shape as posed on the current frame. */
   readonly shape: ShapeData;
   readonly set: SetPatch;
+  readonly keys: Keys;
   /** Fields every shape has, shown before the type's own fields. */
   readonly children?: ComponentChildren;
 }
 
-function FieldGroupView({ legend, fields, shape, set, children }: FieldGroupViewProps) {
+function FieldGroupView({ legend, fields, shape, set, keys, children }: FieldGroupViewProps) {
   if (fields.length === 0 && !children) return null;
   return (
     <fieldset class="group">
       <legend>{legend}</legend>
       {children}
       {fields.map((field) => (
-        <FieldControl key={field.key} field={field} shape={shape} set={set} />
+        <KeyedRow
+          key={field.key}
+          label={field.kind === 'face' ? `${field.label} face` : field.label}
+          paths={[`props.${field.key}`]}
+          keys={keys}
+        >
+          <FieldControl field={field} shape={shape} set={set} />
+        </KeyedRow>
       ))}
     </fieldset>
   );

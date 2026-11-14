@@ -4,6 +4,7 @@ import { SceneTree } from './panels/SceneTree';
 import { chooseSceneFile, saveScene } from './files/sceneFiles';
 import { shortcutAllowedIn, shortcutFor } from './state/shortcuts';
 import { dispatch, editor, redo, undo } from './state/store';
+import { TransportBar } from './panels/TransportBar';
 import { Viewport } from './viewport/Viewport';
 
 function useKeyboardShortcuts() {
@@ -37,6 +38,7 @@ export function App() {
 
       <main class="viewport-column">
         <Viewport />
+        <TransportBar />
       </main>
 
       <aside class="panel" aria-labelledby="inspector-title">

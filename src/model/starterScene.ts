@@ -1,5 +1,5 @@
 import { DEFAULT_BACKGROUND } from './scene';
-import { SCENE_VERSION, type Scene, type ShapeData, type ShapeType } from './types';
+import { DEFAULT_DURATION, DEFAULT_FPS, SCENE_VERSION, type Scene, type ShapeData, type ShapeType } from './types';
 
 const noRotation = { x: 0, y: 0, z: 0 };
 
@@ -18,7 +18,7 @@ function shape(
 export function starterScene(): Scene {
   return {
     version: SCENE_VERSION,
-    settings: { background: DEFAULT_BACKGROUND },
+    settings: { background: DEFAULT_BACKGROUND, fps: DEFAULT_FPS, duration: DEFAULT_DURATION },
     shapes: [
       shape('rect-1', 'Rectangle 1', 'Rect', { x: -4, y: -4, z: 4 }, {
         width: 4,

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { updateShape } from '../model/scene';
 import { serializeScene } from '../model/sceneFile';
 import { starterScene } from '../model/starterScene';
-import { AUTOSAVE_KEY, readAutosave, writeAutosave } from './autosave';
+import { AUTOSAVE_BACKUP_KEY, AUTOSAVE_KEY, readAutosave, takeAutosaveRefusal, writeAutosave } from './autosave';
 
 function memoryStorage() {
   const items = new Map<string, string>();
@@ -45,5 +45,16 @@ describe('autosave', () => {
     expect(writeAutosave(null, starterScene())).toBe(false);
     expect(readAutosave(refusing)).toBeNull();
     expect(writeAutosave(refusing, starterScene())).toBe(false);
+  });
+});
+
+describe('autosave that cannot be restored', () => {
+  it('is kept as a backup, and the reason is reported once', () => {
+    const storage = memoryStorage();
+    storage.items.set(AUTOSAVE_KEY, '{"version": 99, "shapes": []}');
+    expect(readAutosave(storage)).toBeNull();
+    expect(storage.items.get(AUTOSAVE_BACKUP_KEY)).toBe('{"version": 99, "shapes": []}');
+    expect(takeAutosaveRefusal()).toMatch(/newer version of Zeditor.*kept as a backup/);
+    expect(takeAutosaveRefusal()).toBeNull();
   });
 });

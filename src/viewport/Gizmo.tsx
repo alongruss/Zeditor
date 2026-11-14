@@ -1,8 +1,9 @@
 import { useRef } from 'preact/hooks';
 import type { ShapeData, Vec3 } from '../model/types';
-import { update } from '../state/commands';
+import { edit } from '../state/commands';
 import { newGroup } from '../state/history';
 import { dispatch } from '../state/store';
+import { pause } from '../state/timeline';
 import {
   AXES,
   angleBetween,
@@ -60,8 +61,11 @@ function arrowHead(from: ScreenPoint, to: ScreenPoint): ScreenPoint[] {
 }
 
 interface GizmoProps {
+  /** The selected shape, as posed on `frame`. */
   readonly shape: ShapeData;
   readonly view: ViewTransform;
+  /** The playhead's frame: animated values are keyed there. */
+  readonly frame: number;
 }
 
 /**
@@ -73,7 +77,7 @@ interface GizmoProps {
  * rotation value shown in the Inspector. Hold Shift to snap moves to whole
  * units and rotation to 15°. Each drag is one undo step.
  */
-export function Gizmo({ shape, view }: GizmoProps) {
+export function Gizmo({ shape, view, frame }: GizmoProps) {
   const drag = useRef<Drag | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const center = project(shape.translate, view);
@@ -87,6 +91,7 @@ export function Gizmo({ shape, view }: GizmoProps) {
   const startDrag = (event: PointerEvent, next: Drag) => {
     event.preventDefault();
     event.stopPropagation();
+    pause();
     (event.currentTarget as Element).setPointerCapture(event.pointerId);
     drag.current = next;
   };
@@ -98,13 +103,13 @@ export function Gizmo({ shape, view }: GizmoProps) {
     if (current.kind === 'move') {
       const moved = { x: point.x - current.start.x, y: point.y - current.start.y };
       const translate = moveAlongAxis(current.translate, current.axis, moved, view, event.shiftKey);
-      dispatch(update(shape.id, { translate }), { group: current.group });
+      dispatch(edit(shape.id, { translate }, frame), { group: current.group });
     } else {
       const angle = screenAngle(current.center, point);
       current.swept += angleBetween(current.lastAngle, angle);
       current.lastAngle = angle;
       const value = ringRotation(current.startDeg, current.swept, current.direction, event.shiftKey);
-      dispatch(update(shape.id, { rotate: { [current.axis]: value } }), { group: current.group });
+      dispatch(edit(shape.id, { rotate: { [current.axis]: value } }, frame), { group: current.group });
     }
   };
 

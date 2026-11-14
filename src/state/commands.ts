@@ -8,7 +8,8 @@ import {
   updateShape,
   type ShapePatch,
 } from '../model/scene';
-import type { Scene, ShapeType } from '../model/types';
+import { editAtFrame, toggleKeys } from '../model/animation';
+import type { PropertyPath, Scene, ShapeData, ShapeType } from '../model/types';
 
 /** Everything the editor knows. The UI and the 3D view are drawn from this alone. */
 export interface EditorState {
@@ -57,6 +58,45 @@ export const update =
   (state) => {
     const scene = updateShape(state.scene, id, patch);
     return scene === state.scene ? state : { ...state, scene };
+  };
+
+/** Replaces one shape with a changed version of itself (by id). */
+function withShape(state: EditorState, id: string, change: (shape: ShapeData) => ShapeData): EditorState {
+  const index = state.scene.shapes.findIndex((shape) => shape.id === id);
+  if (index === -1) return state;
+  const before = state.scene.shapes[index];
+  const after = change(before);
+  if (after === before) return state;
+  const shapes = [...state.scene.shapes];
+  shapes[index] = after;
+  return { ...state, scene: { ...state.scene, shapes } };
+}
+
+/**
+ * An edit made with the playhead on `frame` (from the Inspector or the
+ * gizmo): animated properties get a key there, others change everywhere.
+ * See model/animation.ts editAtFrame.
+ */
+export const edit =
+  (id: string, patch: ShapePatch, frame: number): Command =>
+  (state) =>
+    withShape(state, id, (shape) => editAtFrame(shape, patch, frame));
+
+/** The keyframe button: keys these properties at `frame`, or removes their keys there. */
+export const toggleKey =
+  (id: string, paths: readonly PropertyPath[], frame: number): Command =>
+  (state) =>
+    withShape(state, id, (shape) => toggleKeys(shape, paths, frame));
+
+/** Sets the frame rate and/or the length (in frames). Keys are not moved or removed. */
+export const setTiming =
+  (timing: { readonly fps?: number; readonly duration?: number }): Command =>
+  (state) => {
+    const { settings } = state.scene;
+    const fps = timing.fps ?? settings.fps;
+    const duration = timing.duration ?? settings.duration;
+    if (fps === settings.fps && duration === settings.duration) return state;
+    return { ...state, scene: { ...state.scene, settings: { ...settings, fps, duration } } };
   };
 
 export const rename =

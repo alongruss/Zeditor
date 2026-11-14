@@ -2,7 +2,7 @@ import type * as ZdogTypes from 'zdog';
 import { Zdog } from '../zdog';
 import type { Scene, ShapeData } from '../model/types';
 import { DEFAULT_CAMERA, pixelsPerUnit, type Camera } from './camera';
-import { createZdogShape } from './toZdog';
+import { createZdogShape, zdogTransform } from './toZdog';
 
 /** Attribute that ties every SVG element back to the top-level shape that drew it. */
 export const SHAPE_ID_ATTRIBUTE = 'data-shape-id';
@@ -47,6 +47,11 @@ export class SceneView {
   private readonly illo: ZdogTypes.Illustration;
   private readonly entries = new Map<string, Entry>();
   private selectedId: string | null = null;
+  private playing = false;
+  /** Shapes built since the last render, whose SVG elements still need their id tag. */
+  private readonly untagged = new Set<string>();
+  /** How many elements the SVG had after the last tagging pass. */
+  private taggedCount = -1;
   private camera: Camera = DEFAULT_CAMERA;
   private width = 0;
   private height = 0;
@@ -73,12 +78,21 @@ export class SceneView {
       present.add(shape.id);
       let entry = this.entries.get(shape.id);
       // Scene data is immutable, so a different object means the shape changed.
-      // Rebuilding is simplest: several zdog shapes can't update size in place.
-      if (!entry || entry.data !== shape) {
+      if (entry && entry.data !== shape && onlyMoved(entry.data, shape)) {
+        // Position, rotation or scale only (most animation frames): move the zdog object.
+        const { translate, rotate, scale } = zdogTransform(shape);
+        entry.object.translate.set(translate);
+        entry.object.rotate.set(rotate);
+        entry.object.scale.set({ x: scale, y: scale, z: scale });
+        entry = { data: shape, object: entry.object };
+        this.entries.set(shape.id, entry);
+      } else if (!entry || entry.data !== shape) {
+        // Anything else: rebuild it (several zdog shapes can't change size in place).
         if (entry) this.illo.removeChild(entry.object);
         entry = { data: shape, object: createZdogShape(shape) };
         this.entries.set(shape.id, entry);
         this.illo.addChild(entry.object);
+        this.untagged.add(shape.id);
       }
       ordered.push(entry.object);
     }
@@ -94,6 +108,13 @@ export class SceneView {
     const children = childrenOf(this.illo);
     if (children) children.splice(0, children.length, ...ordered);
 
+    this.requestRender();
+  }
+
+  /** While playing, the selection outline is hidden (measuring it every frame is slow). */
+  setPlaying(playing: boolean): void {
+    if (playing === this.playing) return;
+    this.playing = playing;
     this.requestRender();
   }
 
@@ -154,18 +175,32 @@ export class SceneView {
     this.svg.replaceChildren();
   }
 
+  /**
+   * Tags SVG elements with their shape's id. zdog creates an element the first
+   * time that part is drawn, which can be long after the shape was built (a
+   * face turned away isn't drawn), so every shape is checked whenever the
+   * number of elements changes; otherwise only newly built shapes are.
+   */
   private tagElements(): void {
-    for (const [id, entry] of this.entries) {
+    const count = this.svg.getElementsByTagName('*').length;
+    const ids = count !== this.taggedCount ? [...this.entries.keys()] : [...this.untagged];
+    for (const id of ids) {
+      const entry = this.entries.get(id);
+      if (!entry) continue;
       for (const element of svgElementsOf(entry.object)) {
-        if (element.getAttribute(SHAPE_ID_ATTRIBUTE) !== id) {
-          element.setAttribute(SHAPE_ID_ATTRIBUTE, id);
-        }
+        if (element.getAttribute(SHAPE_ID_ATTRIBUTE) !== id) element.setAttribute(SHAPE_ID_ATTRIBUTE, id);
       }
     }
+    this.untagged.clear();
+    this.taggedCount = count;
   }
 
   private placeSelectionOutline(): void {
     const outline = this.selectionOutline;
+    if (this.playing) {
+      outline.hidden = true;
+      return;
+    }
     const entry = this.selectedId === null ? undefined : this.entries.get(this.selectedId);
     const rects = entry
       ? svgElementsOf(entry.object)
@@ -192,4 +227,9 @@ export class SceneView {
     outline.style.width = `${right - left}px`;
     outline.style.height = `${bottom - top}px`;
   }
+}
+
+/** True when only position, rotation or scale differ, which zdog can change in place. */
+function onlyMoved(before: ShapeData, after: ShapeData): boolean {
+  return before.type === after.type && before.props === after.props && before.opacity === after.opacity;
 }
