@@ -60,8 +60,11 @@ mouse and keyboard. Not a polished public product yet.
   Delete. "New scene" asks for confirmation and can be undone.
 - Undo/redo saves a copy of the scene after each change (Ctrl+Z, Ctrl+Shift+Z / Ctrl+Y, up to 100
   steps). A drag, or one session of typing in a field, is one step.
-- Shift snaps gizmo moves to whole units and rotation to 15°. In the Inspector, arrow keys step by
-  0.5 units, or by 15° with Shift.
+- Shift snaps gizmo moves to whole units and rotation to 15°.
+- Inspector number fields: arrow keys step by one step (0.5 units, 1°, 0.1 scale). With Shift they
+  step by 15° for rotation, or ten steps for everything else. Dragging a field's label or unit
+  (e.g. "°") left or right also changes it, one step per 4 px, with the same Shift rule; a click on
+  the label without dragging focuses the field. (Drag-to-change was added during PR 2.)
 
 **Gizmo**
 - Drawn on its own overlay SVG above the scene, using the same camera. It can't be hidden behind
@@ -106,11 +109,13 @@ and the Pages site is live after merge.
 
 ### PR 2: Scene and selection
 - Shape type definitions with their field lists; the scene data; a store holding
-  `{ scene, selectedId, camera }`.
+  `{ scene, selectedId }`. The camera stays inside zdog until PR 4 moves it into the store.
 - The viewport creates, updates and removes zdog objects by id. Every SVG element a shape draws
   (including a Box's faces) is tagged with that shape's top-level id, so a click selects the whole shape.
-- Preact panels: scene tree (select, double-click to rename), the Inspector built from field lists,
-  the Add toolbar, Delete/Backspace, Ctrl+D, the right-click menu, and New scene.
+- Preact panels: scene tree (select, double-click to rename), the Inspector built from field lists
+  (with drag-to-change on number labels), the Add toolbar, Delete/Backspace, Ctrl+D, the right-click
+  menu, and New scene.
+- The viewport only redraws when something changes, instead of every frame.
 
 **Done when:** every shape can be selected from the viewport and from the tree, and Inspector edits
 change only that shape. Tests cover the shared-`translate` bug, the Inspector timing bug and the
