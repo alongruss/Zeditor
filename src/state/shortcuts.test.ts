@@ -45,6 +45,13 @@ describe('shortcutFor', () => {
     expect(shortcutFor(press('y', { ctrlKey: true }), null)).toBe('redo');
   });
 
+  it('saves with Ctrl+S and opens with Ctrl+O, instead of the browser', () => {
+    expect(shortcutFor(press('s', { ctrlKey: true }), null)).toBe('save');
+    expect(shortcutFor(press('s', { metaKey: true }), 'box-1')).toBe('save');
+    expect(shortcutFor(press('o', { ctrlKey: true }), null)).toBe('open');
+    expect(shortcutFor(press('S', { ctrlKey: true, shiftKey: true }), null)).toBeNull();
+  });
+
   it('finds Ctrl+Z and Ctrl+D by physical key on non-Latin layouts', () => {
     // Hebrew layout: the Z key types "ז" and the D key types "ג".
     expect(shortcutFor(press('ז', { code: 'KeyZ', ctrlKey: true }), null)).toBe('undo');

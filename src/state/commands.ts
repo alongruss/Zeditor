@@ -69,3 +69,8 @@ export const rename =
   };
 
 export const newScene: Command = () => ({ scene: emptyScene(), selectedId: null });
+
+/** Replaces the whole scene, e.g. with one opened from a file. Can be undone like any change. */
+export const loadScene =
+  (scene: Scene): Command =>
+  () => ({ scene, selectedId: null });

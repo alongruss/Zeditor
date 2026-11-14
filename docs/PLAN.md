@@ -47,7 +47,8 @@ mouse and keyboard. Not a polished public product yet.
   or future step is a `{ before, after }` pair of states. Commands stay pure functions of the state.
 
 **Scene data**
-- The scene is versioned JSON: `{ version, settings: { background, zoom }, shapes: [...] }`.
+- The scene is versioned JSON: `{ version, settings: { background }, shapes: [...] }`. (Zoom was
+  planned as a scene setting; it turned out to belong to the camera, which the export uses instead.)
 - v1 is a flat list of shapes, with no grouping. Composite shapes (Box, Cylinder, Cone, Hemisphere)
   select as one unit. The format leaves room for a `children` field later.
 - Ids are stable and readable (`box-1`, `cone-2`). Names can be edited (double-click in the tree).
@@ -108,14 +109,22 @@ mouse and keyboard. Not a polished public product yet.
 - Scale is changed in the Inspector only (no scale handle in v1).
 - Gizmo drags stop at the screen edge (no pointer lock there: you need to see the shape follow).
 
-**Saving and export**
-- Save downloads a `.zeditor.json` file; Open loads one. Opening a file with an unknown version shows
-  an error. The scene autosaves to the browser so a reload keeps your work. The first visit, with no
-  autosave, opens the 2020 nine-shape scene; "New scene" starts from empty.
-- "Export Zdog JS" generates a complete script that runs when pasted into a page: an Illustration with
-  the scene's background and zoom, one named `const` per shape, and a draw loop. It keeps `0`/`false`
+**Saving and export** (a File menu on the toolbar: New scene, Open…, Save, Export Zdog JS)
+- Save (Ctrl+S) downloads a `.zeditor.json` file; Open (Ctrl+O) loads one, as one undo step. Both
+  shortcuts replace the browser's own Save page / Open file. After opening a file, Save uses its name.
+- A file is untrusted input. Every value is checked; unknown props are dropped and missing ones get
+  defaults; colors must be hex, a color name, or rgb()/hsl() (nothing that could load a URL). A file
+  from a newer version, or that isn't a scene, is refused with a message and nothing changes.
+- The scene autosaves to the browser's localStorage 300 ms after each change, and straight away when
+  the page is hidden, so a reload keeps your work (the undo history and the camera are not kept).
+  The first visit, with no autosave, opens the 2020 nine-shape scene; "New scene" starts from empty.
+- "Export Zdog JS" generates a complete script that runs when pasted into a page that has Zdog: it
+  draws into `<canvas class="zeditor-scene">` or adds a 480 × 480 one, with the scene's background and
+  the **current camera's** turn and zoom, drag-to-turn, one named `const` per shape (from the shape's
+  name, e.g. `roundedRectangle1`, so you can animate it), and a draw loop. It keeps `0`/`false`
   values, applies opacity the same way the editor does, and never includes the gizmo. It is copied to
   the clipboard and downloaded.
+- Results and errors appear as a short notice at the bottom of the viewport.
 
 **Process**
 - One branch and one PR per phase, merged before the next phase starts.
@@ -172,8 +181,8 @@ and one visit to a field undo in one step; opacity fades every part of a shape.
 **Done when:** a handle moves the shape smoothly along its axis from any camera angle and never
 produces `NaN`, the gizmo is always visible, and each drag is one undo step.
 
-### PR 5: Saving and export
-- Save / Open / autosave, with version checking.
+### PR 5: Saving and export (`rebuild/5-save-export`)
+- Save / Open / autosave, with version checking, in a File menu (New scene moves there too).
 - The Zdog JS export.
 - Add save and reload to the full Playwright flow.
 

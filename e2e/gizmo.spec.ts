@@ -1,86 +1,20 @@
-import { expect, test, type Page } from '@playwright/test';
-import { emptyPoint, openEditorForEachTest, shapeBounds, treeItem } from './helpers';
+import { expect, test } from '@playwright/test';
+import {
+  arrow,
+  arrowGrip,
+  centerOf,
+  drag,
+  field,
+  gizmoCenter,
+  grabbable,
+  openEditorForEachTest,
+  orbit,
+  ring,
+  shapeBounds,
+  treeItem,
+} from './helpers';
 
 openEditorForEachTest(test);
-
-interface Point {
-  x: number;
-  y: number;
-}
-
-const field = (page: Page, label: string) => page.getByLabel(label, { exact: true });
-
-/** The gizmo's center, in page coordinates. */
-async function gizmoCenter(page: Page): Promise<Point> {
-  const gizmo = page.locator('svg.gizmo');
-  const box = (await gizmo.boundingBox())!;
-  const [x, y] = (await gizmo.getAttribute('data-center'))!.split(',').map(Number);
-  return { x: box.x + x, y: box.y + y };
-}
-
-/** A move arrow's start and tip, in page coordinates. */
-async function arrow(page: Page, axis: 'x' | 'y' | 'z'): Promise<{ from: Point; to: Point }> {
-  const box = (await page.locator('svg.gizmo').boundingBox())!;
-  const line = page.locator(`.gizmo [data-handle="move-${axis}"] line.gizmo-line`);
-  const [x1, y1, x2, y2] = await Promise.all(['x1', 'y1', 'x2', 'y2'].map((a) => line.getAttribute(a)));
-  return {
-    from: { x: box.x + Number(x1), y: box.y + Number(y1) },
-    to: { x: box.x + Number(x2), y: box.y + Number(y2) },
-  };
-}
-
-/** Points along a rotation ring, in page coordinates. */
-async function ring(page: Page, axis: 'x' | 'y' | 'z'): Promise<Point[]> {
-  const box = (await page.locator('svg.gizmo').boundingBox())!;
-  const points = await page.locator(`.gizmo [data-handle="rotate-${axis}"] polyline.gizmo-line`).getAttribute('points');
-  return points!.split(' ').map((pair) => {
-    const [x, y] = pair.split(',').map(Number);
-    return { x: box.x + x, y: box.y + y };
-  });
-}
-
-/** The first of `candidates` where `handle` is the topmost thing under the pointer. */
-async function grabbable(page: Page, handle: string, candidates: Point[]): Promise<Point> {
-  const index = await page.evaluate(
-    ({ handle, candidates }) =>
-      candidates.findIndex(
-        (p) => document.elementFromPoint(p.x, p.y)?.closest('[data-handle]')?.getAttribute('data-handle') === handle,
-      ),
-    { handle, candidates },
-  );
-  expect(index, `a point where ${handle} can be grabbed`).toBeGreaterThanOrEqual(0);
-  return candidates[index];
-}
-
-/** A grabbable point on a move arrow, as far along it as possible. */
-async function arrowGrip(page: Page, axis: 'x' | 'y' | 'z'): Promise<Point> {
-  const { from, to } = await arrow(page, axis);
-  const along = [0.85, 0.75, 0.65, 0.95, 0.55, 0.45].map((t) => ({
-    x: from.x + (to.x - from.x) * t,
-    y: from.y + (to.y - from.y) * t,
-  }));
-  return grabbable(page, `move-${axis}`, along);
-}
-
-async function drag(page: Page, path: Point[], options: { shift?: boolean } = {}) {
-  if (options.shift) await page.keyboard.down('Shift');
-  await page.mouse.move(path[0].x, path[0].y);
-  await page.mouse.down();
-  for (const point of path.slice(1)) await page.mouse.move(point.x, point.y, { steps: 4 });
-  await page.mouse.up();
-  if (options.shift) await page.keyboard.up('Shift');
-}
-
-/** Turns the camera by dragging empty space. */
-async function orbit(page: Page, dx: number, dy: number) {
-  const start = await emptyPoint(page);
-  await drag(page, [start, { x: start.x + dx, y: start.y + dy }]);
-}
-
-const centerOf = (bounds: { left: number; right: number; top: number; bottom: number }) => ({
-  x: (bounds.left + bounds.right) / 2,
-  y: (bounds.top + bounds.bottom) / 2,
-});
 
 test('the gizmo sits on the selected shape from any camera angle and zoom', async ({ page }) => {
   await expect(page.locator('svg.gizmo')).toHaveCount(0);

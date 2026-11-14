@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { emptyPoint, openEditorForEachTest, treeItem } from './helpers';
+import { emptyPoint, fileMenu, openEditorForEachTest, treeItem } from './helpers';
 
 openEditorForEachTest(test);
 
@@ -108,7 +108,7 @@ test('Undo brings back a deleted shape, and a whole scene after New scene', asyn
   await expect(page.locator('svg.scene [data-shape-id="box-1"]').first()).toBeAttached();
 
   page.once('dialog', (dialog) => dialog.accept());
-  await page.getByRole('button', { name: 'New scene' }).click();
+  await fileMenu(page, 'New scene');
   await expect(shapeCount(page)).toHaveCount(0);
   await undoButton(page).click();
   await expect(shapeCount(page)).toHaveCount(9);

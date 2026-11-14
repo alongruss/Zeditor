@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { findShape } from '../model/scene';
 import { ContextMenu, type MenuPosition } from '../panels/ContextMenu';
+import { NoticeBar } from '../panels/NoticeBar';
 import { Toolbar } from '../panels/Toolbar';
 import { select } from '../state/commands';
 import { camera, dispatch, editor, setCamera, useCamera, useEditorState } from '../state/store';
@@ -166,6 +167,7 @@ export function Viewport() {
         <Gizmo shape={selected} view={{ width: size.width, height: size.height, zoom, rotate: currentCamera.rotate }} />
       )}
       <Toolbar />
+      <NoticeBar />
       {menu && <ContextMenu position={menu} onClose={() => setMenu(null)} />}
     </div>
   );

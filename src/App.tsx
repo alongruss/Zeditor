@@ -1,6 +1,7 @@
 import { useEffect } from 'preact/hooks';
 import { Inspector } from './panels/Inspector';
 import { SceneTree } from './panels/SceneTree';
+import { chooseSceneFile, saveScene } from './files/sceneFiles';
 import { shortcutAllowedIn, shortcutFor } from './state/shortcuts';
 import { dispatch, editor, redo, undo } from './state/store';
 import { Viewport } from './viewport/Viewport';
@@ -14,6 +15,8 @@ function useKeyboardShortcuts() {
       event.preventDefault();
       if (shortcut === 'undo') undo();
       else if (shortcut === 'redo') redo();
+      else if (shortcut === 'save') saveScene();
+      else if (shortcut === 'open') chooseSceneFile();
       else dispatch(shortcut);
     };
     window.addEventListener('keydown', onKeyDown);
