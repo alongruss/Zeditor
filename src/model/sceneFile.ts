@@ -1,13 +1,21 @@
+import { propertySpec, type PropertySpec } from './animatable';
 import { DEFAULT_BACKGROUND } from './scene';
 import { getShapeTypeDef, type FieldDef } from './shapeTypes';
 import {
+  DEFAULT_DURATION,
+  DEFAULT_FPS,
+  EASINGS,
   SCENE_VERSION,
   SHAPE_TYPES,
+  type Easing,
+  type Keyframe,
   type PathData,
   type PropValue,
   type Scene,
   type ShapeData,
   type ShapeType,
+  type TrackValue,
+  type Tracks,
   type Vec3,
 } from './types';
 import { isHexColor } from './color';
@@ -18,6 +26,10 @@ import { parseCssColor } from './cssColor';
  * also what autosave keeps in the browser, so a file is read with the same
  * checks wherever it comes from. A file is treated as untrusted input: every
  * value is checked, and anything unknown is left out.
+ *
+ * Versions: 1 (the first), 2 (adds animation: tracks, fps, duration). Older
+ * files are read and brought up to date; newer ones are refused, so nothing
+ * a newer version saved is ever silently dropped.
  */
 
 export const SCENE_FILE_EXTENSION = '.zeditor.json';
@@ -28,6 +40,9 @@ export const MAX_SCENE_FILE_BYTES = 5 * 1024 * 1024;
 const MAX_SHAPES = 5000;
 const MAX_NAME_LENGTH = 200;
 const MAX_PATH_POINTS = 2000;
+const MAX_KEYS = 10000;
+const MAX_FRAME = 100000;
+const MAX_FPS = 120;
 
 export type SceneFileResult = { readonly ok: true; readonly scene: Scene } | { readonly ok: false; readonly error: string };
 
@@ -102,7 +117,67 @@ function readProp(key: string, value: unknown, field: FieldDef | undefined, wher
   }
 }
 
-function readShape(raw: unknown, index: number): ShapeData {
+function readKeyValue(value: unknown, spec: PropertySpec): TrackValue | null {
+  switch (spec.kind) {
+    case 'number':
+      if (!isFiniteNumber(value)) return null;
+      if (spec.min !== undefined && value < spec.min) return null;
+      if (spec.max !== undefined && value > spec.max) return null;
+      if (spec.integer && !Number.isInteger(value)) return null;
+      return value;
+    case 'color':
+      return isSafeColor(value) ? value : null;
+    case 'face':
+      return typeof value === 'boolean' || isSafeColor(value) ? value : null;
+    case 'hold':
+      return typeof value === 'boolean' ? value : null;
+  }
+}
+
+/** A shape's animation tracks, every key checked against its property's rules. */
+function readTracks(raw: unknown, type: ShapeType, where: string): Tracks | undefined {
+  if (raw === undefined) return undefined;
+  if (!isRecord(raw)) return fail(`${where}: tracks isn't an object.`);
+  const tracks: Record<string, readonly Keyframe[]> = {};
+  for (const [path, rawKeys] of Object.entries(raw)) {
+    const spec = propertySpec(type, path);
+    if (!spec) return fail(`${where}: "${path}" can't be animated.`);
+    if (!Array.isArray(rawKeys) || rawKeys.length === 0 || rawKeys.length > MAX_KEYS) {
+      return fail(`${where}: the "${path}" track has no keys, or too many.`);
+    }
+    const keys = rawKeys.map((rawKey): Keyframe => {
+      if (!isRecord(rawKey)) return fail(`${where}: a "${path}" key isn't a keyframe.`);
+      const frame = rawKey.frame;
+      if (!isFiniteNumber(frame) || !Number.isInteger(frame) || frame < 0 || frame > MAX_FRAME) {
+        return fail(`${where}: a "${path}" key has no valid frame.`);
+      }
+      const value = readKeyValue(rawKey.value, spec);
+      if (value === null) return fail(`${where}: the "${path}" key at frame ${frame} has a value that doesn't fit.`);
+      const easing = rawKey.easing ?? 'easeInOut';
+      if (!(EASINGS as readonly unknown[]).includes(easing)) {
+        return fail(`${where}: the "${path}" key at frame ${frame} has an unknown easing.`);
+      }
+      return { frame, value, easing: easing as Easing };
+    });
+    keys.sort((a, b) => a.frame - b.frame);
+    for (let i = 1; i < keys.length; i++) {
+      if (keys[i].frame === keys[i - 1].frame) return fail(`${where}: two "${path}" keys are on frame ${keys[i].frame}.`);
+    }
+    tracks[path] = keys;
+  }
+  return Object.keys(tracks).length > 0 ? tracks : undefined;
+}
+
+/** A whole number setting within limits; the default when it's missing. */
+function readWholeSetting(value: unknown, name: string, fallback: number, max: number): number {
+  if (value === undefined) return fallback;
+  if (!isFiniteNumber(value) || !Number.isInteger(value) || value < 1 || value > max) {
+    return fail(`The scene's ${name} must be a whole number from 1 to ${max}.`);
+  }
+  return value;
+}
+
+function readShape(raw: unknown, index: number, version: number): ShapeData {
   const where = `Shape ${index + 1}`;
   if (!isRecord(raw)) return fail(`${where} isn't a shape.`);
 
@@ -130,7 +205,7 @@ function readShape(raw: unknown, index: number): ShapeData {
     props[key] = Object.hasOwn(rawProps, key) ? readProp(key, rawProps[key], field, where) : structuredClone(fallback);
   }
 
-  return {
+  const shape: ShapeData = {
     id,
     name,
     type: def.type,
@@ -140,6 +215,9 @@ function readShape(raw: unknown, index: number): ShapeData {
     opacity: Math.min(1, Math.max(0, opacity)),
     props,
   };
+  // Version 1 had no animation.
+  const tracks = version >= 2 ? readTracks(raw.tracks, def.type, where) : undefined;
+  return tracks ? { ...shape, tracks } : shape;
 }
 
 /** Reads a scene file's text, checking everything. Never throws. */
@@ -154,7 +232,7 @@ export function parseSceneFile(text: string): SceneFileResult {
     if (!isRecord(data) || !Array.isArray(data.shapes)) return fail(NOT_A_SCENE);
 
     const version = data.version;
-    if (version !== SCENE_VERSION) {
+    if (version !== SCENE_VERSION && version !== 1) {
       if (isFiniteNumber(version) && version > SCENE_VERSION) {
         return fail(
           `This scene was saved by a newer version of Zeditor (file version ${version}). ` +
@@ -167,15 +245,18 @@ export function parseSceneFile(text: string): SceneFileResult {
 
     const settings = isRecord(data.settings) ? data.settings : {};
     const background = isHexColor(String(settings.background ?? '')) ? String(settings.background) : DEFAULT_BACKGROUND;
+    const fps = version >= 2 ? readWholeSetting(settings.fps, 'fps', DEFAULT_FPS, MAX_FPS) : DEFAULT_FPS;
+    const duration =
+      version >= 2 ? readWholeSetting(settings.duration, 'length', DEFAULT_DURATION, MAX_FRAME) : DEFAULT_DURATION;
 
-    const shapes = data.shapes.map(readShape);
+    const shapes = data.shapes.map((raw, i) => readShape(raw, i, version));
     const ids = new Set<string>();
     for (const shape of shapes) {
       if (ids.has(shape.id)) return fail(`Two shapes have the same id: ${shape.id}.`);
       ids.add(shape.id);
     }
 
-    return { ok: true, scene: { version: SCENE_VERSION, settings: { background }, shapes } };
+    return { ok: true, scene: { version: SCENE_VERSION, settings: { background, fps, duration }, shapes } };
   } catch (error) {
     if (error instanceof SceneFileError) return { ok: false, error: error.message };
     throw error;

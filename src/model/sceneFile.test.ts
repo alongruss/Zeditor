@@ -41,7 +41,9 @@ describe('scene files', () => {
   });
 
   it('says so when a file is from a newer version', () => {
-    expect(errorOf({ version: SCENE_VERSION + 1, shapes: [] })).toMatch(/newer version of Zeditor \(file version 2\)/);
+    expect(errorOf({ version: SCENE_VERSION + 1, shapes: [] })).toContain(
+      `newer version of Zeditor (file version ${SCENE_VERSION + 1})`,
+    );
   });
 
   it('refuses unknown shape types, bad ids and duplicate ids', () => {
@@ -100,5 +102,54 @@ describe('isSafeColor', () => {
     for (const bad of ['url(https://x.test/a.png)', 'red; fill: url(#x)', 'javascript:alert(1)', '"red"', 7, null]) {
       expect(isSafeColor(bad), String(bad)).toBe(false);
     }
+  });
+});
+
+describe('scene files with animation (version 2)', () => {
+  const animatedFile = (tracks: unknown, settings: Record<string, unknown> = {}) => ({
+    version: 2,
+    settings: { background: '#ffffff', ...settings },
+    shapes: [{ id: 'box-1', name: 'Box 1', type: 'Box', tracks }],
+  });
+  const goodTracks = {
+    'translate.x': [
+      { frame: 30, value: 5, easing: 'easeOut' },
+      { frame: 0, value: 0, easing: 'linear' },
+    ],
+    'props.color': [{ frame: 0, value: '#ff0000', easing: 'hold' }],
+    'props.fill': [{ frame: 10, value: false, easing: 'linear' }],
+  };
+
+  it('opens version 1 files, with the default fps and length and no animation', () => {
+    const scene = sceneOf({ version: 1, shapes: [{ id: 'box-1', type: 'Box', tracks: goodTracks }] });
+    expect(scene.version).toBe(SCENE_VERSION);
+    expect(scene.settings).toMatchObject({ fps: 30, duration: 90 });
+    expect(scene.shapes[0].tracks).toBeUndefined();
+  });
+
+  it('save then open keeps the animation, with keys in frame order', () => {
+    const scene = sceneOf(animatedFile(goodTracks, { fps: 24, duration: 48 }));
+    expect(scene.settings).toMatchObject({ fps: 24, duration: 48 });
+    expect(scene.shapes[0].tracks!['translate.x'].map((k) => k.frame)).toEqual([0, 30]);
+    expect(parseSceneFile(serializeScene(scene))).toEqual({ ok: true, scene });
+  });
+
+  it('refuses tracks that do not fit their property', () => {
+    const one = (path: string, keyframe: Record<string, unknown>) => errorOf(animatedFile({ [path]: [keyframe] }));
+    expect(one('props.wings', { frame: 0, value: 1 })).toMatch(/"props.wings" can't be animated/);
+    expect(one('translate.x', { frame: -1, value: 1 })).toMatch(/no valid frame/);
+    expect(one('translate.x', { frame: 1.5, value: 1 })).toMatch(/no valid frame/);
+    expect(one('opacity', { frame: 0, value: 2 })).toMatch(/doesn't fit/);
+    expect(one('props.color', { frame: 0, value: 'url(x.png)' })).toMatch(/doesn't fit/);
+    expect(one('props.fill', { frame: 0, value: 'yes' })).toMatch(/doesn't fit/);
+    expect(one('scale', { frame: 0, value: 1, easing: 'bounce' })).toMatch(/unknown easing/);
+    expect(errorOf(animatedFile({ scale: [] }))).toMatch(/no keys/);
+    const twice = { scale: [{ frame: 3, value: 1 }, { frame: 3, value: 2 }] };
+    expect(errorOf(animatedFile(twice))).toMatch(/two "scale" keys are on frame 3/);
+  });
+
+  it('refuses a bad fps or length', () => {
+    expect(errorOf(animatedFile(undefined, { fps: 0 }))).toMatch(/fps must be a whole number/);
+    expect(errorOf(animatedFile(undefined, { duration: 2.5 }))).toMatch(/length must be a whole number/);
   });
 });

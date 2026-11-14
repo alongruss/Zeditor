@@ -55,13 +55,49 @@ export interface ShapeData {
   readonly opacity: number;
   /** Type-specific settings: size, color, stroke, fill, faces... See shapeTypes.ts. */
   readonly props: Props;
+  /**
+   * Animation: keyframes per property (see animatable.ts for the paths). A
+   * property with a track takes its value from the track; the plain field
+   * above is then only used again if the track is removed. Omitted when the
+   * shape isn't animated.
+   */
+  readonly tracks?: Tracks;
 }
+
+/** How a keyframe eases into the next one. "Ease in" starts slowly, as in CSS. */
+export const EASINGS = ['linear', 'easeIn', 'easeOut', 'easeInOut', 'hold'] as const;
+export type Easing = (typeof EASINGS)[number];
+
+/** A number, a color (hex), or for hold-only properties a boolean. */
+export type TrackValue = number | string | boolean;
+
+export interface Keyframe {
+  /** A whole frame number, 0 or more. */
+  readonly frame: number;
+  readonly value: TrackValue;
+  /** Shapes the change from this key to the next one. */
+  readonly easing: Easing;
+}
+
+/** A property path such as 'translate.x', 'rotate.y', 'scale', 'opacity' or 'props.color'. */
+export type PropertyPath = string;
+
+/** Keyframes per property, each list sorted by frame with no two keys on one frame. */
+export type Tracks = Readonly<Record<PropertyPath, readonly Keyframe[]>>;
 
 export interface SceneSettings {
   readonly background: string;
+  /** Frames per second. */
+  readonly fps: number;
+  /** Length of the animation, in frames (frames 0 to duration - 1). */
+  readonly duration: number;
 }
 
-export const SCENE_VERSION = 1;
+export const DEFAULT_FPS = 30;
+export const DEFAULT_DURATION = 90;
+
+/** Version 2 added animation (tracks, fps, duration). */
+export const SCENE_VERSION = 2;
 
 export interface Scene {
   readonly version: typeof SCENE_VERSION;

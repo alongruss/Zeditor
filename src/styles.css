@@ -68,14 +68,17 @@ body {
 /* ----- viewport ----- */
 
 .viewport-column {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
   min-height: 0;
 }
 
 .viewport {
   position: relative;
+  flex: 1;
   width: 100%;
-  height: 100%;
+  min-height: 0;
   overflow: hidden;
   background: var(--scene-bg);
 }
@@ -164,6 +167,162 @@ body {
   fill: white;
   stroke: var(--text);
   stroke-width: 1.5px;
+}
+
+/* ----- transport bar (under the viewport) ----- */
+
+.transport {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 48px;
+  padding: 0 10px;
+  font-size: 12px;
+  background: var(--panel-bg);
+  box-shadow: 0 -2px 6px rgb(0 0 0 / 12%);
+}
+
+.transport-play {
+  flex: none;
+  width: 34px;
+  padding: 6px 0;
+  font-size: 12px;
+}
+
+.transport .field-number input {
+  width: 4.5em;
+}
+
+.transport-frame .field-label,
+.transport-setting .field-label {
+  color: var(--text-muted);
+}
+
+.transport-time {
+  flex: none;
+  width: 4.5em;
+  color: var(--text-muted);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.ruler {
+  position: relative;
+  flex: 1;
+  min-width: 80px;
+  height: 30px;
+  border-radius: var(--radius);
+  background: white;
+  box-shadow: inset 0 0 0 1px var(--border);
+  cursor: ew-resize;
+  touch-action: none;
+}
+
+.ruler:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.ruler-tick {
+  position: absolute;
+  bottom: 0;
+  width: 1px;
+  height: 5px;
+  background: var(--border);
+}
+
+.ruler-tick.major {
+  height: 9px;
+  background: var(--text-muted);
+}
+
+.ruler-label {
+  position: absolute;
+  top: -15px;
+  left: 3px;
+  font-size: 9px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.ruler-key {
+  position: absolute;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  margin: -4px 0 0 -4px;
+  background: #e8a500;
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+
+.ruler-playhead {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--accent);
+  pointer-events: none;
+}
+
+/* ----- keyframe buttons and animated fields ----- */
+
+.keyed-row,
+.keyed-legend {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.keyed-row > :last-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.key-button {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  padding: 2px;
+  background: transparent;
+  box-shadow: none;
+}
+
+.key-button svg {
+  display: block;
+  width: 12px;
+  height: 12px;
+}
+
+.key-button path {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 1.4;
+}
+
+.key-button:hover path {
+  stroke: var(--text-muted);
+}
+
+.key-track path,
+.key-mixed path {
+  stroke: #c98a00;
+}
+
+.key-key path,
+.key-mixed .key-half {
+  fill: #e8a500;
+  stroke: #c98a00;
+}
+
+/* Animated values: yellow on a keyframe, green in between (as in Blender). */
+.anim-key input[type='text'] {
+  background: #fff3c4;
+}
+
+.anim-track input[type='text'] {
+  background: #e6f4e8;
 }
 
 /* ----- dialogs ----- */
@@ -524,12 +683,17 @@ kbd {
 }
 
 .field-face .field-color > .field-label {
-  width: 3.5em;
+  width: 3.3em;
 }
 
 .field-face .field-hex {
   flex: none;
-  width: 5.6em;
+  width: 5.1em;
+}
+
+/* Face rows also hold a keyframe button: a narrower alpha box keeps them on one line. */
+.field-face .field-alpha input {
+  width: 2.7em;
 }
 
 .field-checkbox {

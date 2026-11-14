@@ -6,6 +6,7 @@ import {
   HISTORY_LIMIT,
   applyCommand,
   canRedo,
+  closeGroup,
   canUndo,
   newGroup,
   redo,
@@ -179,5 +180,16 @@ describe('undo and redo', () => {
     history = redo(undo(history));
     history = applyCommand(history, moveX('box-1', 6), typing);
     expect(history.past).toHaveLength(2);
+  });
+});
+
+describe('closeGroup', () => {
+  it('makes the next change in the same group a step of its own', () => {
+    const typing = newGroup();
+    let history = applyCommand(start(), moveX('box-1', 5), typing);
+    history = closeGroup(history);
+    history = applyCommand(history, moveX('box-1', 6), typing);
+    expect(history.past).toHaveLength(2);
+    expect(closeGroup(start())).toEqual(start());
   });
 });

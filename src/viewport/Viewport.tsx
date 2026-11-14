@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
+import { sceneAtFrame, shapeAtFrame } from '../model/evaluate';
 import { findShape } from '../model/scene';
 import { ContextMenu, type MenuPosition } from '../panels/ContextMenu';
 import { NoticeBar } from '../panels/NoticeBar';
 import { Toolbar } from '../panels/Toolbar';
 import { select } from '../state/commands';
 import { camera, dispatch, editor, setCamera, useCamera, useEditorState } from '../state/store';
+import { currentFrame, timeline, useTimeline } from '../state/timeline';
 import { orbit, pixelsPerUnit, zoomByWheel, type Camera } from './camera';
 import { Gizmo } from './Gizmo';
 import { SceneView } from './SceneView';
@@ -58,13 +60,21 @@ export function Viewport() {
     svg.setAttribute('height', String(Math.max(1, container.clientHeight)));
 
     const view = new SceneView(svg, outline);
+    // The scene as posed on the playhead's frame. Playback only moves the
+    // playhead; it never goes through the editor store or the undo history.
     const show = () => {
       const { scene, selectedId } = editor.get();
-      view.setScene(scene);
+      view.setPlaying(timeline.get().playing);
+      view.setScene(sceneAtFrame(scene, currentFrame()));
       view.setSelected(selectedId);
     };
     show();
-    const unsubscribe = editor.subscribe(show);
+    const unsubscribeEditor = editor.subscribe(show);
+    const unsubscribeTimeline = timeline.subscribe(show);
+    const unsubscribe = () => {
+      unsubscribeEditor();
+      unsubscribeTimeline();
+    };
     view.setCamera(camera.get());
     const unsubscribeCamera = camera.subscribe((next) => view.setCamera(next));
 
@@ -156,7 +166,9 @@ export function Viewport() {
     };
   }, []);
 
-  const selected = findShape(scene, selectedId);
+  const { frame } = useTimeline();
+  const found = findShape(scene, selectedId);
+  const selected = found && shapeAtFrame(found, frame);
   const zoom = size && pixelsPerUnit(size.width, size.height, currentCamera);
 
   return (
@@ -164,7 +176,11 @@ export function Viewport() {
       <svg class="scene" ref={svgRef} aria-label="Scene" />
       <div class="selection-outline" ref={outlineRef} hidden aria-hidden="true" />
       {selected && size && zoom && (
-        <Gizmo shape={selected} view={{ width: size.width, height: size.height, zoom, rotate: currentCamera.rotate }} />
+        <Gizmo
+          shape={selected}
+          frame={frame}
+          view={{ width: size.width, height: size.height, zoom, rotate: currentCamera.rotate }}
+        />
       )}
       <Toolbar viewSize={size} />
       <NoticeBar />

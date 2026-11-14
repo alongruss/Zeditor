@@ -66,6 +66,11 @@ export function redo(): void {
   tracked.dispatch(history.redo);
 }
 
+/** Makes the next change its own undo step (e.g. after the playhead moves). */
+export function closeUndoGroup(): void {
+  tracked.dispatch(history.closeGroup);
+}
+
 /**
  * The camera. Kept apart from the editor state so that turning or zooming the
  * view is never an undo step, and Undo never moves the camera.

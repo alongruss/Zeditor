@@ -41,9 +41,16 @@ export function startHistory(present: EditorState): History {
   return { present, past: [], future: [], openGroup: null };
 }
 
-/** True when two scenes hold the same data, even if they are different objects. */
+/**
+ * True when two scenes hold the same data, even if they are different
+ * objects. Shape by shape, skipping shapes that are the very same object, so
+ * a drag doesn't turn the whole scene into text on every move.
+ */
 function sameScene(a: Scene, b: Scene): boolean {
-  return a === b || JSON.stringify(a) === JSON.stringify(b);
+  if (a === b) return true;
+  if (a.shapes.length !== b.shapes.length || a.version !== b.version) return false;
+  if (a.settings !== b.settings && JSON.stringify(a.settings) !== JSON.stringify(b.settings)) return false;
+  return a.shapes.every((shape, i) => shape === b.shapes[i] || JSON.stringify(shape) === JSON.stringify(b.shapes[i]));
 }
 
 /**
@@ -77,6 +84,14 @@ export function applyCommand(history: History, command: Command, group?: string)
 
   const past = [...history.past, { before: present, after: next }].slice(-HISTORY_LIMIT);
   return { present: next, past, future: [], openGroup: group ?? null };
+}
+
+/**
+ * Ends the open group, so the next change starts a new step even if it uses
+ * the same group (e.g. after moving to another frame mid-edit).
+ */
+export function closeGroup(history: History): History {
+  return history.openGroup === null ? history : { ...history, openGroup: null };
 }
 
 /** Reverts the newest step, restoring the scene and selection from just before it. */

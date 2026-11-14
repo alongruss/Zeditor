@@ -1,7 +1,8 @@
 import { readFile } from 'node:fs/promises';
 import { type Page } from '@playwright/test';
 import { expect, test } from './fixtures';
-import { lottieStill } from '../src/export/lottie/exportScene';
+import { lottieAnimation, lottieStill } from '../src/export/lottie/exportScene';
+import { sceneAtFrame } from '../src/model/evaluate';
 import { addShape, createShape, emptyScene } from '../src/model/scene';
 import { SHAPE_TYPES, type Scene, type ShapeData } from '../src/model/types';
 import type { ViewSpec } from '../src/render/view';
@@ -57,14 +58,18 @@ interface Comparison {
  * blank page, and counts the pixels that differ noticeably.
  */
 async function compare(page: Page, scene: Scene, view: ViewSpec): Promise<Comparison> {
-  const lottie = lottieStill(scene, view, { background: false, name: 'fidelity' });
+  return compareFrame(page, scene, view, lottieStill(scene, view, { background: false, name: 'fidelity' }), 0);
+}
+
+/** Like `compare`, for frame `frame` of an already baked animation; `scene` is posed on that frame. */
+async function compareFrame(page: Page, scene: Scene, view: ViewSpec, lottie: object, frame: number): Promise<Comparison> {
   const shapes = scene.shapes.map((shape) => ({ type: shape.type, options: zdogOptions(shape) }));
 
   await page.setContent('<!doctype html><html><body style="margin:0"></body></html>');
   await page.addScriptTag({ path: ZDOG });
   await page.addScriptTag({ path: LOTTIE });
   return page.evaluate(
-    async ({ lottie, shapes, view }) => {
+    async ({ lottie, shapes, view, frame }) => {
       const { width, height } = view;
       const w = window as unknown as {
         Zdog: Record<string, new (options: object) => { updateRenderGraph(): void }>;
@@ -98,7 +103,7 @@ async function compare(page: Page, scene: Scene, view: ViewSpec): Promise<Compar
       });
       // With animationData given directly, lottie-web may finish loading before this line.
       if (!animation.isLoaded) await new Promise<void>((resolve) => animation.addEventListener('DOMLoaded', resolve));
-      animation.goToAndStop(0, true);
+      animation.goToAndStop(frame, true);
       const drawn = box.querySelector('canvas')!;
 
       const a = reference.getContext('2d')!.getImageData(0, 0, width, height).data;
@@ -118,7 +123,7 @@ async function compare(page: Page, scene: Scene, view: ViewSpec): Promise<Compar
       }
       return { ink, mismatched };
     },
-    { lottie, shapes, view },
+    { lottie, shapes, view, frame },
   );
 }
 
@@ -143,6 +148,36 @@ test.describe('Lottie export fidelity', () => {
       expect(result.mismatched / result.ink).toBeLessThan(0.01);
     });
   }
+});
+
+test.describe('Lottie export fidelity, animated', () => {
+  test('sampled frames of a baked animation match zdog drawing the same frames', async ({ page }) => {
+    let scene = fidelityScene();
+    const animate = (id: string, path: string, keys: [number, number | string][]) => {
+      scene = {
+        ...scene,
+        shapes: scene.shapes.map((s) =>
+          s.id === id
+            ? { ...s, tracks: { ...s.tracks, [path]: keys.map(([frame, value]) => ({ frame, value, easing: 'easeInOut' as const })) } }
+            : s,
+        ),
+      };
+    };
+    const [first, second, third] = scene.shapes;
+    animate(first.id, 'translate.x', [[0, -8], [29, 8]]);
+    animate(second.id, 'rotate.y', [[0, 0], [29, 270]]);
+    animate(third.id, 'props.color', [[0, '#ff0000'], [29, '#0000ff80']]);
+    animate(third.id, 'translate.z', [[0, -6], [29, 6]]); // passes through other shapes: order changes
+    const frames = Array.from({ length: 30 }, (_, i) => i);
+    const baked = lottieAnimation(scene, view(-0.35, 0.6), { background: false, name: 'animated', frames });
+    expect(baked.layers.length).toBeGreaterThan(10); // the frames differ, so they don't merge
+
+    for (const frame of [0, 9, 17, 29]) {
+      const result = await compareFrame(page, sceneAtFrame(scene, frame), view(-0.35, 0.6), baked, frame);
+      expect(result.ink, `frame ${frame} drew something`).toBeGreaterThan(20000);
+      expect(result.mismatched / result.ink, `frame ${frame}`).toBeLessThan(0.01);
+    }
+  });
 });
 
 test.describe('Export Lottie dialog', () => {
@@ -172,8 +207,10 @@ test.describe('Export Lottie dialog', () => {
     const file = await download;
     expect(file.suggestedFilename()).toBe('scene.lottie.json');
     const lottie = JSON.parse(await readFile(await file.path(), 'utf8'));
-    expect(lottie).toMatchObject({ w: 320, h: 240, ip: 0, op: 1 });
-    expect(lottie.layers.every((layer: { ty: number; st: number }) => layer.ty === 4 && layer.st === 0)).toBe(true);
+    // All 90 frames; nothing is animated, so they share one layer.
+    expect(lottie).toMatchObject({ w: 320, h: 240, ip: 0, op: 90, fr: 30 });
+    expect(lottie.layers).toHaveLength(1);
+    expect(lottie.layers[0]).toMatchObject({ ty: 4, st: 0, ip: 0, op: 90 });
     expect(lottie.layers[0].shapes.length).toBeGreaterThan(9);
 
     await expect(dialog).toBeHidden();

@@ -1,5 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
-import { lottieText, saveLottie } from '../files/sceneFiles';
+import { useEffect, useRef, useState } from 'preact/hooks';
+import { lottieText, saveLottie, type LottieSettings } from '../files/sceneFiles';
+import { isAnimated } from '../model/evaluate';
+import { editor } from '../state/store';
+import { currentFrame } from '../state/timeline';
 
 /** Biggest picture side the dialog accepts, in pixels. */
 const MAX_SIDE = 8192;
@@ -23,15 +26,19 @@ function formatBytes(bytes: number): string {
 }
 
 /**
- * Export Lottie: the current view as a Lottie animation file. For now it is
- * a single frame ("baked": drawn exactly as zdog draws it); animation and
- * the keyframed mode come later.
+ * Export Lottie: the current view as a Lottie animation file, "baked": every
+ * frame drawn exactly as zdog draws it. All frames, or just the current one.
+ * The keyframed mode comes later.
  */
 export function ExportLottieDialog({ defaultWidth, defaultHeight, onClose }: ExportLottieDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [width, setWidth] = useState(String(Math.round(defaultWidth)));
   const [height, setHeight] = useState(String(Math.round(defaultHeight)));
   const [background, setBackground] = useState(true);
+  const [frames, setFrames] = useState<LottieSettings['frames']>('all');
+  const { duration, fps } = editor.get().scene.settings;
+  const animated = isAnimated(editor.get().scene);
+  const frame = currentFrame();
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -44,10 +51,15 @@ export function ExportLottieDialog({ defaultWidth, defaultHeight, onClose }: Exp
 
   const w = readSide(width);
   const h = readSide(height);
-  const result = useMemo(
-    () => (w !== null && h !== null ? lottieText({ width: w, height: h, background }) : null),
-    [w, h, background],
-  );
+  // Baking every frame can take a moment, so the estimate is worked out after
+  // the dialog has opened (and again after each change), not while it opens.
+  const [result, setResult] = useState<ReturnType<typeof lottieText> | null>(null);
+  useEffect(() => {
+    setResult(null);
+    if (w === null || h === null) return;
+    const timer = setTimeout(() => setResult(lottieText({ width: w, height: h, background, frames })), 0);
+    return () => clearTimeout(timer);
+  }, [w, h, background, frames]);
   const problem =
     w === null || h === null
       ? `Width and height must be whole numbers from 1 to ${MAX_SIDE}.`
@@ -61,7 +73,7 @@ export function ExportLottieDialog({ defaultWidth, defaultHeight, onClose }: Exp
         method="dialog"
         onSubmit={(event) => {
           event.preventDefault();
-          if (w !== null && h !== null && saveLottie({ width: w, height: h, background })) {
+          if (w !== null && h !== null && saveLottie({ width: w, height: h, background, frames })) {
             dialogRef.current?.close();
           }
         }}
@@ -70,6 +82,21 @@ export function ExportLottieDialog({ defaultWidth, defaultHeight, onClose }: Exp
           Export Lottie
         </h2>
         <p class="dialog-note">The current view, as a Lottie animation file.</p>
+
+        <fieldset class="dialog-choices">
+          <legend>Frames</legend>
+          <label class="field field-checkbox">
+            <input type="radio" name="lottie-frames" checked={frames === 'all'} onChange={() => setFrames('all')} />
+            <span class="field-label">
+              All {duration} frames ({(duration / fps).toFixed(1)} s at {fps} fps)
+              {animated ? '' : ', nothing is animated yet'}
+            </span>
+          </label>
+          <label class="field field-checkbox">
+            <input type="radio" name="lottie-frames" checked={frames === 'current'} onChange={() => setFrames('current')} />
+            <span class="field-label">Only the current frame ({frame})</span>
+          </label>
+        </fieldset>
 
         <div class="dialog-row">
           <label class="dialog-field">
@@ -101,7 +128,7 @@ export function ExportLottieDialog({ defaultWidth, defaultHeight, onClose }: Exp
         </fieldset>
 
         <p class={problem ? 'dialog-error' : 'dialog-note'} role={problem ? 'alert' : undefined}>
-          {problem ?? (result && 'text' in result ? `About ${formatBytes(result.text.length)}.` : '')}
+          {problem ?? (result && 'text' in result ? `About ${formatBytes(result.text.length)}.` : 'Working out the size…')}
         </p>
 
         <div class="dialog-buttons">

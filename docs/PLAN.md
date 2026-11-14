@@ -234,13 +234,38 @@ timeline with keyframes and tweening, cameras, and a Lottie export of the viewpo
     - `src/zdog.ts` lets app code be used from Node test scripts too;
     - `cssColor.ts` reads every color a scene can hold, and the file validator now uses it;
     - lottie-web is a test-only dependency.
-- **B. Animation core** (file version 2):
-  - tracks of keyframes on shapes; evaluation at a frame;
-  - edits key only the properties that changed;
-  - keyframe buttons in the Inspector; auto-key from the Inspector and gizmo;
-  - a transport bar (play/pause, frame, fps, length, playhead);
-  - faster redraws during playback;
-  - the Lottie export bakes every frame.
+- **B. Animation core** (file version 2, `anim/b-animation-core`):
+  - **Model** (`src/model/`):
+    - `animatable.ts` is the one list of animatable properties: position, rotation, scale, opacity and
+      every field of the shape type. Each has a kind: number, color, Box face, or hold (Fill).
+    - `easing.ts` maps the presets to CSS cubic-bezier curves.
+    - `animation.ts`: values at a frame, keys, the keyframe button, and `editAtFrame`, which keys only
+      the properties whose value really changes, so a gizmo drag on X never keys Y or Z.
+    - `evaluate.ts` poses a scene at a frame, keeping shapes as the same objects when nothing about
+      them changes.
+  - **Files:** version 2 adds `tracks`, `fps` and `duration`. Version 1 files open with the defaults.
+    Every key is checked against its property's rules. An autosave that can't be read back is kept as a
+    backup, and you're told once.
+  - **Editing:**
+    - The Inspector shows values on the playhead's frame.
+    - A diamond keyframe button sits beside every field: grey (not animated), outlined (no key here),
+      or filled (key here). Position and Rotation each have one button for x, y and z together.
+    - Animated fields are tinted yellow on a key and green between keys.
+    - Editing an animated value keys it on the current frame; editing any other value changes it for
+      the whole animation. The gizmo works the same way.
+    - Moving the playhead ends the current undo step. Any edit pauses playback.
+  - **Transport bar** under the viewport:
+    - Play/Pause and a Frame field;
+    - a ruler you click, drag or arrow-key to move the playhead, showing the selected shape's keys;
+    - fps and length fields, which are undoable.
+    - The playhead isn't saved and isn't part of undo.
+  - **Playback:**
+    - It never goes through the undo store.
+    - Shapes that only moved are updated in place instead of rebuilt.
+    - Elements are re-tagged only when new ones appear, and the selection outline is skipped while
+      playing.
+  - **Exports:** the Lottie export bakes every frame (or only the current one) at the scene's fps.
+    The Zdog JS export writes the pose on the current frame.
 - **C. Timeline editing:**
   - rows per object and property, selection, dragging keys to retime them;
   - an easing menu, Delete, and keyboard shortcuts;
@@ -250,6 +275,9 @@ timeline with keyframes and tweening, cameras, and a Lottie export of the viewpo
   - the camera's frame drawn in the free view;
   - the Lottie export from a camera.
 - **Later:** the keyframed Lottie mode, animated Zdog JS export, custom easing curves and a graph editor.
+- **After D: a UI redesign.** The user asked for the editor to become more fun and friendly, drawing on
+  Spotify Wrapped, Leonardo.ai, Recraft and Canva: research their design, take the good parts, then
+  refine the result with the simmer skill.
 
 ## Later
 

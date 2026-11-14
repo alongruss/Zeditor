@@ -37,15 +37,26 @@ export function fadedProps(shape: ShapeData): Props {
   return faded;
 }
 
-/** zdog constructor options for a shape (rotation converted from degrees to radians). */
-export function zdogOptions(shape: ShapeData): Record<string, unknown> {
+/** A shape's position, rotation (in radians) and scale, as zdog takes them. */
+export function zdogTransform(shape: ShapeData): {
+  translate: { x: number; y: number; z: number };
+  rotate: { x: number; y: number; z: number };
+  scale: number;
+} {
   const { translate, rotate } = shape;
   return {
-    // Copy, so zdog never holds a reference into the (immutable) scene data.
-    ...structuredClone(fadedProps(shape)),
     translate: { x: translate.x, y: translate.y, z: translate.z },
     rotate: { x: rotate.x * DEG_TO_RAD, y: rotate.y * DEG_TO_RAD, z: rotate.z * DEG_TO_RAD },
     scale: shape.scale,
+  };
+}
+
+/** zdog constructor options for a shape (rotation converted from degrees to radians). */
+export function zdogOptions(shape: ShapeData): Record<string, unknown> {
+  return {
+    // Copy, so zdog never holds a reference into the (immutable) scene data.
+    ...structuredClone(fadedProps(shape)),
+    ...zdogTransform(shape),
   };
 }
 

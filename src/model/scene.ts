@@ -1,5 +1,7 @@
 import { getShapeTypeDef } from './shapeTypes';
 import {
+  DEFAULT_DURATION,
+  DEFAULT_FPS,
   SCENE_VERSION,
   type Props,
   type PropValue,
@@ -13,7 +15,11 @@ export const DEFAULT_BACKGROUND = '#ffddbb';
 export const ORIGIN: Vec3 = { x: 0, y: 0, z: 0 };
 
 export function emptyScene(): Scene {
-  return { version: SCENE_VERSION, settings: { background: DEFAULT_BACKGROUND }, shapes: [] };
+  return {
+    version: SCENE_VERSION,
+    settings: { background: DEFAULT_BACKGROUND, fps: DEFAULT_FPS, duration: DEFAULT_DURATION },
+    shapes: [],
+  };
 }
 
 export function findShape(scene: Scene, id: string | null): ShapeData | undefined {
@@ -121,13 +127,7 @@ export function duplicateShape(scene: Scene, id: string): { scene: Scene; id: st
   if (index === -1) return { scene, id: null };
   const original = scene.shapes[index];
   const fresh = createShape(scene, original.type);
-  const copy: ShapeData = {
-    ...fresh,
-    translate: { ...original.translate },
-    rotate: { ...original.rotate },
-    scale: original.scale,
-    opacity: original.opacity,
-    props: copyProps(original.props),
-  };
+  // Everything (animation included) is copied, deeply, so the two never share an object.
+  const copy: ShapeData = { ...structuredClone(original), id: fresh.id, name: fresh.name };
   return { scene: addShape(scene, copy, index + 1), id: copy.id };
 }
