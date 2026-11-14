@@ -2,7 +2,8 @@
 
 Agreed November 2026. This is the plan for turning the 2020 Zeditor prototype into a small editor
 that works. It records what was wrong, what we decided, and what each of the five PRs must deliver.
-(It was four PRs; undo/redo, with color alpha and shape opacity, became its own PR 3.)
+(It was four PRs; undo/redo, with color alpha and shape opacity, became its own PR 3, and the gizmo
+was moved ahead of saving and export.)
 
 ## Why rebuild
 
@@ -21,9 +22,9 @@ the editor and engine were tangled together, and the editor stored its state in 
 | Inspector edits also changed shapes you had deselected (`selected` was `true`, `"true"`, `"false"` or `""`, and `"false"` counts as true); edited shapes ended up sharing one `translate` object | PR 2 |
 | The Inspector only filled in if a redraw happened within a 100 ms timer, because it read the selection back from SVG attributes | PR 2 |
 | Clicking a Box or Cylinder face selected the inner face, and then the gizmo moved a different top-level shape | PR 2 |
-| Export dropped `0`/`false` values (so `stroke: false` was lost), only exported top-level shapes, could include the gizmo, and there was no import | PR 4 |
-| Gizmo drag set the position to the drag distance in pixels, took direction from the sign of dx+dy (`NaN` when dx = −dy), and ignored the camera | PR 5 |
-| Gizmos piled up or were not removed (items deleted from a list while looping over it) | PR 5 |
+| Export dropped `0`/`false` values (so `stroke: false` was lost), only exported top-level shapes, could include the gizmo, and there was no import | PR 5 |
+| Gizmo drag set the position to the drag distance in pixels, took direction from the sign of dx+dy (`NaN` when dx = −dy), and ignored the camera | PR 4 |
+| Gizmos piled up or were not removed (items deleted from a list while looping over it) | PR 4 |
 
 ## Decisions
 
@@ -33,8 +34,10 @@ mouse and keyboard. Not a polished public product yet.
 
 **Architecture**
 - zdog 1.1.3 from npm, **unmodified**. Editor code lives in `src/` and uses only zdog's public API.
-- The editor's state, `{ scene, selectedId, camera }`, is the single source of truth. The SVG is
-  output only; nothing is read back from it except which shape was clicked.
+- The editor's state, `{ scene, selectedId }`, and the camera are the single source of truth. The
+  SVG is output only; nothing is read back from it except which shape was clicked. The camera has a
+  store of its own, outside the undo history: turning or zooming the view is never an undo step, and
+  Undo never moves the camera.
 - The editor layer is rebuilt rather than patched. The 2020 layout and feature list are the spec.
 - Vite + TypeScript. Preact for the side panels (scene tree, Inspector, toolbar); the viewport stays
   plain imperative zdog. Plain CSS (no Sass).
@@ -61,7 +64,9 @@ mouse and keyboard. Not a polished public product yet.
 **Editing**
 - Click a shape to select it; click empty space to deselect. Dragging anywhere other than a gizmo
   handle turns the camera **without** clearing the selection. A move of under 3 px counts as a click.
-- Mouse wheel zooms; "Reset view" puts the camera back.
+- Mouse wheel zooms (around the middle of the view, 0.25× to 8×); "Reset view" puts the camera back.
+  The camera turns the same way zdog's own drag-to-rotate did: a drag across the shorter side of the
+  view is a full turn. The view starts from the front, as in 2020.
 - "Add" toolbar with all 9 shape types: a new shape appears at the origin and is selected.
   Delete/Backspace removes it, Ctrl+D duplicates it in place (the copy is selected, ready to move),
   and the right-click menu offers Duplicate and
@@ -79,18 +84,27 @@ mouse and keyboard. Not a polished public product yet.
   step by 15° for rotation, or ten steps for everything else. Dragging a field's label or unit
   (e.g. "°") left or right also changes it, one step per 4 px, with the same Shift rule; a click on
   the label without dragging focuses the field. (Drag-to-change was added during PR 2.)
+  Once a label drag starts, the pointer is locked (the cursor hides) so the drag keeps going past the
+  edge of the screen; letting go or pressing Esc brings the cursor back. Where the browser refuses
+  the lock, the drag stops at the screen edge. (Added during PR 4.)
 
 **Gizmo**
 - Drawn on its own overlay SVG above the scene, using the same camera. It can't be hidden behind
   shapes, isn't part of the scene, and is never exported. Only its handles respond to the mouse.
-- Arrows point along the **world** X/Y/Z axes. Your drag is projected onto the axis as it appears on
-  screen, divided by zoom, and added to the position at drag start. A handle is turned off when its
-  axis points almost straight at the camera, so the result is never `NaN`.
+- Arrows point along the **world** X/Y/Z axes (red, green, blue; +Y points down, as in zdog). Your
+  drag is projected onto the axis as it appears on screen, divided by zoom, and added to the position
+  at drag start, so the point you grabbed stays under the pointer. An arrow is turned off (faded)
+  when its axis points almost straight at the camera, so the result is never `NaN`.
 - Each ring changes the matching X/Y/Z rotation value shown in the Inspector, by the angle your drag
-  sweeps around the shape's center. Once a shape is rotated on another axis, a ring won't turn it
-  around a fixed world axis, but the gizmo and the Inspector always agree. Handles that follow the
-  shape's own axes can come later.
+  sweeps around the shape's center. zdog applies a shape's rotation Z first, then Y, then X, so the
+  rings are drawn as gimbal rings: the X ring is around the fixed world X axis, the Y ring is tilted
+  by the X rotation, and the Z ring by both. Each ring therefore turns the shape exactly around the
+  axis it shows, and the gizmo and the Inspector always agree. A ring seen edge-on is turned off.
+  Handles that follow the shape's own axes can come later.
+- Arrows and rings keep the same size on screen whatever the zoom. The math lives in
+  `src/viewport/gizmoMath.ts` and uses zdog's own `Vector.rotate`, so it matches what zdog draws.
 - Scale is changed in the Inspector only (no scale handle in v1).
+- Gizmo drags stop at the screen edge (no pointer lock there: you need to see the shape follow).
 
 **Saving and export**
 - Save downloads a `.zeditor.json` file; Open loads one. Opening a file with an unknown version shows
@@ -124,7 +138,7 @@ and the Pages site is live after merge.
 
 ### PR 2: Scene and selection
 - Shape type definitions with their field lists; the scene data; a store holding
-  `{ scene, selectedId }`. The camera stays inside zdog until PR 5 moves it into the store.
+  `{ scene, selectedId }`. The camera stays inside zdog until PR 4 moves it into the store.
 - The viewport creates, updates and removes zdog objects by id. Every SVG element a shape draws
   (including a Box's faces) is tagged with that shape's top-level id, so a click selects the whole shape.
 - Preact panels: scene tree (select, double-click to rename), the Inspector built from field lists
@@ -145,20 +159,24 @@ Box-face selection bug.
 **Done when:** every edit, add, delete, rename and New scene can be undone and redone; a label drag
 and one visit to a field undo in one step; opacity fades every part of a shape.
 
-### PR 4: Saving and export
-- Save / Open / autosave, with version checking.
-- The Zdog JS export.
-
-**Done when:** a reload keeps your work, Save then Open gives the same scene, and a Vitest test runs
-the exported script against zdog and gets the same shapes back.
-
-### PR 5: Gizmo and camera
+### PR 4: Gizmo and camera (`rebuild/4-gizmo`)
 - The overlay gizmo with move arrows and rotation rings, and Shift snapping.
-- Click versus drag handling, wheel zoom and Reset view.
-- A full Playwright test: select, drag along an axis, rotate, undo, save, reload.
+- The camera in its own store; the editor's own click-versus-drag orbit replaces zdog's
+  dragRotate; wheel zoom and Reset view.
+- Label drags keep going past the screen edge (pointer lock). (Asked for during this PR.)
+- Playwright tests: select, drag along an axis from different camera angles, rotate with a ring,
+  Shift snapping, undo, wheel zoom and Reset view. (Save and reload join the flow in PR 5.)
 
 **Done when:** a handle moves the shape smoothly along its axis from any camera angle and never
 produces `NaN`, the gizmo is always visible, and each drag is one undo step.
+
+### PR 5: Saving and export
+- Save / Open / autosave, with version checking.
+- The Zdog JS export.
+- Add save and reload to the full Playwright flow.
+
+**Done when:** a reload keeps your work, Save then Open gives the same scene, and a Vitest test runs
+the exported script against zdog and gets the same shapes back.
 
 ## Later
 
