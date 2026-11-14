@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 import {
   arrow,
   arrowGrip,
@@ -30,9 +30,10 @@ test('the gizmo sits on the selected shape from any camera angle and zoom', asyn
   const expectOnDot = async () => {
     await expect
       .poll(async () => {
-        const dot = centerOf((await shapeBounds(page, 'ellipse-2'))!);
+        const dot = centerOf(await shapeBounds(page, 'ellipse-2'));
         const center = await gizmoCenter(page);
-        return Math.hypot(dot.x - center.x, dot.y - center.y);
+        // Not drawn at this instant (mid-redraw): not there yet, so keep polling.
+        return dot ? Math.hypot(dot.x - center.x, dot.y - center.y) : Infinity;
       })
       .toBeLessThan(1);
   };
@@ -85,14 +86,14 @@ test('arrows work from a turned camera, and Shift snaps to whole units', async (
   const { from, to } = await arrow(page, 'z');
   const length = Math.hypot(to.x - from.x, to.y - from.y);
   const along = { x: (to.x - from.x) / length, y: (to.y - from.y) / length };
-  const before = centerOf((await shapeBounds(page, 'box-1'))!);
+  const before = centerOf(await shapeBounds(page, 'box-1'))!;
 
   const grip = await arrowGrip(page, 'z');
   await drag(page, [grip, { x: grip.x + along.x * 30, y: grip.y + along.y * 30 }]);
   await expect
     .poll(async () => {
-      const after = centerOf((await shapeBounds(page, 'box-1'))!);
-      return Math.hypot(after.x - before.x, after.y - before.y);
+      const after = centerOf(await shapeBounds(page, 'box-1'));
+      return after ? Math.hypot(after.x - before.x, after.y - before.y) : Infinity;
     })
     .toBeCloseTo(30, 0);
   await expect(field(page, 'Position X')).toHaveValue('4');

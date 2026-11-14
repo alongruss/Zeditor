@@ -33,7 +33,13 @@ Then open the URL Vite prints (usually http://localhost:5173).
 | `npm run lint` | Lint with ESLint |
 | `npm test` | Run unit tests (Vitest) |
 | `npm run test:e2e` | Run browser tests (Playwright); run `npx playwright install chromium` once first |
+| `npm run test:e2e:slow` | Run the browser tests on a page that acts like a slow machine (4x slower CPU, late frames) |
 | `npm run check` | Type check, lint and unit tests together |
+| `npm run verify` | Everything: `check`, then the browser tests at normal and slow speed |
+
+Run `npm run verify` before pushing. The slow run catches timing bugs (a test acting before the page has
+caught up, or code that runs too late) on your own machine. Without it, they only showed up on GitHub's
+slower Linux machines.
 
 ## How it's built
 

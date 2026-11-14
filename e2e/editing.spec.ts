@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { emptyPoint, fileMenu, inspector, openEditorForEachTest, pointOnShape, shapeBounds, treeItem } from './helpers';
 
 openEditorForEachTest(test);
