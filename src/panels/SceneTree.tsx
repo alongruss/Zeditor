@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { SHAPE_TYPE_DEFS } from '../model/shapeTypes';
 import { rename, select } from '../state/commands';
 import { dispatch, useEditorState } from '../state/store';
@@ -52,7 +52,9 @@ function RenameInput({ initial, onDone }: { initial: string; onDone: (name: stri
   const finished = useRef(false);
 
   // Uncontrolled: set the text once, so a re-render can't wipe what is being typed.
-  useEffect(() => {
+  // A layout effect runs before the browser paints, so nothing typed straight
+  // away can be overwritten (a plain effect ran too late on a slow machine).
+  useLayoutEffect(() => {
     const input = inputRef.current;
     if (!input) return;
     input.value = initial;

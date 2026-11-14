@@ -85,18 +85,21 @@ export function scrubValue(start: number, dx: number, rules: StepRules, coarse: 
 
 /** Where a label drag has got to: `offset` pixels right of where it started. */
 export interface ScrubTrack {
-  readonly startX: number;
   readonly offset: number;
-  /** Whether the pointer was locked (cursor hidden) at the last move. */
-  readonly locked: boolean;
+  /** The pointer's `clientX` at the last move. */
+  readonly lastX: number;
 }
 
 /**
- * Follows a label drag. Normally the offset is just how far the cursor has
- * moved. While the pointer is locked, the cursor can't reach the screen edge
- * and `clientX` stops changing, so the movement comes from `movementX`
- * instead. If the lock ends mid-drag (Esc), the drag carries on from where it
- * had got to rather than jumping back.
+ * Follows a label drag, one pointer move at a time.
+ *
+ * Whenever the cursor itself moves, that movement is used. Only while the
+ * pointer is locked and the cursor stays put (a real lock hides the cursor
+ * and freezes `clientX`, so it never stops at the screen edge) does the
+ * movement come from `movementX`. Never trusting `movementX` otherwise
+ * matters: some browsers report wild values for it, for example Chromium on
+ * Linux when the mouse is driven by a test. If the lock ends mid-drag (Esc),
+ * the drag carries on from where it had got to.
  */
 export function trackScrub(
   track: ScrubTrack,
@@ -104,9 +107,8 @@ export function trackScrub(
   movementX: number,
   locked: boolean,
 ): ScrubTrack {
-  if (locked) return { startX: track.startX, offset: track.offset + movementX, locked };
-  const startX = track.locked ? clientX - track.offset : track.startX;
-  return { startX, offset: clientX - startX, locked };
+  const moved = clientX !== track.lastX ? clientX - track.lastX : locked ? movementX : 0;
+  return { offset: track.offset + moved, lastX: clientX };
 }
 
 /**
@@ -198,7 +200,7 @@ export function NumberInput(props: NumberInputProps) {
       scrub.current = {
         startValue,
         group: newGroup(),
-        track: { startX: event.clientX, offset: 0, locked: false },
+        track: { offset: 0, lastX: event.clientX },
         dragging: false,
       };
     },
