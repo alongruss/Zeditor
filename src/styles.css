@@ -2,10 +2,12 @@
   --panel-width: 320px;
   --panel-bg: #f0f0f0;
   --group-bg: #f8f8f8;
-  --nook-bg: #d3d3d3;
+  --hover-bg: #e8eefc;
   --scene-bg: #ffddbb;
   --text: #222222;
   --text-muted: #666666;
+  --border: #c8c8c8;
+  --accent: #2f5fd0;
   --shadow: 0 4px 8px rgb(0 0 0 / 20%);
   --radius: 4px;
   --gap: 8px;
@@ -85,52 +87,256 @@ body {
   cursor: move;
 }
 
-/* ----- shared controls (used by the panels in the next phase) ----- */
+.selection-outline {
+  position: absolute;
+  border: 1.5px dashed var(--accent);
+  border-radius: var(--radius);
+  pointer-events: none;
+}
+
+/* ----- toolbar and menus (over the viewport) ----- */
+
+.toolbar {
+  position: absolute;
+  top: var(--gap);
+  left: var(--gap);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gap);
+}
+
+.toolbar-add {
+  position: relative;
+}
+
+.add-menu,
+.context-menu {
+  position: absolute;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  min-width: 160px;
+  padding: 4px;
+  border-radius: var(--radius);
+  background: white;
+  box-shadow: var(--shadow);
+}
+
+.add-menu {
+  top: calc(100% + 4px);
+  left: 0;
+}
+
+.add-menu button,
+.context-menu button {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--gap);
+  text-align: left;
+  box-shadow: none;
+}
+
+.add-menu button:hover,
+.add-menu button:focus-visible,
+.context-menu button:hover,
+.context-menu button:focus-visible {
+  background: var(--hover-bg);
+}
+
+kbd {
+  font: inherit;
+  color: var(--text-muted);
+}
+
+/* ----- scene tree ----- */
+
+.scene-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tree-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--gap);
+  width: 100%;
+  text-align: left;
+  font-size: 12px;
+  box-shadow: none;
+  background: transparent;
+}
+
+.tree-item:hover {
+  background: var(--hover-bg);
+}
+
+.is-selected > .tree-item {
+  color: white;
+  background: var(--accent);
+}
+
+.tree-type {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.is-selected .tree-type {
+  color: rgb(255 255 255 / 80%);
+}
+
+.tree-rename {
+  width: 100%;
+  padding: 6px var(--gap);
+  font: inherit;
+  font-size: 12px;
+}
+
+/* ----- inspector ----- */
+
+.inspector {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+}
+
+.inspector-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--gap);
+  font-size: 13px;
+}
+
+.inspector-name {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.inspector-type {
+  font-size: 11px;
+  color: var(--text-muted);
+}
 
 .group {
   display: flex;
   flex-direction: column;
   gap: var(--gap);
+  margin: 0;
   padding: var(--gap);
+  border: none;
   border-radius: var(--radius);
   background-color: var(--group-bg);
   box-shadow: var(--shadow);
 }
 
-.nook {
-  max-height: 30vh;
-  overflow-y: auto;
-  padding: var(--gap);
-  border-radius: var(--radius);
-  font-size: 10px;
-  background-color: var(--nook-bg);
-  box-shadow: inset var(--shadow);
+.group > legend {
+  float: left;
+  width: 100%;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 500;
 }
 
-label {
+.tuple {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--gap);
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
   font-size: 12px;
 }
 
+.field-label {
+  flex: none;
+  min-width: 1em;
+  color: var(--text-muted);
+}
+
+.field-number input,
+.field-hex {
+  width: 100%;
+  min-width: 0;
+  padding: 3px 4px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  font: inherit;
+}
+
+.group > .field-number .field-label,
+.group > .field-color .field-label {
+  width: 7em;
+}
+
+.field-suffix {
+  color: var(--text-muted);
+}
+
+/* Number field labels and units can be dragged left/right to change the value. */
+.scrub {
+  cursor: ew-resize;
+  user-select: none;
+  touch-action: none;
+}
+
+.scrub:hover {
+  color: var(--accent);
+}
+
+.field-face {
+  justify-content: space-between;
+}
+
+.field-face .field-label {
+  width: 4em;
+}
+
+.field-face .field-hex {
+  flex: none;
+  width: 6.5em;
+}
+
+.field-checkbox {
+  white-space: nowrap;
+}
+
 input:disabled {
-  opacity: 0.3;
+  opacity: 0.4;
 }
 
 button {
-  padding: var(--gap);
+  padding: 6px var(--gap);
   border: none;
   border-radius: var(--radius);
   font: inherit;
-  font-size: 10px;
+  font-size: 11px;
+  color: var(--text);
   background-color: white;
   box-shadow: var(--shadow);
   cursor: pointer;
 }
 
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 input[type='color'] {
-  appearance: none;
+  flex: none;
   width: 32px;
+  height: 22px;
   margin: 0;
   padding: 0;
   border: none;
   box-shadow: var(--shadow);
+  cursor: pointer;
 }
