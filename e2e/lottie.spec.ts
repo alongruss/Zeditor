@@ -180,12 +180,20 @@ test.describe('Export Lottie dialog', () => {
   });
 
   test('Esc or Cancel closes it without exporting', async ({ page }) => {
-    await fileMenu(page, 'Export Lottie…');
     const dialog = page.getByRole('dialog', { name: 'Export Lottie' });
+    // Wait for the dialog each time: an Esc pressed before it opens closes nothing,
+    // and "hidden" would then pass before the dialog appears (as on slower CI machines).
+    await fileMenu(page, 'Export Lottie…');
+    await expect(dialog).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(dialog).toBeHidden();
+    await expect(page.getByRole('button', { name: 'File ▾' })).toBeEnabled();
+
     await fileMenu(page, 'Export Lottie…');
+    await expect(dialog).toBeVisible();
     await dialog.getByRole('button', { name: 'Cancel' }).click();
     await expect(dialog).toBeHidden();
+    // Nothing was downloaded or reported.
+    await expect(page.getByRole('status')).toBeEmpty();
   });
 });
