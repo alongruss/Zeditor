@@ -6,6 +6,8 @@ import {
   scrubValue,
   stepNumber,
   stepSize,
+  EDGE_LOCK_PX,
+  atWindowEdge,
   trackScrub,
   type ScrubTrack,
 } from './fields';
@@ -116,5 +118,16 @@ describe('trackScrub (label drag, with or without the pointer locked)', () => {
 
   it('ignores movementX while not locked and the cursor stays put', () => {
     expect(follow([[100, 7, false]])).toBe(0);
+  });
+});
+
+describe('atWindowEdge (when a label drag locks the pointer)', () => {
+  it('only near or past the left or right edge of the window', () => {
+    expect(atWindowEdge(500, 1280)).toBe(false);
+    expect(atWindowEdge(EDGE_LOCK_PX + 1, 1280)).toBe(false);
+    expect(atWindowEdge(EDGE_LOCK_PX, 1280)).toBe(true);
+    expect(atWindowEdge(1280 - EDGE_LOCK_PX, 1280)).toBe(true);
+    expect(atWindowEdge(-40, 1280)).toBe(true);
+    expect(atWindowEdge(1400, 1280)).toBe(true);
   });
 });

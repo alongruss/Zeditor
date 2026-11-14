@@ -85,9 +85,11 @@ mouse and keyboard. Not a polished public product yet.
   step by 15° for rotation, or ten steps for everything else. Dragging a field's label or unit
   (e.g. "°") left or right also changes it, one step per 4 px, with the same Shift rule; a click on
   the label without dragging focuses the field. (Drag-to-change was added during PR 2.)
-  Once a label drag starts, the pointer is locked (the cursor hides) so the drag keeps going past the
-  edge of the screen; letting go or pressing Esc brings the cursor back. Where the browser refuses
-  the lock, the drag stops at the screen edge. (Added during PR 4.)
+  When a label drag reaches the left or right edge of the window, the pointer is locked (the cursor
+  hides) so the drag keeps going past the edge of the screen; letting go or pressing Esc brings the
+  cursor back. Normal drags never lock. Where the browser refuses the lock, the drag stops at the
+  screen edge. (Added during PR 4; locking only at the edge since the CI fix after it, because
+  Chromium on Linux reports unreliable movement for test-driven drags while locked.)
 
 **Gizmo**
 - Drawn on its own overlay SVG above the scene, using the same camera. It can't be hidden behind
