@@ -23,7 +23,7 @@ const CONSTRUCTORS: Record<ShapeType, ZdogConstructor> = {
  * The shape's props with its opacity multiplied into every color it has
  * (main, back and face colors), since zdog itself has no opacity setting.
  */
-function fadedProps(shape: ShapeData): Props {
+export function fadedProps(shape: ShapeData): Props {
   if (shape.opacity >= 1) return shape.props;
   const faded: Record<string, Props[string]> = { ...shape.props };
   const { fields, defaults } = getShapeTypeDef(shape.type);

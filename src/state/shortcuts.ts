@@ -11,8 +11,8 @@ export interface KeyPress {
   readonly altKey: boolean;
 }
 
-/** What a shortcut does: run a command, or step through the undo history. */
-export type Shortcut = Command | 'undo' | 'redo';
+/** What a shortcut does: run a command, step through the undo history, or save/open a file. */
+export type Shortcut = Command | 'undo' | 'redo' | 'save' | 'open';
 
 /** Leaves the state alone. Claims a key so the browser's own action doesn't run. */
 const nothing: Command = (state) => state;
@@ -36,6 +36,8 @@ function letterOf(press: KeyPress): string {
  *   Escape                          clear the selection
  *   Ctrl+Z (Cmd+Z)                  undo
  *   Ctrl+Shift+Z, Ctrl+Y (Cmd too)  redo
+ *   Ctrl+S (Cmd+S)                  save the scene file (not the web page)
+ *   Ctrl+O (Cmd+O)                  open a scene file
  */
 export function shortcutFor(press: KeyPress, selectedId: string | null): Shortcut | null {
   const modifier = press.ctrlKey || press.metaKey;
@@ -50,6 +52,8 @@ export function shortcutFor(press: KeyPress, selectedId: string | null): Shortcu
   const letter = letterOf(press);
   if (letter === 'z') return press.shiftKey ? 'redo' : 'undo';
   if (letter === 'y' && !press.shiftKey) return 'redo';
+  if (letter === 's' && !press.shiftKey) return 'save';
+  if (letter === 'o' && !press.shiftKey) return 'open';
   if (letter === 'd' && !press.shiftKey) {
     // Ctrl+D would otherwise bookmark the page, so claim it even with nothing selected.
     return selectedId === null ? nothing : duplicate(selectedId);
@@ -72,11 +76,12 @@ export function isHistoryShortcut(press: KeyPress): boolean {
 }
 
 /**
- * Whether a shortcut may run while `target` has focus. While typing, only
- * Undo and Redo get through, and only in live fields.
+ * Whether a shortcut may run while `target` has focus. While typing, Save
+ * and Open still work (they don't touch the text), and Undo and Redo only in
+ * live fields.
  */
 export function shortcutAllowedIn(target: EventTarget | null, shortcut: Shortcut): boolean {
-  if (!isTypingTarget(target)) return true;
+  if (!isTypingTarget(target) || shortcut === 'save' || shortcut === 'open') return true;
   const history = shortcut === 'undo' || shortcut === 'redo';
   return history && target instanceof HTMLElement && target.hasAttribute(LIVE_FIELD_ATTRIBUTE);
 }

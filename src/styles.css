@@ -166,6 +166,45 @@ body {
   stroke-width: 1.5px;
 }
 
+/* ----- notices (bottom of the viewport) ----- */
+
+.notice-area {
+  position: absolute;
+  right: var(--gap);
+  bottom: var(--gap);
+  left: var(--gap);
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.notice {
+  display: flex;
+  align-items: center;
+  gap: var(--gap);
+  max-width: 100%;
+  padding: 6px 6px 6px 12px;
+  border-radius: var(--radius);
+  font-size: 12px;
+  color: white;
+  background: rgb(34 34 34 / 90%);
+  box-shadow: var(--shadow);
+  pointer-events: auto;
+}
+
+.notice-error {
+  background: #b42318;
+}
+
+.notice-close {
+  padding: 0 6px;
+  font-size: 14px;
+  line-height: 1;
+  color: inherit;
+  background: transparent;
+  box-shadow: none;
+}
+
 .selection-outline {
   position: absolute;
   border: 1.5px dashed var(--accent);
@@ -184,11 +223,11 @@ body {
   gap: var(--gap);
 }
 
-.toolbar-add {
+.toolbar-dropdown {
   position: relative;
 }
 
-.add-menu,
+.dropdown-menu,
 .context-menu {
   position: absolute;
   z-index: 2;
@@ -201,12 +240,12 @@ body {
   box-shadow: var(--shadow);
 }
 
-.add-menu {
+.dropdown-menu {
   top: calc(100% + 4px);
   left: 0;
 }
 
-.add-menu button,
+.dropdown-menu button,
 .context-menu button {
   display: flex;
   justify-content: space-between;
@@ -215,8 +254,8 @@ body {
   box-shadow: none;
 }
 
-.add-menu button:hover,
-.add-menu button:focus-visible,
+.dropdown-menu button:hover,
+.dropdown-menu button:focus-visible,
 .context-menu button:hover,
 .context-menu button:focus-visible {
   background: var(--hover-bg);

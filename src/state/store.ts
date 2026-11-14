@@ -2,6 +2,7 @@ import { useEffect, useReducer } from 'preact/hooks';
 import { starterScene } from '../model/starterScene';
 import { DEFAULT_CAMERA, type Camera } from '../viewport/camera';
 import type { Command, EditorState } from './commands';
+import { browserStorage, readAutosave } from './autosave';
 import * as history from './history';
 
 export interface Store<T> {
@@ -29,9 +30,12 @@ export function createStore<T>(initial: T): Store<T> {
   };
 }
 
-/** The app's single store: the editor state and its undo history. */
+/**
+ * The app's single store: the editor state and its undo history. It starts
+ * with the autosaved scene, or the 2020 starter scene on a first visit.
+ */
 const tracked: Store<history.History> = createStore(
-  history.startHistory({ scene: starterScene(), selectedId: null }),
+  history.startHistory({ scene: readAutosave(browserStorage()) ?? starterScene(), selectedId: null }),
 );
 
 /** Read-only view of the current editor state, for code outside components. */
@@ -73,7 +77,7 @@ export function setCamera(update: Camera | ((current: Camera) => Camera)): void 
 }
 
 /** The store's current value; re-renders the calling component whenever it changes. */
-function useStore<T>(store: Store<T>): T {
+export function useStore<T>(store: Store<T>): T {
   const [, forceRender] = useReducer((count: number) => count + 1, 0);
   const current = store.get();
   useEffect(() => {

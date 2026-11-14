@@ -1,67 +1,45 @@
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { chooseSceneFile, exportScript, saveScene } from '../files/sceneFiles';
 import { SHAPE_TYPE_DEFS } from '../model/shapeTypes';
 import { SHAPE_TYPES } from '../model/types';
 import { addShapeOfType, deleteShape, duplicate, newScene } from '../state/commands';
 import { dispatch, redo, setCamera, undo, useCamera, useEditorState, useUndoAvailability } from '../state/store';
 import { DEFAULT_CAMERA, isDefaultCamera } from '../viewport/camera';
+import { Dropdown } from './Dropdown';
 
 export const NEW_SCENE_PROMPT = 'Start a new, empty scene? You can undo this with Ctrl+Z.';
 
-/** Floating toolbar over the viewport: Add, Duplicate, Delete, Undo, Redo, Reset view, New scene. */
+/** Asks first, then empties the scene (undoable). */
+export function confirmNewScene(): void {
+  if (window.confirm(NEW_SCENE_PROMPT)) dispatch(newScene);
+}
+
+/** Floating toolbar over the viewport: File, Add, Duplicate, Delete, Undo, Redo, Reset view. */
 export function Toolbar() {
-  const { scene, selectedId } = useEditorState();
+  const { selectedId } = useEditorState();
   const { canUndo, canRedo } = useUndoAvailability();
   const camera = useCamera();
-  const [addOpen, setAddOpen] = useState(false);
-  const addRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!addOpen) return;
-    const onPointerDown = (event: PointerEvent) => {
-      if (!addRef.current?.contains(event.target as Node)) setAddOpen(false);
-    };
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setAddOpen(false);
-    };
-    window.addEventListener('pointerdown', onPointerDown, true);
-    window.addEventListener('keydown', onKeyDown);
-    return () => {
-      window.removeEventListener('pointerdown', onPointerDown, true);
-      window.removeEventListener('keydown', onKeyDown);
-    };
-  }, [addOpen]);
-
   const hasSelection = selectedId !== null;
 
   return (
     <div class="toolbar" role="toolbar" aria-label="Scene tools">
-      <div class="toolbar-add" ref={addRef}>
-        <button
-          type="button"
-          aria-haspopup="menu"
-          aria-expanded={addOpen}
-          onClick={() => setAddOpen((open) => !open)}
-        >
-          Add ▾
-        </button>
-        {addOpen && (
-          <div class="add-menu" role="menu" aria-label="Add shape">
-            {SHAPE_TYPES.map((type) => (
-              <button
-                key={type}
-                type="button"
-                role="menuitem"
-                onClick={() => {
-                  dispatch(addShapeOfType(type));
-                  setAddOpen(false);
-                }}
-              >
-                {SHAPE_TYPE_DEFS[type].addLabel ?? SHAPE_TYPE_DEFS[type].label}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+      <Dropdown
+        label="File"
+        menuLabel="File"
+        items={[
+          { label: 'New scene', onSelect: confirmNewScene },
+          { label: 'Open…', shortcut: 'Ctrl+O', onSelect: chooseSceneFile },
+          { label: 'Save', shortcut: 'Ctrl+S', onSelect: saveScene },
+          { label: 'Export Zdog JS', onSelect: () => void exportScript() },
+        ]}
+      />
+      <Dropdown
+        label="Add"
+        menuLabel="Add shape"
+        items={SHAPE_TYPES.map((type) => ({
+          label: SHAPE_TYPE_DEFS[type].addLabel ?? SHAPE_TYPE_DEFS[type].label,
+          onSelect: () => dispatch(addShapeOfType(type)),
+        }))}
+      />
       <button
         type="button"
         disabled={!hasSelection}
@@ -89,15 +67,6 @@ export function Toolbar() {
         onClick={() => setCamera(DEFAULT_CAMERA)}
       >
         Reset view
-      </button>
-      <button
-        type="button"
-        disabled={scene.shapes.length === 0}
-        onClick={() => {
-          if (window.confirm(NEW_SCENE_PROMPT)) dispatch(newScene);
-        }}
-      >
-        New scene
       </button>
     </div>
   );

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { emptyPoint, inspector, openEditorForEachTest, pointOnShape, shapeBounds, treeItem } from './helpers';
+import { emptyPoint, fileMenu, inspector, openEditorForEachTest, pointOnShape, shapeBounds, treeItem } from './helpers';
 
 openEditorForEachTest(test);
 
@@ -202,11 +202,11 @@ test('dragging turns the camera without clearing the selection; a click on empty
 
 test('New scene asks first, then empties the scene', async ({ page }) => {
   page.once('dialog', (dialog) => dialog.dismiss());
-  await page.getByRole('button', { name: 'New scene' }).click();
+  await fileMenu(page, 'New scene');
   await expect(page.getByRole('list', { name: 'Shapes' }).getByRole('listitem')).toHaveCount(9);
 
   page.once('dialog', (dialog) => dialog.accept());
-  await page.getByRole('button', { name: 'New scene' }).click();
+  await fileMenu(page, 'New scene');
   await expect(page.getByText('No shapes yet. Use Add to create one.')).toBeVisible();
   await expect(page.locator('svg.scene [data-shape-id]')).toHaveCount(0);
 });
