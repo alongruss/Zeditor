@@ -166,7 +166,7 @@ export function Viewport() {
       {selected && size && zoom && (
         <Gizmo shape={selected} view={{ width: size.width, height: size.height, zoom, rotate: currentCamera.rotate }} />
       )}
-      <Toolbar />
+      <Toolbar viewSize={size} />
       <NoticeBar />
       {menu && <ContextMenu position={menu} onClose={() => setMenu(null)} />}
     </div>

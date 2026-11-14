@@ -4,7 +4,9 @@ import { SHAPE_TYPES } from '../model/types';
 import { addShapeOfType, deleteShape, duplicate, newScene } from '../state/commands';
 import { dispatch, redo, setCamera, undo, useCamera, useEditorState, useUndoAvailability } from '../state/store';
 import { DEFAULT_CAMERA, isDefaultCamera } from '../viewport/camera';
+import { useCallback, useState } from 'preact/hooks';
 import { Dropdown } from './Dropdown';
+import { ExportLottieDialog } from './ExportLottieDialog';
 
 export const NEW_SCENE_PROMPT = 'Start a new, empty scene? You can undo this with Ctrl+Z.';
 
@@ -13,12 +15,19 @@ export function confirmNewScene(): void {
   if (window.confirm(NEW_SCENE_PROMPT)) dispatch(newScene);
 }
 
+interface ToolbarProps {
+  /** The viewport's size in pixels, the default size for exported pictures. */
+  readonly viewSize: { readonly width: number; readonly height: number } | null;
+}
+
 /** Floating toolbar over the viewport: File, Add, Duplicate, Delete, Undo, Redo, Reset view. */
-export function Toolbar() {
+export function Toolbar({ viewSize }: ToolbarProps) {
   const { selectedId } = useEditorState();
   const { canUndo, canRedo } = useUndoAvailability();
   const camera = useCamera();
   const hasSelection = selectedId !== null;
+  const [lottieOpen, setLottieOpen] = useState(false);
+  const closeLottie = useCallback(() => setLottieOpen(false), []);
 
   return (
     <div class="toolbar" role="toolbar" aria-label="Scene tools">
@@ -30,6 +39,7 @@ export function Toolbar() {
           { label: 'Open…', shortcut: 'Ctrl+O', onSelect: chooseSceneFile },
           { label: 'Save', shortcut: 'Ctrl+S', onSelect: saveScene },
           { label: 'Export Zdog JS', onSelect: () => void exportScript() },
+          { label: 'Export Lottie…', onSelect: () => setLottieOpen(true) },
         ]}
       />
       <Dropdown
@@ -68,6 +78,13 @@ export function Toolbar() {
       >
         Reset view
       </button>
+      {lottieOpen && (
+        <ExportLottieDialog
+          defaultWidth={viewSize?.width ?? 512}
+          defaultHeight={viewSize?.height ?? 512}
+          onClose={closeLottie}
+        />
+      )}
     </div>
   );
 }

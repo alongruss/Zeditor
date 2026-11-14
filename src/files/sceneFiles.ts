@@ -1,7 +1,10 @@
+import { LottieExportError } from '../export/lottie/bake';
+import { lottieStill } from '../export/lottie/exportScene';
 import { exportZdogScript } from '../export/zdogScript';
 import { MAX_SCENE_FILE_BYTES, SCENE_FILE_EXTENSION, parseSceneFile, serializeScene } from '../model/sceneFile';
 import { loadScene } from '../state/commands';
 import { showNotice } from '../state/notice';
+import { viewFromCamera } from '../render/view';
 import { camera, dispatch, editor } from '../state/store';
 
 /** Base name for saved and exported files: the last opened file's, or "scene". */
@@ -78,4 +81,38 @@ export async function exportScript(): Promise<void> {
       ? `Copied the Zdog script to the clipboard and saved ${fileName} to your downloads.`
       : `Saved ${fileName} to your downloads. (The clipboard wasn't available.)`,
   );
+}
+
+export interface LottieSettings {
+  /** Picture size in pixels. */
+  readonly width: number;
+  readonly height: number;
+  /** Draw the scene's background color (otherwise transparent). */
+  readonly background: boolean;
+}
+
+/** The current view as Lottie JSON text, or why it can't be made. */
+export function lottieText(settings: LottieSettings): { readonly text: string } | { readonly error: string } {
+  const view = viewFromCamera(camera.get(), settings.width, settings.height);
+  if (!view) return { error: 'Width and height must be more than 0.' };
+  try {
+    const animation = lottieStill(editor.get().scene, view, { background: settings.background, name: baseName });
+    return { text: JSON.stringify(animation) };
+  } catch (error) {
+    if (error instanceof LottieExportError) return { error: error.message };
+    throw error;
+  }
+}
+
+/** Downloads the current view as a Lottie file. Returns false (with a notice) if it couldn't. */
+export function saveLottie(settings: LottieSettings): boolean {
+  const result = lottieText(settings);
+  if ('error' in result) {
+    showNotice(`Couldn't export Lottie. ${result.error}`, 'error');
+    return false;
+  }
+  const fileName = `${baseName}.lottie.json`;
+  download(fileName, result.text, 'application/json');
+  showNotice(`Saved ${fileName} to your downloads.`);
+  return true;
 }

@@ -166,6 +166,98 @@ body {
   stroke-width: 1.5px;
 }
 
+/* ----- dialogs ----- */
+
+.dialog {
+  width: min(420px, calc(100vw - 32px));
+  padding: 16px;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 12px;
+  color: var(--text);
+  background: white;
+  box-shadow: 0 12px 32px rgb(0 0 0 / 30%);
+}
+
+.dialog::backdrop {
+  background: rgb(0 0 0 / 30%);
+}
+
+.dialog form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dialog-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.dialog-note,
+.dialog-error {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.dialog-error {
+  color: #b42318;
+}
+
+.dialog-row {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--gap);
+}
+
+.dialog-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--text-muted);
+}
+
+.dialog-field input {
+  width: 7em;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  font: inherit;
+  color: var(--text);
+}
+
+.dialog-unit {
+  padding-bottom: 5px;
+  color: var(--text-muted);
+}
+
+.dialog-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.dialog-choices legend {
+  margin-bottom: 6px;
+  padding: 0;
+  font-weight: 500;
+}
+
+.dialog-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--gap);
+}
+
+button.primary {
+  color: white;
+  background: var(--accent);
+}
+
 /* ----- notices (bottom of the viewport) ----- */
 
 .notice-area {

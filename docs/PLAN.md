@@ -189,14 +189,68 @@ produces `NaN`, the gizmo is always visible, and each drag is one undo step.
 **Done when:** a reload keeps your work, Save then Open gives the same scene, and a Vitest test runs
 the exported script against zdog and gets the same shapes back.
 
+## Animation, cameras and Lottie (after the rebuild)
+
+Agreed in November 2026, after the five rebuild PRs were merged. The user asked for an animation
+timeline with keyframes and tweening, cameras, and a Lottie export of the viewport or a camera.
+
+**What was decided**
+- **Lottie:** "baked" frames first: each frame is captured exactly as zdog draws it. A "keyframed
+  layers" mode comes later, as an export setting.
+- **Animatable:** every Inspector value, including position, rotation, scale, opacity, colors, sizes
+  and stroke. Fill and Box faces can only hold (jump) between keys.
+- **Cameras:** camera objects in the scene. Each has an angle, a target point, a view span and an
+  output size (the size is not animatable). The viewport can look through a camera, and exports render
+  through a chosen camera. The free editing view stays separate.
+- **Easing:** per-key presets: Linear, Ease in, Ease out, Ease in-out and Hold. A key's easing shapes
+  the segment leaving it. Custom curves come later.
+- **Time:** whole frames. The scene has an fps (default 30) and a length (default 90 frames).
+- **Zdog JS export:** it gains animation in a later phase.
+
+**How the Lottie bake works**
+- zdog's public `Anchor.renderGraphCanvas(ctx)` draws every shape, back to front, through a few canvas
+  calls. `src/render/drawOps.ts` passes it a strict recording "context" (any canvas feature it doesn't
+  model throws) and gets each frame as flat 2D paths with their stroke and fill.
+- Composite shapes need no special handling. Arcs (dots, the hemisphere dome) become cubic curves.
+  The cylinder side's butt caps are recorded as they happen.
+- `src/export/lottie/` turns the recording into Lottie:
+  - each run of identical frames becomes one shape layer, shown only for those frames (so
+    front-to-back order can change from frame to frame);
+  - groups are listed top first, as `[paths, fill, stroke, transform]`;
+  - color alpha goes into the opacity (players ignore a color's alpha);
+  - every layer has `st: 0` (lottie-web never shows a layer without it);
+  - coordinates are rounded to 0.01 px;
+  - the background is an optional solid layer underneath.
+- lottie-web rewrites the data it is given, so the builder never shares one object between two places.
+- **Fidelity test:** a browser test renders the same frame with lottie-web's canvas renderer and with
+  zdog's own canvas, and compares the pixels (under 1% of drawn pixels may differ, at anti-aliased
+  edges). Deliberately breaking layer order, alpha, `st: 0` or round caps/joins makes it fail.
+
+**Phases** (one PR each)
+- **A. Lottie export of the current view, still** (`anim/a-lottie-still`):
+  - File > Export Lottie…: size (defaults to the viewport's), background on or off, mode (Baked; Keyframed
+    shown as coming later), and an estimated file size. Downloads `scene.lottie.json`.
+  - Supporting changes:
+    - `src/zdog.ts` lets app code be used from Node test scripts too;
+    - `cssColor.ts` reads every color a scene can hold, and the file validator now uses it;
+    - lottie-web is a test-only dependency.
+- **B. Animation core** (file version 2):
+  - tracks of keyframes on shapes; evaluation at a frame;
+  - edits key only the properties that changed;
+  - keyframe buttons in the Inspector; auto-key from the Inspector and gizmo;
+  - a transport bar (play/pause, frame, fps, length, playhead);
+  - faster redraws during playback;
+  - the Lottie export bakes every frame.
+- **C. Timeline editing:**
+  - rows per object and property, selection, dragging keys to retime them;
+  - an easing menu, Delete, and keyboard shortcuts;
+  - "keep timing" when changing fps.
+- **D. Cameras** (file version 3):
+  - camera objects, a camera Inspector, and look-through mode with the output frame letterboxed;
+  - the camera's frame drawn in the free view;
+  - the Lottie export from a camera.
+- **Later:** the keyframed Lottie mode, animated Zdog JS export, custom easing curves and a graph editor.
+
 ## Later
 
-**Lottie export.** The long-term aim is for the editor to export Lottie animations. Nothing is built
-for it yet; it needs its own planning round. What is known so far:
-- Lottie is 2D. Each frame would be drawn by zdog and its projected paths written out, so the 3D scene
-  becomes 2D shape layers.
-- It needs animation in the scene data: a timeline with keyframes for position, rotation, scale,
-  colors and opacity. The scene's `version` field allows adding that.
-- Shapes change front-to-back order as they turn, but Lottie layers keep a fixed order. That has to
-  be handled (for example by splitting layers where the order changes).
-- Opacity is already stored separately from colors, which matches Lottie's own opacity property.
+**Lottie export.** Now planned and under way: see "Animation, cameras and Lottie" above.
