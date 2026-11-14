@@ -1,11 +1,12 @@
-import * as Zdog from 'zdog';
+import type * as ZdogTypes from 'zdog';
+import { Zdog } from '../zdog';
 import { fadeColor } from '../model/color';
 import { getShapeTypeDef } from '../model/shapeTypes';
 import type { Props, ShapeData, ShapeType } from '../model/types';
 
 const DEG_TO_RAD = Math.PI / 180;
 
-type ZdogConstructor = new (options: Record<string, unknown>) => Zdog.Anchor;
+type ZdogConstructor = new (options: Record<string, unknown>) => ZdogTypes.Anchor;
 
 const CONSTRUCTORS: Record<ShapeType, ZdogConstructor> = {
   Rect: Zdog.Rect as unknown as ZdogConstructor,
@@ -48,6 +49,6 @@ export function zdogOptions(shape: ShapeData): Record<string, unknown> {
   };
 }
 
-export function createZdogShape(shape: ShapeData): Zdog.Anchor {
+export function createZdogShape(shape: ShapeData): ZdogTypes.Anchor {
   return new CONSTRUCTORS[shape.type](zdogOptions(shape));
 }

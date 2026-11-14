@@ -1,4 +1,4 @@
-import * as Zdog from 'zdog';
+import { Zdog } from '../zdog';
 import type { Vec3 } from '../model/types';
 
 /**

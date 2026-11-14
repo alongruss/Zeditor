@@ -11,6 +11,7 @@ import {
   type Vec3,
 } from './types';
 import { isHexColor } from './color';
+import { parseCssColor } from './cssColor';
 
 /**
  * The `.zeditor.json` file format: the scene data itself, as JSON. Files are
@@ -49,11 +50,12 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 const isFiniteNumber = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
 
 /**
- * A color zdog can draw: hex, a color name, or rgb()/hsl(). Nothing with
- * quotes, colons or slashes, so a file can't sneak in url(...) or script.
+ * A color zdog can draw and the exports can read: hex, a CSS color name, or
+ * rgb()/hsl() with plain numbers. Nothing else, so a file can't sneak in
+ * url(...) or script.
  */
 export function isSafeColor(value: unknown): value is string {
-  return typeof value === 'string' && (isHexColor(value) || /^[a-z]+(\([\d\s.,%+-]*\))?$/i.test(value.trim()));
+  return typeof value === 'string' && value.length <= 64 && parseCssColor(value) !== null;
 }
 
 /** A zdog path: a list of points and commands made only of numbers. */

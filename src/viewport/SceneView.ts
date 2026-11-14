@@ -1,4 +1,5 @@
-import * as Zdog from 'zdog';
+import type * as ZdogTypes from 'zdog';
+import { Zdog } from '../zdog';
 import type { Scene, ShapeData } from '../model/types';
 import { DEFAULT_CAMERA, pixelsPerUnit, type Camera } from './camera';
 import { createZdogShape } from './toZdog';
@@ -11,13 +12,13 @@ const SELECTION_PADDING = 4;
 
 interface Entry {
   readonly data: ShapeData;
-  readonly object: Zdog.Anchor;
+  readonly object: ZdogTypes.Anchor;
 }
 
 /** zdog's Anchor keeps its children in an untyped `children` array. */
-function childrenOf(node: object): Zdog.Anchor[] | undefined {
+function childrenOf(node: object): ZdogTypes.Anchor[] | undefined {
   const children = (node as { children?: unknown }).children;
-  return Array.isArray(children) ? (children as Zdog.Anchor[]) : undefined;
+  return Array.isArray(children) ? (children as ZdogTypes.Anchor[]) : undefined;
 }
 
 /**
@@ -25,7 +26,7 @@ function childrenOf(node: object): Zdog.Anchor[] | undefined {
  * faces or a Cone's surface) has drawn. zdog creates these lazily and keeps
  * them in differently named properties, so look at all of them.
  */
-function svgElementsOf(root: Zdog.Anchor): SVGElement[] {
+function svgElementsOf(root: ZdogTypes.Anchor): SVGElement[] {
   const found: SVGElement[] = [];
   const visit = (node: object) => {
     for (const value of Object.values(node)) {
@@ -43,7 +44,7 @@ function svgElementsOf(root: Zdog.Anchor): SVGElement[] {
  * camera).
  */
 export class SceneView {
-  private readonly illo: Zdog.Illustration;
+  private readonly illo: ZdogTypes.Illustration;
   private readonly entries = new Map<string, Entry>();
   private selectedId: string | null = null;
   private camera: Camera = DEFAULT_CAMERA;
@@ -65,7 +66,7 @@ export class SceneView {
 
   /** Brings the zdog objects in line with `scene`. Unchanged shapes are left alone. */
   setScene(scene: Scene): void {
-    const ordered: Zdog.Anchor[] = [];
+    const ordered: ZdogTypes.Anchor[] = [];
     const present = new Set<string>();
 
     for (const shape of scene.shapes) {
