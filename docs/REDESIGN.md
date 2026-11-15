@@ -41,7 +41,8 @@ Does well:
 - Wide, heavy, all-caps display type, bent into 3D perspective on its homepage.
 - Work shown on floating, rounded cards.
 
-**We take:** a first-class **dark theme**, **pill buttons**, **rounded floating cards**.
+**We take:** a first-class **dark theme**, **pill buttons**, and **rounded floating pills** for
+the few things that sit on the scene (panels themselves are docked: see Layout).
 **We avoid:** reviewers call its canvas editor a clunky "Photoshop Lite"; we keep panels few and
 contextual.
 
@@ -71,8 +72,8 @@ Canva's editor "glow up" was, in Fast Company's words, its "biggest redesign in 
 - Editing panels open on the right; the left side is for adding.
 - A question as headline ("What will you design today?"), colored icon tiles, 16–24px radii.
 
-**We take:** the **layout model** (add on the left, edit on the right, act by the selection, all
-floating over a full-bleed stage); **colored icon tiles** in the Add menu; the **question
+**We take:** the **layout model** (add on the left, edit on the right, act by the selection),
+though docked rather than floating (see Layout); **colored icon tiles** in the Add menu; the **question
 headline** for the empty scene; **generous radii** and soft shadows. **We avoid:** reviewers found
 some features harder to find after they moved. Every existing control keeps its accessible name,
 and moved controls gain a second path rather than losing the old one (Export stays in File ▾).
@@ -102,14 +103,16 @@ Seen at 1400×860 and read from the code:
 
 ## 4. Direction: "Playroom"
 
-A light, airy editor: the scene fills the window, everything else floats on rounded cards,
-sticker colors mark what things are, and one violet accent marks the main action. Dark theme is
+A light, airy editor: slim panels docked flush to the window edges give the scene as much room as
+possible, small rounded pills float only over the scene itself, sticker colors mark what things
+are, and one violet accent marks the main action. Dark theme is
 one switch away.
 
 ### Principles
 
-1. **Stage first.** Full-bleed viewport; collapsible cards float over it; the view fits what you
-   can see.
+1. **Stage first.** Panels are docked flush to the window edges, with no outer margins or gaps
+   between them, and the scene fills everything in between. Only small pills (context toolbar, zoom,
+   toasts, export card) float over the scene.
 2. **Add on the left, edit on the right, act by the selection.**
 3. **Each color has one job.** Violet: primary action and focus. Coral: selection. Amber: keys.
    Stickers: categories, always with a label or icon.
@@ -137,7 +140,7 @@ using them need no renaming. All ratios use the WCAG 2 formula.
 
 | Token | Today | New | Notes |
 |---|---|---|---|
-| `--panel-bg` | `#f0f0f0` | `#ffffff` | cards |
+| `--panel-bg` | `#f0f0f0` | `#ffffff` | panels |
 | `--page-bg` (new) | — | `#f4f1ec` | warm paper |
 | `--group-bg` | `#f8f8f8` | `#f7f5f2` | sections |
 | `--hover-bg` | `#e8eefc` | `#efe9ff` | |
@@ -151,7 +154,7 @@ using them need no renaming. All ratios use the WCAG 2 formula.
 | `--key` / `--key-edge` (new) | hard-coded `#e8a500` / `#c98a00` | `#e8a500` / `#a87300` | edge 4.10:1 white, 3.77:1 `#f7f5f2` |
 | `--anim-key-bg` / `--anim-tween-bg` (new) | hard-coded `#fff3c4` / `#e6f4e8` | same | ink 15.31:1 / 14.99:1 |
 | `--danger` (new) | hard-coded `#b42318` | same | 6.57:1 white, 6.04:1 `#f7f5f2` |
-| `--radius` | `4px` | `10px` | inputs, menus; cards 16px |
+| `--radius` | `4px` | `10px` | inputs; menus 12px; panels square |
 | `--shadow` | `0 4px 8px rgb(0 0 0 / 20%)` | `0 8px 24px rgb(29 27 34 / 12%)` | plus 1px `--border` |
 
 - **Field borders.** Today's `#c8c8c8` is 1.67:1 on white, below WCAG 1.4.11's 3:1.
@@ -176,14 +179,14 @@ using them need no renaming. All ratios use the WCAG 2 formula.
 
 **Color, dark theme**
 
-- Cards `#1c1a22`, page `#121016`, raised `#2a2731` (lighter, not shadowed).
-- Text `#ece9f1` (14.34:1 on cards), muted `#a8a3b3` (7.01:1 cards, 5.97:1 raised), field borders
+- Panels `#1c1a22`, page `#121016`, raised `#2a2731` (lighter, not shadowed).
+- Text `#ece9f1` (14.34:1 on panels), muted `#a8a3b3` (7.01:1 panels, 5.97:1 raised), field borders
   `#7a7484` (3.82:1).
-- Accent `#9b7bff` (5.47:1 on cards, 6.00:1 page); the light `#6c3cf4` would be 2.94:1. White on
+- Accent `#9b7bff` (5.47:1 on panels, 6.00:1 page); the light `#6c3cf4` would be 2.94:1. White on
   `#9b7bff` is only 3.15:1, so primary buttons use ink `#1d1b22` (5.41:1).
-- Keys: amber 8.04:1 on cards; edge 3.57:1 on raised.
+- Keys: amber 8.04:1 on panels; edge 3.57:1 on raised.
 - Must change: `--anim-key-bg` `#3d3214`, `--anim-tween-bg` `#1f3527` (text 10.51 / 10.95:1; the
-  light tints give 1.08 / 1.06); `--danger` `#ff8a7a` (7.51:1 cards, 6.40:1 raised; light: 2.62).
+  light tints give 1.08 / 1.06); `--danger` `#ff8a7a` (7.51:1 panels, 6.40:1 raised; light: 2.62).
 - Unchanged: stickers and their ink text, coral selection, the stage ring. The scene background
   (`scene.settings.background`, inline on `.viewport`) is artwork, never themed.
 
@@ -199,55 +202,52 @@ using them need no renaming. All ratios use the WCAG 2 formula.
 
 **Shape, space, motion**
 
-- Radii: cards 16px; menus, popovers, inputs 10px; buttons and chips pills; picker tiles 12px;
+- Radii: docked panels are square, flush to the window, separated by 1px `--border` lines; menus
+  and popovers 12px; inputs 10px; buttons, chips and floating pills are pills; picker tiles 10px;
   selection outline stays 4px.
-- 4px grid: 8px inside controls, 12px between fields, 16px card padding, 12px between cards and
-  the window edge. Hit targets ≥28px (WCAG 2.2 asks 24px); card-header buttons 32px.
+- 4px grid: 8px inside controls, 12px between fields, 12px panel padding; floating pills sit 12px
+  in from the scene's edges. Hit targets ≥28px (WCAG 2.2 asks 24px); panel-header buttons 32px.
 - 150ms hovers and presses; 200ms `cubic-bezier(0.2, 0.8, 0.2, 1)` for cards and menus, the export
   card included. No springs or overshoot.
 
 ### Layout
 
+Revised after the first mockups (decision 8): floating cards cost too much room in margins and
+gaps, so panels are docked.
+
 ```
-┌──────────────────────────────────────────────────────────────────────────────┐
-│ ┌─────────────────┐                                     ┌──────────────────┐ │
-│ │(Z) File▾ ↶ ↷    │                                     │ View: Free▾ Export▾│ │ ← card headers
-│ │─────────────────│                                     │──────────────────│ │
-│ │ [+ Add ▾]       │        THE SCENE (full bleed)       │ Inspector        │ │
-│ │ Shapes          │                                     │  Cone 1          │ │
-│ │ ● Box 1         │      ╭────────────────────╮         │  ▸ Transform     │ │
-│ │ ● Cone 1  ◂     │      │ Duplicate Delete ◇ ⋯│ context │  ▸ Size          │ │
-│ │ Cameras         │      ╰────────────────────╯ toolbar │  ▸ Appearance    │ │
-│ │ ◫ Camera 1      │          ↑ cone + gizmo below       │                  │ │
-│ │                 │                      [– 100% + ⤢ ⟲]│                  │ │ ← zoom cluster
-│ │                 │ ╭─────────────────────────────────╮ │                  │ │
-│ │                 │ │ ▶ 0:01.00 frame 30/90 30fps ─●─ │ │                  │ │ ← dock
-│ │                 │ │ timeline lanes …                │ │                  │ │
-│ └─────────────────┘ ╰─────────────────────────────────╯ └──────────────────┘ │
-└──────────────────────────────────────────────────────────────────────────────┘
+┌───────────────┬──────────────────────────────────────────────┬─────────────────┐
+│(Z) File▾  ↶ ↷ │                                              │ Free view▾ Export▾│ ← panel headers
+│───────────────│        ╭────────────────────────╮            │─────────────────│
+│ [ + Add ▾ ]   │        │ Duplicate Delete ◇ ⋯   │ context    │ Cone 1    Cone  │
+│ SHAPES        │        ╰────────────────────────╯ toolbar    │ ▾ Transform     │
+│ ● Box 1       │              ↑ cone + gizmo below            │ ▾ Size          │
+│ ● Cone 1   ◂  │          THE SCENE (between panels)          │ ▸ Appearance    │
+│ CAMERAS       │                          [– 100% + Fit Reset] │                 │ ← zoom pill
+│ ◫ Camera 1    ├──────────────────────────────────────────────┤                 │
+│               │ ▶ 0:01.00 Frame 30 of 90  30 fps  Timeline▾  │                 │ ← dock, 148px
+│               │ ruler · Cone 1 · Position · Rotation Y …     │                 │
+└───────────────┴──────────────────────────────────────────────┴─────────────────┘
 ```
 
-- **No top bar.** At 1280×720 (Playwright's default) a top bar plus the dock would leave the scene
-  ~420px tall (today 496). The Scene card header holds logo, File ▾ (unchanged), Undo, Redo; the
-  Inspector header holds View and the violet Export ▾, a second path to File's two export items.
-- **Scene card** (240px): a big Add button (the shape picker), then Shapes and Cameras rows with
+- **Grid.** `.app` keeps today's three columns, narrower: `232px | minmax(0, 1fr) | 288px` (today
+  `320px | 1fr | 320px`). The middle column is the viewport above the dock. No outer margins or
+  gaps; panels are white, separated from the scene by 1px `--border` lines.
+- **No top bar.** The Scene panel header holds logo, File ▾ (unchanged), Undo, Redo; the Inspector
+  header holds View and the violet Export ▾, a second path to File's two export items.
+- **Scene panel** (232px): a 40px Add button (the shape picker), then Shapes and Cameras rows with
   sticker dots. Collapses to a 56px rail, automatically below 1200px.
-- **Inspector card** (304px): today's fields in collapsible sections; with nothing selected, its
+- **Inspector panel** (288px): today's fields in collapsible sections; with nothing selected, its
   header and "Select a shape or camera to edit it."
-- **Dock:** transport and timeline in one card, open by default as today. **Zoom cluster** at the
-  safe area's bottom right: zoom out, %, zoom in, Fit selection, Reset view (fits the scene).
-  **Context toolbar:** piece 2.
-
-**Stage safe area.** The SVG fills the stage; the view is fitted and centered in the rect no card
-covers.
-
-- `--stage-inset-top/right/bottom/left` on `.app`, changed by `.app.scene-collapsed` (left 12+56)
-  and `.app.timeline-closed` (bottom 12+48). Defaults: top 12, left 252, right 316, bottom 236.
-- `.stage-safe` (built in R2) is an `aria-hidden`, `pointer-events: none` div positioned by those
-  variables; the existing ResizeObserver watches it. Insets change only when the user collapses
-  something, never with the selection, so selecting never re-fits the scene.
-- At 1280×720 the safe area is 712×472 (today's column: 640×496, so the fitted scene is ~5%
-  smaller). At 1400×860: 832×612 versus 760×636.
+- **Dock** (148px): a 34px transport row, an 18px ruler and 20px lanes; about four lanes show
+  before it scrolls. Open by default as today.
+- **Floating pills over the scene:** the zoom cluster at the scene's bottom right (zoom out, %,
+  zoom in, Fit selection, Reset view), toasts at its top right, the export card at its bottom
+  center, and the context toolbar (piece 2).
+- **Scene size.** At 1280×720 the scene is 760×572 (today 640×496, so about 37% more area; the
+  floating-card draft had 712×472). The SVG is sized to the viewport as today, so no "safe area"
+  plumbing is needed: fit zoom, Reset view, the camera letterbox and the gizmo already use the
+  viewport's size.
 
 ### Signature pieces
 
@@ -257,6 +257,8 @@ covers.
    keys, Home/End, Enter/Space, each calling `preventDefault()` so the window shortcuts in `App.tsx`
    (step frame, first/last frame, play) don't also fire. Tile names sit below the tile, on the
    menu's white, not on the sticker fill. Still a `menu` named "Add" with today's `menuitem` names.
+   Compact: 264px wide, three across, 44px-tall tiles with 11px names, opening beside the Add
+   button and layered above the dock, so the timeline never covers it.
 2. **Context toolbar** (Canva/Recraft act-by-the-selection, made safe for precise work): a 40px
    pill, role `toolbar` "Selection actions", with Duplicate, Delete, ◇ "Key transform", ⋯ "More".
    - **Keep-out box.** Gizmo handles are fixed-size around the projected center: arrows to
@@ -266,16 +268,16 @@ covers.
      reach). The center is `project(shape.translate, view)`, as at `Gizmo.tsx:83`. `ARROW_HEAD_PX`
      moves from `Gizmo.tsx:24` into `gizmoMath.ts` beside a new `GIZMO_REACH_PX` = 95.
    - **Placement.** Centered on the gizmo, 8px above the keep-out box; else below; else (outline
-     larger than the stage) the same tries against the gizmo square alone. Clamped inside
-     `.stage-safe` minus a 44px bottom strip for the zoom cluster. One try always fits: square plus
-     pill and gap both sides is 190 + 2 × 48 = 286px; the clamp area is at least 352 − 44 = 308px
-     (900×600, `smoke.spec.ts`'s smallest). Cameras have no gizmo: their frame is the keep-out box,
+     larger than the stage) the same tries against the gizmo square alone. Clamped inside the
+     viewport minus a 44px bottom strip for the zoom cluster. One try always fits: square plus
+     pill and gap both sides is 190 + 2 × 48 = 286px; the clamp area is at least 452 − 44 = 408px
+     (900×600, `smoke.spec.ts`'s smallest: 600 minus the 148px dock). Cameras have no gizmo: their frame is the keep-out box,
      and while looking through one the pill pins top center.
    - **Drag.** New `src/state/pointerDrag.ts` (a `createStore(false)`), set by `Gizmo.tsx`
      `startDrag`/`endDrag` and by `Viewport.tsx` when `press.orbiting` turns true (line 146) until
      `onPointerUp`/`onPointerCancel`. While true: `opacity: 0; pointer-events: none`, not `hidden`,
      so focus survives.
-   - **Keyboard.** Rendered in `.viewport` after the Gizmo: tab order Scene card → toolbar → zoom
+   - **Keyboard.** Rendered in `.viewport` after the Gizmo: tab order Scene panel → toolbar → zoom
      cluster → dock → Inspector. One Tab stop, roving Left/Right/Home/End with `preventDefault()`,
      which the global playhead shortcuts respect (`App.tsx`, `if (event.defaultPrevented) return`).
      After Delete, focus goes to the row that took its place, else the previous row, else "Add ▾".
@@ -288,33 +290,31 @@ covers.
    - "Look through" stays only in the Inspector: a second button with that name would break the
      page-wide lookups at cameras.spec.ts:119, :168 and lottie.spec.ts:273.
 3. **Stage focus ring.** `svg.scene` (name "Scene", `tabindex="-1"`: focusable by script, not by
-   Tab) receives focus after Escape in the toolbar and when playback hides it. The SVG is
-   full-bleed under the cards, so its own outline would sit at the window edges, mostly covered
-   (WCAG 2.4.11). It keeps the focus but draws nothing; the ring is painted on `.stage-safe`, which
-   no card covers by construction:
+   Tab) receives focus after Escape in the toolbar and when playback hides it. An inset box-shadow
+   on `.viewport` would paint under the SVG, so the ring is an overlay on the viewport:
 
    ```css
    svg.scene:focus-visible { outline: none; }
-   .viewport:has(svg.scene:focus-visible) .stage-safe {
-     box-shadow: inset 0 0 0 2px #fff;  /* white band: 0–2px inside the safe edge */
-     outline: 2px solid #1d1b22;        /* ink band: 2–4px inside */
-     outline-offset: -4px;
+   .viewport:has(svg.scene:focus-visible)::after {
+     content: ''; position: absolute; inset: 0; pointer-events: none;
+     box-shadow: inset 0 0 0 2px #fff, inset 0 0 0 4px #1d1b22;  /* white 0–2px, ink 2–4px */
    }
    ```
 
    - **Geometry.** Two adjacent, non-overlapping 2px bands, each bordered by the scene background
      on one side; 17.04:1 against each other. They tie at background luminance 0.204, so on any
      scene color at least one band reaches 4.13:1. On the default peach the ink band is 13.24:1.
-   - **Visibility.** Zoom cluster, toasts and export card sit 12px inside the safe edge (cluster
-     32px + 12px = piece 2's 44px strip), so they never cover the ring; the context toolbar is gone
-     once Escape clears the selection. Colors are fixed, not themed: the scene color is the user's.
-   - Under `forced-colors: active` the shadow drops and the outline takes the system color. `:has()`
-     ships in Chromium 105+, Firefox 121+, Safari 15.4+. Static, so no playback cost.
+   - **Visibility.** Nothing covers the viewport's edge now that panels are docked beside it, and
+     the zoom pill, toasts and export card sit 12px in. Colors are fixed, not themed: the scene
+     color is the user's.
+   - Under `forced-colors: active` box-shadows are dropped, so the rule adds
+     `outline: 2px solid CanvasText; outline-offset: -2px` there. `:has()` ships in Chromium 105+,
+     Firefox 121+, Safari 15.4+. Static, so no playback cost.
 4. **Empty stage.** "What will you make today?" in display type, with tiles "Add a shape", "Open a
    file", "Start from the sample scene" (undoable). `pointer-events: none` except the buttons, so
-   drag and right-click still work. The Scene card keeps today's sentence.
+   drag and right-click still work. The Scene panel keeps today's sentence.
 5. **Export card.** The dialog closes as today; a non-modal sunflower card, "Export done",
-   slides up at the safe area's bottom center: the animation looping (zdog frames, not
+   slides up at the scene's bottom center: the animation looping (zdog frames, not
    lottie-web), "90 frames · 3.0 s · 48 KB" in the display face (ink, 11.80:1), and Done. It takes
    no focus and is not a live region (the existing "Saved scene.lottie.json" notice announces
    once); Done, Escape or the next edit closes it. No confetti or jokes (decision 1). Reduced
@@ -322,8 +322,8 @@ covers.
 6. **First key.** The dock opens if closed, and the notice says
    "Move to another frame and change something to animate it". Once per browser (`localStorage` in
    try/catch; if blocked, the tip just reappears).
-7. **Toasts.** `NoticeBar` stays the one always-mounted region, restyled as a toast at the safe
-   area's top right. `info`: sunflower `#ffd23f`, ink text 11.80:1, an "i" icon. `error`: tomato
+7. **Toasts.** `NoticeBar` stays the one always-mounted region, restyled as a toast at the
+   scene's top right. `info`: sunflower `#ffd23f`, ink text 11.80:1, an "i" icon. `error`: tomato
    `#ff6b4a`, ink 6.05:1, a "!" icon, role `alert` as today. Both themes. Dismiss's focus ring
    here is ink, not violet (violet on tomato is 2.08:1).
 
@@ -332,8 +332,8 @@ covers.
 - **Contrast test.** R1 adds `src/styles.contrast.test.ts` (Vitest), which reads `src/styles.css`
   and fails if text drops below 4.5:1 or a field edge, key edge or focus ring below 3:1. Pairs
   include the field tints, `--danger`, ink on each sticker fill, the toast focus ring, and the stage
-  ring's bands on `#ffddbb` and at the 4.13:1 worst case. R6 adds dark pairs.
-- **Keyboard and landmarks.** DOM order stays Scene card, `<main>` (stage, dock), Inspector: the
+  ring's bands on `#ffddbb` and at the 4.13:1 worst case. R5 adds dark pairs.
+- **Keyboard and landmarks.** DOM order stays Scene panel, `<main>` (stage, dock), Inspector: the
   visual order and today's tab order. Both `<aside>`s keep their headings and stay mounted. Collapse
   buttons use `aria-expanded`; Escape closes any menu and returns focus to its opener.
 - **Reduced motion.** CSS `@media (prefers-reduced-motion: reduce)` sets durations to 0.01ms; JS
@@ -341,13 +341,13 @@ covers.
   `page.emulateMedia({ reducedMotion: 'reduce' })` exports and checks the preview is still and the
   hovered picker tile doesn't turn.
 - **Playback speed.** No `backdrop-filter`, and no new `filter` on `svg.scene` or anything redrawn
-  per frame; cards are opaque. The toolbar adds one `project()` call to bounds `SceneView.ts`
+  per frame; panels and pills are opaque. The toolbar adds one `project()` call to bounds `SceneView.ts`
   already measures, and both stop while playing (`SceneView.ts:111`). Check: `timeline.spec.ts`
   "Play moves the shape, and Pause stops on the frame it reached" in the `chromium` and `slow`
   projects, plus a 5-second Chrome profile of the starter scene playing at 1280×720 before and
-  after R1, R3 and R5. Budget: ≤1ms added to average frame time, numbers in the PR.
-- **Sizes.** No phone or tablet layout, as today. Works from 1024px (Scene card as rail);
-  `smoke.spec.ts` keeps its 900×600 step and the scene must fit the safe area there.
+  after R1, R2 and R4. Budget: ≤1ms added to average frame time, numbers in the PR.
+- **Sizes.** No phone or tablet layout, as today. Works from 1024px (Scene panel as rail);
+  `smoke.spec.ts` keeps its 900×600 step and the scene must fit the viewport there.
 
 ## 5. Migration plan (one PR each)
 
@@ -363,7 +363,7 @@ Strings the tests rely on:
 | "No shapes yet. Use Add to create one." (editing.spec.ts:210, files.spec.ts:101) | **Keep**; stage copy differs, so `getByText` stays unambiguous. |
 | "Select a shape or camera to edit it." (editing.spec.ts:163); `complementary` "Inspector" (helpers.ts:68) | **Keep**; the Inspector stays mounted. |
 | "Undo", "Redo", "Reset view", combobox "View", region "Timeline", "Look through", "Back to free view" | **Keep, one of each.** |
-| buttons "Duplicate", "Delete" (cameras.spec.ts:69, :109, page-wide) | **Keep, one of each**: R4 moves them and removes the header copies in the same PR (strict mode). |
+| buttons "Duplicate", "Delete" (cameras.spec.ts:69, :109, page-wide) | **Keep, one of each**: R3 moves them and removes the header copies in the same PR (strict mode). |
 | `status` / `alert` (files.spec.ts:54, 64, 75, 79, 110; lottie.spec.ts:263, 309 expects an empty `status`) | **Keep** the single `NoticeBar` region. |
 | dialog "Export Lottie" hidden after export (lottie.spec.ts:261) | **Keep**; the export card is separate. |
 
@@ -380,54 +380,26 @@ Strings the tests rely on:
   "Position X" and the toolbar (`flex-wrap: wrap`) doesn't wrap at 1280px. Label-drag tests
   (editing.spec.ts:104, :122; undo.spec.ts:15) measure the label's box, so they adapt.
 
-### R2: Safe rect and view center (no visual change)
+### R2: Docked layout
 
-Plumbing on today's grid, so the risky math lands without a layout change. Safe rect = the
-viewport column (all insets 0); center = its middle.
-
-- `src/viewport/Viewport.tsx`: render `.stage-safe`, observe it, keep `area = { stage, safe }`.
-  Every use of `container.clientWidth/Height` goes through the safe rect: `currentViewSpec`, orbit
-  `displaySize` (line 147), `cameraFrame` (offset by the safe rect's left/top), the context-menu
-  position. The zdog size attributes (lines 89–90) stay the full stage.
-- `src/state/currentView.ts`: `currentViewSpec(stage, safe)`.
-- `src/render/view.ts`: `ViewSpec` gains `centerX/centerY` (default: middle); `viewFromFreeView`,
-  `lookThroughView` and `cameraFrame` fit to the safe rect.
-- `src/viewport/SceneView.ts` `setView`: after `illo.setSize(width, height)`, set `viewBox` to
-  `${-centerX/zoom} ${-centerY/zoom} ${width/zoom} ${height/zoom}` (zdog's `setSizeSvg` centers at
-  `-w/2, -h/2`, and only `setView` calls it, since `resize: false`).
-- `src/viewport/gizmoMath.ts` `project` and `CameraFrames.tsx`: `centerX/centerY` instead of
-  `width/2, height/2`. `src/panels/PopupMenu.tsx:44–45`: clamp to the safe rect.
-- **Tests:** unit only: `view.test.ts` and `gizmoMath.test.ts` add off-middle centers (the gizmo
-  center must equal where zdog draws the target). Every e2e test passes untouched, proving no
-  visual change.
-
-### R3: Floating layout
-
-- `src/App.tsx`: `.app` → `<aside>` Scene card, `<main class="stage">` (Viewport, then `.dock` with
-  TransportBar and TimelineArea), `<aside>` Inspector card. Same order, headings and ids.
+- `src/App.tsx`: same `<aside>` Scene, `<main>` (Viewport, then `.dock` with TransportBar and
+  TimelineArea), `<aside>` Inspector, in the same order with the same headings and ids.
+- `src/styles.css`: grid `232px | minmax(0, 1fr) | 288px`; panels flush with 1px borders; dock
+  148px; zoom cluster, toasts and export card as floating pills inside `.viewport`.
 - `src/panels/Toolbar.tsx` split and moved out of `Viewport.tsx`: File, Undo, Redo to the Scene
-  header; Add to the top of the Scene card; View, Export ▾, Duplicate, Delete to the Inspector
-  header for now; Reset view to the zoom cluster. Its `viewSize` prop becomes a `stageArea` store
-  (new `src/state/stageArea.ts`, set by Viewport). `lottieOpen` moves to new `src/state/dialogs.ts`
+  header; Add to the top of the Scene panel; View, Export ▾, Duplicate, Delete to the Inspector
+  header for now; Reset view to the zoom cluster. `lottieOpen` moves to new `src/state/dialogs.ts`
   so File ▾ and Export ▾ open one dialog.
-- `src/styles.css`: `.app`, `.stage`, cards, dock, non-zero inset variables, page background.
-- Cards are siblings of `.viewport`, so wheel and pointer events over them no longer zoom or orbit
+- Panels are siblings of `.viewport`, so wheel and pointer events over them no longer zoom or orbit
   (today wheeling over the toolbar zooms).
-- **E2E changed on purpose:**
-  - `e2e/helpers.ts`: add `safeArea(page)`; `emptyPoint` uses its bottom-left + 24px (`svg.scene`'s
-    would land under the Scene card). Carries every `orbit()` caller (gizmo.spec.ts:19, :79, :109,
-    cameras.spec.ts orbits, editing.spec.ts:187/:197, undo.spec.ts:41).
-  - `e2e/smoke.spec.ts`: `expectSceneInsideColumn` → `expectSceneInsideSafeArea`; 900×600 and
-    1600×1000 steps stay.
-  - cameras.spec.ts:38 and gizmo.spec.ts:152–154: wheel at the safe area's center.
-  - cameras.spec.ts:48–50 and lottie.spec.ts:238–240: new camera and Lottie default sizes are the
-    safe area's (decision 7), compared against `safeArea(page)`.
+- **E2E:** the viewport keeps owning its own size, so `emptyPoint`, `orbit()`, the smoke test's
+  "scene inside its column" check, and the camera and Lottie default-size tests
+  (cameras.spec.ts:48–50, lottie.spec.ts:238–240) stay as they are. The zoom pill now covers the
+  viewport's bottom-right corner, which `emptyPoint` (bottom-left) never uses.
 - **Must pass unchanged:** files.spec.ts:130, gizmo.spec.ts:59, editing.spec.ts:166; their helpers
-  assert the target is topmost, so a card over Cone 1 or a handle fails loudly.
-- **Watch for:** Cone 1 sits near the scene's right edge; with the safe center at x = 608 at
-  1280px, confirm it clears the Inspector card.
+  assert the target is topmost, so a panel or pill over Cone 1 or a handle fails loudly.
 
-### R4: Shape picker, context toolbar, stage focus, right-click add
+### R3: Shape picker, context toolbar, stage focus, right-click add
 
 - `src/panels/Dropdown.tsx`: optional `icon` (aria-hidden), a `grid` layout, roving arrow/Home/End
   focus (today only Escape), with `preventDefault()` and a test that arrows in the open picker
@@ -439,7 +411,7 @@ viewport column (all insets 0); center = its middle.
   via a new `unproject()` in `gizmoMath.ts` and `addShapeOfType(type, at?)` in
   `src/state/commands.ts`.
 - **Tests:**
-  - cameras.spec.ts:69 and :109 now hit the toolbar's buttons; gizmo.spec.ts:79, :109 join R3's
+  - cameras.spec.ts:69 and :109 now hit the toolbar's buttons; gizmo.spec.ts:79, :109 join R2's
     must-pass list (`grabbable()`, helpers.ts:129, needs handles topmost).
   - New gizmo.spec.ts "the context toolbar never covers a gizmo handle": Cone 1 and Box 1, front,
     after `orbit(page, 80, -50)`, and at 900×600; every `arrow()` point (from, tip, 10 between) and
@@ -448,16 +420,15 @@ viewport column (all insets 0); center = its middle.
     focus; Left/Right in the toolbar don't move the playhead; the toolbar hides while playing and
     Ctrl+D still duplicates.
   - New stage-focus test: select Cone 1, Tab into the toolbar, press Escape. Then
-    `document.activeElement` is `svg.scene`; `.stage-safe`'s computed outline is
-    `2px solid rgb(29, 27, 34)`; and `document.elementFromPoint` at the safe rect's top-left,
-    top-right, bottom-left and bottom-right, each 3px inside, returns an element inside
-    `.viewport`, not a card, the zoom cluster or a toast.
+    `document.activeElement` is `svg.scene`; the viewport's `::after` box-shadow holds both bands;
+    and `document.elementFromPoint` at the viewport's four corners, each 3px inside, returns an
+    element inside `.viewport`, not a panel, the zoom pill or a toast.
   - New: right-click adds a shape there; picker grid keyboard; `unproject` round-trips `project`; a
-    pure `toolbarPlacement()` never meets the gizmo square for clamp areas down to 308px.
+    pure `toolbarPlacement()` never meets the gizmo square for clamp areas down to 408px.
 - **Watch for:** cameras.spec.ts:62 clicks Camera 1's frame label with Cone 1 selected; if the pill
   covers it, add frame labels to the keep-out box.
 
-### R5: Delight
+### R4: Delight
 
 - Empty-stage overlay in `Viewport.tsx`; new `src/panels/ExportDone.tsx`, opened by
   `ExportLottieDialog.tsx`; the first-key tip via the notice store; `NoticeBar` as toast; new
@@ -468,30 +439,33 @@ viewport column (all insets 0); center = its middle.
 - **New:** empty-stage buttons, export card and its reduced-motion variant, first-key tip once.
   New names checked for collisions: "Open a file", "Add a shape", "Done", "Export done".
 
-### R6: Dark theme
+### R5: Dark theme
 
 - `src/styles.css`: dark values under `:root[data-theme='dark']` and under
   `@media (prefers-color-scheme: dark) { :root:not([data-theme='light']) { … } }`.
 - File menu theme choice ("Match system", "Light", "Dark"), stored in `localStorage` in try/catch,
   applied to `<html data-theme>`.
 - **Tests:** dark pairs in `styles.contrast.test.ts`; one smoke test with
-  `page.emulateMedia({ colorScheme: 'dark' })` checks dark cards and an untouched scene background.
+  `page.emulateMedia({ colorScheme: 'dark' })` checks dark panels and an untouched scene background.
   No string changes.
 
-## 6. Decisions (settled 2026-11-15)
+## 6. Decisions (settled 2026-11-15, layout revised the same day)
 
 1. **Tone:** calm and friendly. Warm, plain copy; the export card shows the numbers and the preview,
    with no confetti or jokes; the first-key tip is a plain notice.
-2. **Theme:** light first; the dark theme (following the system setting) comes in R6.
+2. **Theme:** light first; the dark theme (following the system setting) comes in R5.
 3. **Fonts:** Figtree for the UI, Bricolage Grotesque for display moments, both bundled.
 4. **Color roles:** violet `#6c3cf4` is the one primary-action and focus color; coral marks
    selection; keys stay amber; lime is only a sticker color.
 5. **Inspector with no selection:** stays mounted with its header and one line, so the stage never
    shifts and editing.spec.ts:163 and helpers.ts:68 stay as they are.
-6. **Top controls:** in the card headers (scene about 472px tall at 1280×720), not a separate top
+6. **Top controls:** in the panel headers (scene 572px tall at 1280×720), not a separate top
    bar.
-7. **New cameras and Lottie exports** default to the visible safe area; the two size tests change
-   in R3.
+7. **New cameras and Lottie exports** default to the visible scene. With docked panels that is
+   simply the viewport, as today, so no test changes.
+8. **Docked panels** (revised after seeing the mockups): no floating cards, outer margins or gaps;
+   the timeline dock is 148px; the Add picker is compact and opens above the dock. This drops the
+   former safe-area step, so the plan is now five PRs (R1 to R5).
 
 ## Sources
 
