@@ -5,7 +5,6 @@ import {
   Dialogs,
   ExportMenu,
   FileMenu,
-  SelectionButtons,
   UndoRedoButtons,
   ViewMenu,
 } from './panels/Toolbar';
@@ -94,9 +93,6 @@ export function App() {
           <ViewMenu />
           <span class="panel-header-gap" />
           <ExportMenu />
-          <div class="panel-header-row">
-            <SelectionButtons />
-          </div>
         </div>
         <div class="panel-body">
           <h2 class="panel-title" id="inspector-title">
