@@ -1,3 +1,4 @@
+import type { ComponentChildren } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 
 export interface DropdownItem {
@@ -13,10 +14,16 @@ interface DropdownProps {
   /** Accessible name of the open menu, e.g. "File". */
   readonly menuLabel: string;
   readonly items: readonly DropdownItem[];
+  /** The main action's look (filled violet). */
+  readonly primary?: boolean;
+  /** An extra class on the wrapper, for layout. */
+  readonly className?: string;
+  /** A picture before the label; hidden from screen readers, so the name stays "{label} ▾". */
+  readonly icon?: ComponentChildren;
 }
 
 /** A toolbar button that opens a menu. Escape or a click elsewhere closes it. */
-export function Dropdown({ label, menuLabel, items }: DropdownProps) {
+export function Dropdown({ label, menuLabel, items, primary, className, icon }: DropdownProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -37,8 +44,15 @@ export function Dropdown({ label, menuLabel, items }: DropdownProps) {
   }, [open]);
 
   return (
-    <div class="toolbar-dropdown" ref={rootRef}>
-      <button type="button" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((was) => !was)}>
+    <div class={className ? `toolbar-dropdown ${className}` : 'toolbar-dropdown'} ref={rootRef}>
+      <button
+        type="button"
+        class={primary ? 'primary' : undefined}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((was) => !was)}
+      >
+        {icon && <span class="button-icon" aria-hidden="true">{icon}</span>}
         {label} ▾
       </button>
       {open && (
