@@ -1,11 +1,14 @@
-import { useRef } from 'preact/hooks';
+import { useCallback, useRef, useState } from 'preact/hooks';
+import { isAnimated } from '../model/evaluate';
 import { findShape } from '../model/scene';
-import { setTiming } from '../state/commands';
+import { retimeCommand, setTiming } from '../state/commands';
 import { dispatch, useEditorState } from '../state/store';
-import { pause, setFrame, togglePlayback, useTimeline } from '../state/timeline';
+import { pause, setFrame, setPanelOpen, togglePlayback, useTimeline } from '../state/timeline';
+import { FpsDialog } from './FpsDialog';
 import { NumberInput } from './fields';
 
-const MAX_FPS = 120;
+/** Common frame rates offered for the scene (a file's own rate is added if it's another). */
+const FPS_CHOICES = [12, 15, 24, 25, 30, 48, 50, 60];
 const MAX_LENGTH = 100000;
 /** Ruler ticks are at least this far apart, in pixels. */
 const MIN_TICK_GAP = 8;
@@ -25,7 +28,9 @@ function niceStep(pixelsPerFrame: number, gap: number): number {
  */
 export function TransportBar() {
   const { scene, selectedId } = useEditorState();
-  const { frame, playing } = useTimeline();
+  const { frame, playing, panelOpen } = useTimeline();
+  const [pendingFps, setPendingFps] = useState<number | null>(null);
+  const closeFpsDialog = useCallback(() => setPendingFps(null), []);
   const { fps, duration } = scene.settings;
   const last = Math.max(0, duration - 1);
   const rulerRef = useRef<HTMLDivElement>(null);
@@ -72,71 +77,81 @@ export function TransportBar() {
         onCommit={(value) => setFrame(value)}
       />
 
-      <div
-        ref={rulerRef}
-        class="ruler"
-        role="slider"
-        aria-label="Playhead"
-        aria-valuemin={0}
-        aria-valuemax={last}
-        aria-valuenow={frame}
-        aria-valuetext={`Frame ${frame} of ${last}`}
-        tabIndex={0}
-        onPointerDown={(event) => {
-          if (event.button !== 0) return;
-          event.currentTarget.setPointerCapture(event.pointerId);
-          setFrame(frameAt(event.clientX));
-        }}
-        onPointerMove={(event) => {
-          if (event.currentTarget.hasPointerCapture(event.pointerId)) setFrame(frameAt(event.clientX));
-        }}
-        onKeyDown={(event) => {
-          const step = event.shiftKey ? 10 : 1;
-          const moves: Record<string, number> = {
-            ArrowLeft: frame - step,
-            ArrowRight: frame + step,
-            Home: 0,
-            End: last,
-          };
-          if (event.key in moves) {
-            event.preventDefault();
-            setFrame(moves[event.key]);
-          }
-        }}
-      >
-        {ticks.map((f) => (
-          <span
-            key={f}
-            class={f % labelStep === 0 ? 'ruler-tick major' : 'ruler-tick'}
-            style={{ left: `${percent(f)}%` }}
-          >
-            {f % labelStep === 0 && <span class="ruler-label">{f}</span>}
-          </span>
-        ))}
-        {keyFrames.map((f) => (
-          <span key={`key-${f}`} class="ruler-key" style={{ left: `${percent(f)}%` }} aria-hidden="true" />
-        ))}
-        <span class="ruler-playhead" style={{ left: `${percent(frame)}%` }} aria-hidden="true" />
-      </div>
+      {/* With the timeline panel open, its ruler moves the playhead instead. */}
+      {!panelOpen && (
+        <div
+          ref={rulerRef}
+          class="ruler"
+          role="slider"
+          aria-label="Playhead"
+          aria-valuemin={0}
+          aria-valuemax={last}
+          aria-valuenow={frame}
+          aria-valuetext={`Frame ${frame} of ${last}`}
+          tabIndex={0}
+          onPointerDown={(event) => {
+            if (event.button !== 0) return;
+            event.currentTarget.setPointerCapture(event.pointerId);
+            setFrame(frameAt(event.clientX));
+          }}
+          onPointerMove={(event) => {
+            if (event.currentTarget.hasPointerCapture(event.pointerId)) setFrame(frameAt(event.clientX));
+          }}
+          onKeyDown={(event) => {
+            const step = event.shiftKey ? 10 : 1;
+            const moves: Record<string, number> = {
+              ArrowLeft: frame - step,
+              ArrowRight: frame + step,
+              Home: 0,
+              End: last,
+            };
+            if (event.key in moves) {
+              event.preventDefault();
+              setFrame(moves[event.key]);
+            }
+          }}
+        >
+          {ticks.map((f) => (
+            <span
+              key={f}
+              class={f % labelStep === 0 ? 'ruler-tick major' : 'ruler-tick'}
+              style={{ left: `${percent(f)}%` }}
+            >
+              {f % labelStep === 0 && <span class="ruler-label">{f}</span>}
+            </span>
+          ))}
+          {keyFrames.map((f) => (
+            <span key={`key-${f}`} class="ruler-key" style={{ left: `${percent(f)}%` }} aria-hidden="true" />
+          ))}
+          <span class="ruler-playhead" style={{ left: `${percent(frame)}%` }} aria-hidden="true" />
+        </div>
+      )}
 
       <span class="transport-time" aria-label="Time">
         {(frame / fps).toFixed(2)} s
       </span>
-      <NumberInput
-        label="Frames per second"
-        shortLabel="fps"
-        className="transport-setting"
-        value={fps}
-        step={1}
-        shiftStep={10}
-        min={1}
-        max={MAX_FPS}
-        integer
-        onCommit={(value, group) => {
-          pause();
-          dispatch(setTiming({ fps: value }), { group });
-        }}
-      />
+      <label class="field transport-setting">
+        <span class="field-label">fps</span>
+        <select
+          aria-label="Frames per second"
+          value={String(fps)}
+          onChange={(event) => {
+            const next = Number(event.currentTarget.value);
+            pause();
+            // With keys, ask whether to keep the timing in seconds or keep keys on their frames.
+            if (isAnimated(scene)) setPendingFps(next);
+            else dispatch(setTiming({ fps: next }));
+          }}
+        >
+          {[...new Set([...FPS_CHOICES, fps])]
+            .sort((a, b) => a - b)
+            .map((value) => (
+              <option key={value} value={String(value)}>
+                {value}
+              </option>
+            ))}
+        </select>
+      </label>
       <NumberInput
         label="Length in frames"
         shortLabel="Length"
@@ -152,6 +167,25 @@ export function TransportBar() {
           dispatch(setTiming({ duration: value }), { group });
         }}
       />
+      <button
+        type="button"
+        class="transport-toggle"
+        aria-expanded={panelOpen}
+        title={panelOpen ? 'Hide the timeline' : 'Show the timeline'}
+        onClick={() => setPanelOpen(!panelOpen)}
+      >
+        Timeline {panelOpen ? '▾' : '▴'}
+      </button>
+      {pendingFps !== null && (
+        <FpsDialog
+          from={fps}
+          to={pendingFps}
+          onClose={closeFpsDialog}
+          onChoose={(choice) =>
+            dispatch(choice === 'keepTiming' ? retimeCommand(pendingFps) : setTiming({ fps: pendingFps }))
+          }
+        />
+      )}
     </div>
   );
 }

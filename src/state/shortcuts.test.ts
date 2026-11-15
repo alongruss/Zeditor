@@ -52,6 +52,21 @@ describe('shortcutFor', () => {
     expect(shortcutFor(press('S', { ctrlKey: true, shiftKey: true }), null)).toBeNull();
   });
 
+  it('plays with Space, and steps or jumps the playhead with the arrows, Home and End', () => {
+    expect(shortcutFor(press(' '), null)).toBe('togglePlay');
+    expect(shortcutFor(press('ArrowLeft'), null)).toEqual({ stepFrames: -1 });
+    expect(shortcutFor(press('ArrowRight', { shiftKey: true }), 'box-1')).toEqual({ stepFrames: 10 });
+    expect(shortcutFor(press('Home'), null)).toBe('firstFrame');
+    expect(shortcutFor(press('End'), null)).toBe('lastFrame');
+    expect(shortcutFor(press(' ', { ctrlKey: true }), null)).toBeNull();
+  });
+
+  it('deletes the selected keys instead of the shape when keys are selected', () => {
+    expect(shortcutFor(press('Delete'), 'box-1', true)).toBe('deleteKeys');
+    expect(shortcutFor(press('Backspace'), null, true)).toBe('deleteKeys');
+    expect(typeof shortcutFor(press('Delete'), 'box-1', false)).toBe('function');
+  });
+
   it('finds Ctrl+Z and Ctrl+D by physical key on non-Latin layouts', () => {
     // Hebrew layout: the Z key types "ז" and the D key types "ג".
     expect(shortcutFor(press('ז', { code: 'KeyZ', ctrlKey: true }), null)).toBe('undo');

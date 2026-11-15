@@ -1,3 +1,4 @@
+import { keyExists, keyRefId, type KeyRef } from '../model/keyEdits';
 import { closeUndoGroup, createStore, editor, useEditorState, useStore, type Store } from './store';
 
 /**
@@ -8,9 +9,34 @@ export interface TimelineState {
   /** The frame being shown and edited (0 to duration - 1). */
   readonly frame: number;
   readonly playing: boolean;
+  /** Keyframes selected in the timeline panel. */
+  readonly selectedKeys: readonly KeyRef[];
+  /** Whether the timeline panel under the viewport is open. */
+  readonly panelOpen: boolean;
 }
 
-export const timeline: Store<TimelineState> = createStore<TimelineState>({ frame: 0, playing: false });
+export const timeline: Store<TimelineState> = createStore<TimelineState>({
+  frame: 0,
+  playing: false,
+  selectedKeys: [],
+  panelOpen: true,
+});
+
+/** Replaces the key selection (duplicates are dropped). */
+export function selectKeys(refs: readonly KeyRef[]): void {
+  const unique = [...new Map(refs.map((ref) => [keyRefId(ref), ref])).values()];
+  timeline.dispatch((state) =>
+    state.selectedKeys.length === 0 && unique.length === 0 ? state : { ...state, selectedKeys: unique },
+  );
+}
+
+export function clearKeySelection(): void {
+  selectKeys([]);
+}
+
+export function setPanelOpen(open: boolean): void {
+  timeline.dispatch((state) => (state.panelOpen === open ? state : { ...state, panelOpen: open }));
+}
 
 /** The last frame of the scene's animation. */
 export function lastFrame(): number {
@@ -31,7 +57,7 @@ export function setFrame(frame: number): void {
   const current = timeline.get();
   if (next === current.frame && !current.playing) return;
   closeUndoGroup();
-  timeline.dispatch(() => ({ frame: next, playing: false }));
+  timeline.dispatch((state) => ({ ...state, frame: next, playing: false }));
 }
 
 export function play(): void {
@@ -56,11 +82,20 @@ export function useTimeline(): TimelineState {
 }
 
 /**
- * Plays the animation while `playing` is on, looping, at the scene's frame
- * rate. Frames come from the clock, so a slow machine drops frames rather
- * than playing slowly. Returns a function that stops it.
+ * Starts the timeline's background work: playback (see below), and dropping
+ * selected keys that no longer exist (after Undo, a delete, ...). Returns a
+ * function that stops it.
+ *
+ * Playback runs while `playing` is on, looping, at the scene's frame rate.
+ * Frames come from the clock, so a slow machine drops frames rather than
+ * playing slowly.
  */
-export function startPlaybackLoop(): () => void {
+export function startTimeline(): () => void {
+  const unsubscribeEditor = editor.subscribe(({ scene }) => {
+    const { selectedKeys } = timeline.get();
+    const existing = selectedKeys.filter((ref) => keyExists(scene, ref));
+    if (existing.length !== selectedKeys.length) selectKeys(existing);
+  });
   let raf = 0;
   let startTime = 0;
   let startFrame = 0;
@@ -83,6 +118,7 @@ export function startPlaybackLoop(): () => void {
   });
   return () => {
     unsubscribe();
+    unsubscribeEditor();
     cancelAnimationFrame(raf);
   };
 }
