@@ -13,7 +13,7 @@ import {
 } from '../model/scene';
 import { editAtFrame, toggleKeys, type ObjectPatch } from '../model/animation';
 import { deleteKeys, moveKeysInScene, retime, setKeysEasing, type KeyRef } from '../model/keyEdits';
-import type { Easing, PropertyPath, Scene, SceneObject, ShapeType } from '../model/types';
+import type { Easing, PropertyPath, Scene, SceneObject, ShapeType, Vec3 } from '../model/types';
 
 /** Everything the editor knows. The UI and the 3D view are drawn from this alone. */
 export interface EditorState {
@@ -35,10 +35,11 @@ export const select =
     return nextId === state.selectedId ? state : { ...state, selectedId: nextId };
   };
 
+/** Adds a shape (at the origin, or at `at`) and selects it. */
 export const addShapeOfType =
-  (type: ShapeType): Command =>
+  (type: ShapeType, at?: Vec3): Command =>
   (state) => {
-    const shape = createShape(state.scene, type);
+    const shape = createShape(state.scene, type, at);
     return { scene: addShape(state.scene, shape), selectedId: shape.id };
   };
 

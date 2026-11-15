@@ -2,9 +2,11 @@ import { useRef } from 'preact/hooks';
 import type { ShapeData, Vec3 } from '../model/types';
 import { edit } from '../state/commands';
 import { newGroup } from '../state/history';
+import { setPointerDrag } from '../state/pointerDrag';
 import { dispatch } from '../state/store';
 import { pause } from '../state/timeline';
 import {
+  ARROW_HEAD_PX,
   AXES,
   angleBetween,
   arrowEnabled,
@@ -19,9 +21,6 @@ import {
   type ScreenPoint,
   type ViewTransform,
 } from './gizmoMath';
-
-/** Size of a move arrow's head, in pixels. */
-const ARROW_HEAD_PX = 11;
 
 /** What a handle drag started from. The camera can't change during a gizmo drag. */
 type Drag =
@@ -94,6 +93,7 @@ export function Gizmo({ shape, view, frame }: GizmoProps) {
     pause();
     (event.currentTarget as Element).setPointerCapture(event.pointerId);
     drag.current = next;
+    setPointerDrag(true);
   };
 
   const onPointerMove = (event: PointerEvent) => {
@@ -114,7 +114,9 @@ export function Gizmo({ shape, view, frame }: GizmoProps) {
   };
 
   const endDrag = (event: PointerEvent) => {
-    if (drag.current?.pointerId === event.pointerId) drag.current = null;
+    if (drag.current?.pointerId !== event.pointerId) return;
+    drag.current = null;
+    setPointerDrag(false);
   };
 
   const rings = AXES.map((axis) => {

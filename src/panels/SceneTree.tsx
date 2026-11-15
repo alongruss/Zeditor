@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { SHAPE_TYPE_DEFS } from '../model/shapeTypes';
 import type { SceneObject } from '../model/types';
 import { rename, select } from '../state/commands';
+import { STICKER } from './shapeTiles';
 import { dispatch, useEditorState } from '../state/store';
 
 /** The scene's shapes, then its cameras. Click selects; double-click renames. */
@@ -32,6 +33,7 @@ export function SceneTree() {
             onClick={() => dispatch(select(object.id))}
             onDblClick={() => setRenamingId(object.id)}
           >
+            <span class="tree-dot" aria-hidden="true" style={{ background: STICKER[object.type] }} />
             <span class="tree-name">{object.name}</span>
             <span class="tree-type">{isCamera ? 'Camera' : SHAPE_TYPE_DEFS[object.type].label}</span>
           </button>

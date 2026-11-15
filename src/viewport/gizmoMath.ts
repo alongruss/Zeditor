@@ -18,8 +18,16 @@ const DEG = Math.PI / 180;
 
 /** Length of a move arrow on screen when it lies flat to the screen. */
 export const ARROW_LENGTH_PX = 84;
+/** Size of a move arrow's head, in pixels. */
+export const ARROW_HEAD_PX = 11;
 /** Radius of a rotation ring on screen when it faces the camera. */
 export const RING_RADIUS_PX = 58;
+/**
+ * How far any gizmo handle reaches from the shape's center on screen: an
+ * arrow and its head. (Rings reach 58px, plus 7px of their grab stroke.)
+ * Nothing else may cover this square, or a handle can't be grabbed.
+ */
+export const GIZMO_REACH_PX = ARROW_LENGTH_PX + ARROW_HEAD_PX;
 /** Points per rotation ring outline. */
 export const RING_SEGMENTS = 64;
 /**
@@ -72,6 +80,21 @@ export function project(p: Vec3, view: ViewTransform): ScreenPoint {
   const target = view.target ?? { x: 0, y: 0, z: 0 };
   const v = turn({ x: p.x - target.x, y: p.y - target.y, z: p.z - target.z }, view.rotate);
   return { x: view.width / 2 + v.x * view.zoom, y: view.height / 2 + v.y * view.zoom };
+}
+
+/**
+ * The world point drawn at screen point `p`, on the plane through the view's
+ * target that faces the view (the inverse of `project` for that plane). Used
+ * to add a shape where you right-clicked.
+ */
+export function unproject(p: ScreenPoint, view: ViewTransform): Vec3 {
+  const v = new Zdog.Vector({ x: (p.x - view.width / 2) / view.zoom, y: (p.y - view.height / 2) / view.zoom, z: 0 });
+  // Undo `turn`: zdog rotates z, then y, then x, so go back x, y, z.
+  v.rotate({ x: -view.rotate.x, y: 0, z: 0 });
+  v.rotate({ x: 0, y: -view.rotate.y, z: 0 });
+  v.rotate({ x: 0, y: 0, z: -(view.rotate.z ?? 0) });
+  const target = view.target ?? { x: 0, y: 0, z: 0 };
+  return { x: v.x + target.x, y: v.y + target.y, z: v.z + target.z };
 }
 
 /** How a world direction looks on screen, in pixels per world unit. */

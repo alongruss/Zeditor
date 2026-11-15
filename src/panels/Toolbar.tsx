@@ -2,7 +2,7 @@ import { useCallback } from 'preact/hooks';
 import { chooseSceneFile, exportScript, saveScene } from '../files/sceneFiles';
 import { SHAPE_TYPE_DEFS } from '../model/shapeTypes';
 import { SHAPE_TYPES } from '../model/types';
-import { addCameraCommand, addShapeOfType, deleteObject, duplicate, newScene } from '../state/commands';
+import { addCameraCommand, addShapeOfType, newScene } from '../state/commands';
 import { lookedThroughCamera } from '../state/currentView';
 import { closeLottieDialog, openLottieDialog, useLottieDialogOpen } from '../state/dialogs';
 import {
@@ -19,12 +19,14 @@ import { viewportSize, useViewportSize } from '../state/viewportSize';
 import { VIEW_SPAN } from '../viewport/fitZoom';
 import { Dropdown } from './Dropdown';
 import { ExportLottieDialog } from './ExportLottieDialog';
+import { STICKER, shapeTileSvg } from './shapeTiles';
 
 /*
  * The editor's commands, as pieces the panels place: File, Undo and Redo in
- * the Scene panel's header; Add at the top of the Scene panel; View, Export,
- * Duplicate and Delete in the Inspector's header. (Reset view and zoom live
- * on the scene: see viewport/ZoomControls.tsx.)
+ * the Scene panel's header; Add at the top of the Scene panel; View and
+ * Export in the Inspector's header. (Duplicate and Delete sit next to the
+ * selection, and zoom on the scene: see viewport/ContextToolbar.tsx and
+ * viewport/ZoomControls.tsx.)
  */
 
 export const NEW_SCENE_PROMPT = 'Start a new, empty scene? You can undo this with Ctrl+Z.';
@@ -105,13 +107,26 @@ function newCameraView() {
   };
 }
 
-/** The big Add button at the top of the Scene panel: every shape type, then Camera. */
+/** A camera's picture in the Add menu: its frame, with the notch on top. */
+const CAMERA_ART = (
+  <svg viewBox="0 0 54 54" class="tile-camera">
+    <rect x="8" y="14" width="38" height="26" rx="3" />
+    <path d="M21 14 L27 8 L33 14" />
+  </svg>
+);
+
+/**
+ * The big Add button at the top of the Scene panel: a picture of every shape
+ * type (drawn by zdog), then Camera. A real menu with the same item names as
+ * before, so it reads the same to a screen reader.
+ */
 export function AddMenu() {
   return (
     <Dropdown
       label="Add"
       menuLabel="Add"
       className="add-menu"
+      columns={3}
       icon={
         <svg viewBox="0 0 16 16">
           <path d="M8 3v10M3 8h10" />
@@ -120,9 +135,19 @@ export function AddMenu() {
       items={[
         ...SHAPE_TYPES.map((type) => ({
           label: SHAPE_TYPE_DEFS[type].addLabel ?? SHAPE_TYPE_DEFS[type].label,
+          group: 'Shapes',
+          tileColor: STICKER[type],
+          // Our own zdog drawing of the type's default shape, never user input.
+          art: <span class="tile-svg" dangerouslySetInnerHTML={{ __html: shapeTileSvg(type) }} />,
           onSelect: () => dispatch(addShapeOfType(type)),
         })),
-        { label: 'Camera', onSelect: () => dispatch(addCameraCommand(newCameraView())) },
+        {
+          label: 'Camera',
+          group: 'Cameras',
+          tileColor: STICKER.Camera,
+          art: CAMERA_ART,
+          onSelect: () => dispatch(addCameraCommand(newCameraView())),
+        },
       ]}
     />
   );
@@ -148,22 +173,6 @@ export function ViewMenu() {
         </option>
       ))}
     </select>
-  );
-}
-
-/** Duplicate and Delete for the selection. */
-export function SelectionButtons() {
-  const { selectedId } = useEditorState();
-  const hasSelection = selectedId !== null;
-  return (
-    <>
-      <button type="button" disabled={!hasSelection} onClick={() => selectedId && dispatch(duplicate(selectedId))}>
-        Duplicate
-      </button>
-      <button type="button" disabled={!hasSelection} onClick={() => selectedId && dispatch(deleteObject(selectedId))}>
-        Delete
-      </button>
-    </>
   );
 }
 

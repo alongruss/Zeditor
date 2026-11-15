@@ -24,6 +24,9 @@
   /* What is selected in the scene (never a button color). */
   --select: #ff5a36;
   --halo: rgb(255 255 255 / 90%);
+  /* The scene's focus ring: white and ink bands, never themed (the scene color is the user's). */
+  --ring-light: #ffffff;
+  --ring-dark: #1d1b22;
   /* Keyframes stay amber, as in Blender. */
   --key: #e8a500;
   --key-edge: #a87300;
@@ -33,6 +36,15 @@
   --anim-key-bg: #fff3c4;
   --anim-tween-bg: #e6f4e8;
   --danger: #b42318;
+  /* Stickers: one color per kind of object, always shown with its name. Text on them is ink. */
+  --sticker-tomato: #ff6b4a;
+  --sticker-tangerine: #ffa630;
+  --sticker-sunflower: #ffd23f;
+  --sticker-lime: #9be15d;
+  --sticker-mint: #2ec4b6;
+  --sticker-sky: #3fa7ff;
+  --sticker-grape: #9b6ff8;
+  --sticker-bubblegum: #ff6fb5;
   --notice-bg: rgb(29 27 34 / 92%);
   --scrim: rgb(29 27 34 / 30%);
   --shadow: 0 8px 24px rgb(29 27 34 / 12%);
@@ -812,6 +824,93 @@ button.primary:active:not(:disabled) {
   pointer-events: none;
 }
 
+/*
+ * The scene takes focus after Escape in the selection's toolbar. Its own
+ * outline would paint under nothing useful, so the ring is drawn over the
+ * viewport: a white band (0–2px in) and an ink band (2–4px in). On any scene
+ * color one of them reaches at least 4.13:1.
+ */
+.scene:focus-visible {
+  outline: none;
+}
+
+.viewport:has(.scene:focus-visible)::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  box-shadow:
+    inset 0 0 0 2px var(--ring-light),
+    inset 0 0 0 4px var(--ring-dark);
+}
+
+@media (forced-colors: active) {
+  .viewport:has(.scene:focus-visible)::after {
+    outline: 2px solid CanvasText;
+    outline-offset: -2px;
+  }
+}
+
+/* ----- the selection's toolbar (next to it, never on a gizmo handle) ----- */
+
+.context-toolbar {
+  position: absolute;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px 4px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--panel-bg);
+  box-shadow: var(--shadow);
+  transition: opacity 150ms ease;
+}
+
+/* Fades out while a handle is dragged or the view turns, so it's never in the way. */
+.context-toolbar.is-dragging {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.context-toolbar button {
+  border-color: transparent;
+  background: transparent;
+}
+
+.context-toolbar button:hover:not(:disabled) {
+  background: var(--hover-bg);
+}
+
+.key-all {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 8px;
+}
+
+.key-all svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+}
+
+.key-all rect {
+  fill: none;
+  stroke: var(--key-edge);
+  stroke-width: 1.5;
+}
+
+.key-all.is-keyed rect {
+  fill: var(--key);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .context-toolbar {
+    transition: none;
+  }
+}
+
 /* ----- zoom pill (the scene's bottom right) ----- */
 
 .zoom-controls {
@@ -958,6 +1057,73 @@ button.primary:active:not(:disabled) {
   position: relative;
 }
 
+/* The Add menu: a grid of picture tiles, placed in the window above everything. */
+.dropdown-menu.is-grid {
+  position: fixed;
+  z-index: 30;
+  width: 264px;
+  padding: 8px;
+  gap: 6px;
+}
+
+.tile-caption {
+  margin: 2px 4px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.tiles {
+  display: grid;
+  gap: 2px;
+}
+
+.dropdown-menu .tile {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  padding: 4px;
+  border-radius: var(--radius);
+  font-size: 11px;
+  line-height: 1.15;
+  text-align: center;
+}
+
+.tile-art {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  border-radius: var(--radius);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+
+.tile-svg,
+.tile-svg svg,
+.tile-camera {
+  display: block;
+  width: 34px;
+  height: 34px;
+}
+
+.tile-camera {
+  fill: none;
+  stroke: var(--text);
+  stroke-width: 3;
+  stroke-linejoin: round;
+}
+
+.tile-camera path {
+  fill: var(--text);
+}
+
+.tile-name {
+  overflow-wrap: anywhere;
+}
+
 .dropdown-menu,
 .context-menu {
   position: absolute;
@@ -1014,7 +1180,7 @@ kbd {
 
 .tree-item {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: baseline;
   gap: var(--gap);
   width: 100%;
@@ -1035,6 +1201,16 @@ kbd {
 .is-selected > .tree-item {
   font-weight: 700;
   background: var(--hover-bg);
+}
+
+/* Each row's sticker dot: the kind of object, in the Add menu's color for it. */
+.tree-dot {
+  flex: none;
+  align-self: center;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px var(--scrim);
 }
 
 /* One line per row: long names and types end in "…" (the full name is in the Inspector). */

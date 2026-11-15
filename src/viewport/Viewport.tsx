@@ -1,13 +1,17 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { objectAtFrame, sceneAtFrame } from '../model/evaluate';
 import { findShape } from '../model/scene';
+import { SHAPE_TYPE_DEFS } from '../model/shapeTypes';
+import { SHAPE_TYPES } from '../model/types';
 import type { CameraData } from '../model/types';
 import { ContextMenu, type MenuPosition } from '../panels/ContextMenu';
 import { NoticeBar } from '../panels/NoticeBar';
 import { cameraFrame } from '../render/view';
-import { edit, select } from '../state/commands';
+import { addShapeOfType, edit, select } from '../state/commands';
 import { currentViewSpec, lookedThroughCamera } from '../state/currentView';
 import { newGroup } from '../state/history';
+import { setPointerDrag } from '../state/pointerDrag';
+import { PopupMenu } from '../panels/PopupMenu';
 import {
   dispatch,
   editor,
@@ -21,9 +25,10 @@ import {
 import { currentFrame, pause, timeline, useTimeline } from '../state/timeline';
 import { setViewportSize } from '../state/viewportSize';
 import { CameraFrames } from './CameraFrames';
+import { ContextToolbar } from './ContextToolbar';
 import { orbit, wheelZoomFactor, zoomByWheel, type FreeView } from './freeView';
 import { Gizmo } from './Gizmo';
-import type { ViewTransform } from './gizmoMath';
+import { unproject, type ViewTransform } from './gizmoMath';
 import { SceneView } from './SceneView';
 import { ZoomControls } from './ZoomControls';
 
@@ -77,6 +82,8 @@ export function Viewport() {
   const svgRef = useRef<SVGSVGElement>(null);
   const outlineRef = useRef<HTMLDivElement>(null);
   const [menu, setMenu] = useState<MenuPosition | null>(null);
+  /** Right-click on empty space: an "Add here" menu at that point. */
+  const [addMenu, setAddMenu] = useState<MenuPosition | null>(null);
   const [size, setSize] = useState<Size | null>(null);
 
   useEffect(() => {
@@ -145,6 +152,7 @@ export function Viewport() {
       const dx = event.clientX - press.x;
       const dy = event.clientY - press.y;
       if (!press.orbiting && Math.hypot(dx, dy) < CLICK_TOLERANCE_PX) return;
+      if (!press.orbiting) setPointerDrag(true);
       press.orbiting = true;
       const displaySize = Math.min(container.clientWidth, container.clientHeight);
       if (press.camera) {
@@ -167,21 +175,26 @@ export function Viewport() {
       if (!press || event.pointerId !== press.pointerId) return;
       const { orbiting, target } = press;
       press = null;
-      if (!orbiting) dispatch(select(view.pick(target)));
+      if (orbiting) setPointerDrag(false);
+      else dispatch(select(view.pick(target)));
     };
     const onPointerCancel = () => {
+      if (press?.orbiting) setPointerDrag(false);
       press = null;
     };
     const onContextMenu = (event: MouseEvent) => {
       const id = view.pick(event.target);
+      event.preventDefault();
+      const bounds = container.getBoundingClientRect();
+      const at = { x: event.clientX - bounds.left, y: event.clientY - bounds.top };
       if (id === null) {
         setMenu(null);
+        setAddMenu(at);
         return;
       }
-      event.preventDefault();
+      setAddMenu(null);
       dispatch(select(id));
-      const bounds = container.getBoundingClientRect();
-      setMenu({ x: event.clientX - bounds.left, y: event.clientY - bounds.top });
+      setMenu(at);
     };
     let wheelGroup: string | null = null;
     let wheelTimer: ReturnType<typeof setTimeout> | undefined;
@@ -230,7 +243,7 @@ export function Viewport() {
     };
   }, []);
 
-  const { frame } = useTimeline();
+  const { frame, playing } = useTimeline();
   const found = findShape(scene, selectedId);
   const selected = found && objectAtFrame(found, frame);
   const posedCameras = scene.cameras.map((camera) => objectAtFrame(camera, frame));
@@ -244,10 +257,19 @@ export function Viewport() {
     target: spec.target,
   };
   const frameRect = throughCamera && size ? cameraFrame(throughCamera, size.width, size.height) : null;
+  const selectedObject = selected ?? posedCameras.find((camera) => camera.id === selectedId) ?? null;
+
+  /** Adds a shape where the "Add here" menu was opened, on the plane facing the view. */
+  const addAt = (type: (typeof SHAPE_TYPES)[number], at: MenuPosition) => {
+    if (!transform) return;
+    const p = unproject(at, transform);
+    const round = (n: number) => Math.round(n * 2) / 2;
+    dispatch(addShapeOfType(type, { x: round(p.x), y: round(p.y), z: round(p.z) }));
+  };
 
   return (
     <div class="viewport" ref={containerRef} style={{ background: scene.settings.background }}>
-      <svg class="scene" ref={svgRef} aria-label="Scene" />
+      <svg class="scene" ref={svgRef} aria-label="Scene" tabindex={-1} />
       <div class="selection-outline" ref={outlineRef} hidden aria-hidden="true" />
       {transform && !throughCamera && (
         <CameraFrames
@@ -275,9 +297,31 @@ export function Viewport() {
         </div>
       )}
       {selected && transform && <Gizmo shape={selected} frame={frame} view={transform} />}
+      {selectedObject && transform && (
+        <ContextToolbar
+          object={selectedObject}
+          view={transform}
+          frame={frame}
+          pinned={throughCamera?.id === selectedObject.id}
+          playing={playing}
+          outline={outlineRef.current}
+          scene={svgRef.current}
+        />
+      )}
       <ZoomControls />
       <NoticeBar />
       {menu && <ContextMenu position={menu} onClose={() => setMenu(null)} />}
+      {addMenu && (
+        <PopupMenu
+          label="Add here"
+          position={addMenu}
+          onClose={() => setAddMenu(null)}
+          items={SHAPE_TYPES.map((type) => ({
+            label: SHAPE_TYPE_DEFS[type].addLabel ?? SHAPE_TYPE_DEFS[type].label,
+            onSelect: () => addAt(type, addMenu),
+          }))}
+        />
+      )}
     </div>
   );
 }
