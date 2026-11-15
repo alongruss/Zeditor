@@ -4,6 +4,7 @@
 //   node scripts/screenshot.mjs <url> <out.png> [shape name]
 //
 // Needs the Playwright browser (npx playwright install chromium).
+import process from 'node:process';
 import { chromium } from '@playwright/test';
 
 const [url, out, shape = 'Box 1'] = process.argv.slice(2);
