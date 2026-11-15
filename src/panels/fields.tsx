@@ -430,7 +430,7 @@ export function FaceInput({ label, value, mainColor, onCommit }: FaceInputProps)
         onCommit={onCommit}
       />
       <CheckboxInput
-        label="Own color"
+        label="Own"
         accessibleLabel={`${label} face has its own color`}
         checked={ownColor}
         onCommit={(checked) => onCommit(checked ? mainColor : true)}

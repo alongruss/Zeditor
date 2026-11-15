@@ -1,6 +1,6 @@
 # Zeditor UI redesign: design brief
 
-**Status:** decisions settled (section 6). R1 (tokens and type) is built; R2 comes next.
+**Status:** decisions settled (section 6). R1 (tokens and type) and R2 (docked layout) are built; R3 comes next.
 
 **Goal:** make Zeditor feel fun and friendly, borrowing the good parts of Spotify Wrapped,
 Leonardo.ai, Recraft and Canva. This brief turns that research into a direction, a migration plan
