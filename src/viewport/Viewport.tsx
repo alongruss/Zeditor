@@ -4,7 +4,6 @@ import { findShape } from '../model/scene';
 import type { CameraData } from '../model/types';
 import { ContextMenu, type MenuPosition } from '../panels/ContextMenu';
 import { NoticeBar } from '../panels/NoticeBar';
-import { Toolbar } from '../panels/Toolbar';
 import { cameraFrame } from '../render/view';
 import { edit, select } from '../state/commands';
 import { currentViewSpec, lookedThroughCamera } from '../state/currentView';
@@ -20,11 +19,13 @@ import {
   useLookThrough,
 } from '../state/store';
 import { currentFrame, pause, timeline, useTimeline } from '../state/timeline';
+import { setViewportSize } from '../state/viewportSize';
 import { CameraFrames } from './CameraFrames';
 import { orbit, wheelZoomFactor, zoomByWheel, type FreeView } from './freeView';
 import { Gizmo } from './Gizmo';
 import type { ViewTransform } from './gizmoMath';
 import { SceneView } from './SceneView';
+import { ZoomControls } from './ZoomControls';
 
 /** A pointer that moves less than this between press and release is a click. */
 const CLICK_TOLERANCE_PX = 3;
@@ -111,6 +112,7 @@ export function Viewport() {
 
     const resize = (width: number, height: number) => {
       area = { width, height };
+      setViewportSize(area);
       show();
       setSize((previous) => (previous?.width === width && previous.height === height ? previous : { width, height }));
     };
@@ -273,7 +275,7 @@ export function Viewport() {
         </div>
       )}
       {selected && transform && <Gizmo shape={selected} frame={frame} view={transform} />}
-      <Toolbar viewSize={size} />
+      <ZoomControls />
       <NoticeBar />
       {menu && <ContextMenu position={menu} onClose={() => setMenu(null)} />}
     </div>

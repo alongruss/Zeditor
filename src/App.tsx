@@ -1,5 +1,14 @@
 import { useEffect } from 'preact/hooks';
 import { Inspector } from './panels/Inspector';
+import {
+  AddMenu,
+  Dialogs,
+  ExportMenu,
+  FileMenu,
+  SelectionButtons,
+  UndoRedoButtons,
+  ViewMenu,
+} from './panels/Toolbar';
 import { SceneTree } from './panels/SceneTree';
 import { chooseSceneFile, saveScene } from './files/sceneFiles';
 import { deleteKeysCommand } from './state/commands';
@@ -54,25 +63,49 @@ export function App() {
   useKeyboardShortcuts();
   return (
     <div class="app">
-      <aside class="panel" aria-labelledby="scene-tree-title">
-        <h2 class="panel-title" id="scene-tree-title">
-          Scene tree
-        </h2>
-        <SceneTree />
+      <aside class="panel scene-panel" aria-labelledby="scene-tree-title">
+        <div class="panel-header" role="group" aria-label="Scene tools">
+          <span class="logo" aria-hidden="true">
+            Z
+          </span>
+          <FileMenu />
+          <span class="panel-header-gap" />
+          <UndoRedoButtons />
+        </div>
+        <div class="panel-body">
+          <AddMenu />
+          <h2 class="panel-title" id="scene-tree-title">
+            Scene tree
+          </h2>
+          <SceneTree />
+        </div>
       </aside>
 
       <main class="viewport-column">
         <Viewport />
-        <TransportBar />
-        <TimelineArea />
+        <div class="dock">
+          <TransportBar />
+          <TimelineArea />
+        </div>
       </main>
 
-      <aside class="panel" aria-labelledby="inspector-title">
-        <h2 class="panel-title" id="inspector-title">
-          Inspector
-        </h2>
-        <Inspector />
+      <aside class="panel inspector-panel" aria-labelledby="inspector-title">
+        <div class="panel-header" role="group" aria-label="Inspector tools">
+          <ViewMenu />
+          <span class="panel-header-gap" />
+          <ExportMenu />
+          <div class="panel-header-row">
+            <SelectionButtons />
+          </div>
+        </div>
+        <div class="panel-body">
+          <h2 class="panel-title" id="inspector-title">
+            Inspector
+          </h2>
+          <Inspector />
+        </div>
       </aside>
+      <Dialogs />
     </div>
   );
 }

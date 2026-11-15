@@ -4,7 +4,8 @@
  * The scene's own background is the user's artwork and is never themed.
  */
 :root {
-  --panel-width: 320px;
+  --scene-panel-width: 232px;
+  --inspector-width: 288px;
   --panel-bg: #ffffff;
   --page-bg: #f4f1ec;
   --group-bg: #f7f5f2;
@@ -67,12 +68,12 @@ body {
   height: 100%;
 }
 
-/* ----- layout: scene tree | viewport | inspector ----- */
+/* ----- layout: scene panel | viewport over the dock | inspector, docked flush ----- */
 
 .app {
   display: grid;
   /* minmax(0, 1fr) lets the middle column shrink below the SVG's own width */
-  grid-template-columns: var(--panel-width) minmax(0, 1fr) var(--panel-width);
+  grid-template-columns: var(--scene-panel-width) minmax(0, 1fr) var(--inspector-width);
   height: 100%;
 }
 
@@ -80,19 +81,131 @@ body {
   z-index: 1;
   display: flex;
   flex-direction: column;
-  gap: var(--gap);
   min-height: 0;
-  padding: 12px;
   overflow-y: auto;
   background-color: var(--panel-bg);
-  /* A 1px divider, not a shadow: panels sit flat beside the scene. */
-  box-shadow: 0 0 0 1px var(--border);
+  scrollbar-width: thin;
+}
+
+/* A 1px divider, not a shadow: panels sit flat beside the scene. */
+.scene-panel {
+  border-right: 1px solid var(--border);
+}
+
+.inspector-panel {
+  border-left: 1px solid var(--border);
+}
+
+/* The commands at the top of each panel (no separate top bar). */
+.panel-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.panel-header-gap {
+  flex: 1;
+}
+
+.panel-header-row {
+  display: flex;
+  flex-basis: 100%;
+  gap: 6px;
+}
+
+.panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  padding: 12px;
+}
+
+.logo {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin-right: 4px;
+  border-radius: var(--radius);
+  font-size: 18px;
+  font-weight: 800;
+  color: white;
+  background: var(--text);
 }
 
 .panel-title {
-  margin: 0;
-  font-size: 14px;
+  margin: 4px 0 0;
+  font-size: 11px;
   font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* Icon-only buttons (Undo, Redo, zoom): quiet until hovered. */
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+}
+
+.icon-button:hover:not(:disabled) {
+  background: var(--hover-bg);
+}
+
+.icon-button svg,
+.button-icon svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* The big Add button at the top of the Scene panel. */
+.add-menu > button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 40px;
+  font-size: 13px;
+}
+
+.button-icon {
+  display: inline-flex;
+}
+
+.view-menu {
+  max-width: 140px;
+  padding: 5px 10px;
+  border: 1px solid var(--border-field);
+  border-radius: 999px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--panel-bg);
+}
+
+/* Menus in the Inspector's header open leftwards, inside the panel. */
+.inspector-panel .dropdown-menu {
+  right: 0;
+  left: auto;
 }
 
 .panel-empty {
@@ -205,17 +318,23 @@ body {
   stroke-width: 1.5px;
 }
 
-/* ----- transport bar (under the viewport) ----- */
+/* ----- the dock: transport and timeline under the viewport ----- */
+
+.dock {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  background: var(--panel-bg);
+  border-top: 1px solid var(--border);
+}
 
 .transport {
   display: flex;
   align-items: center;
-  gap: 10px;
-  height: 48px;
+  gap: 8px;
+  height: 40px;
   padding: 0 10px;
   font-size: 12px;
-  background: var(--panel-bg);
-  border-top: 1px solid var(--border);
 }
 
 .transport-play {
@@ -312,12 +431,12 @@ body {
 /* ----- timeline panel (under the transport bar) ----- */
 
 .timeline-panel {
-  --tl-label-width: 176px;
+  --tl-label-width: 148px;
   position: relative;
   display: flex;
   flex-direction: column;
   flex: none;
-  height: 176px;
+  height: 108px;
   font-size: 11px;
   background: var(--panel-bg);
   border-top: 1px solid var(--border);
@@ -327,7 +446,7 @@ body {
   display: grid;
   grid-template-columns: var(--tl-label-width) minmax(0, 1fr);
   flex: none;
-  height: 28px;
+  height: 22px;
   border-bottom: 1px solid var(--border);
   background: var(--panel-bg);
 }
@@ -685,12 +804,46 @@ button.primary:active:not(:disabled) {
 
 .notice-area {
   position: absolute;
-  right: var(--gap);
-  bottom: var(--gap);
-  left: var(--gap);
+  top: 12px;
+  right: 12px;
+  left: 12px;
   display: flex;
-  justify-content: center;
+  justify-content: flex-end;
   pointer-events: none;
+}
+
+/* ----- zoom pill (the scene's bottom right) ----- */
+
+.zoom-controls {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 4px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--panel-bg);
+  box-shadow: var(--shadow);
+}
+
+.zoom-controls .icon-button {
+  width: 28px;
+  height: 28px;
+}
+
+.zoom-level {
+  min-width: 42px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.zoom-reset {
+  border-color: transparent;
+  background: transparent;
 }
 
 .notice {
@@ -799,35 +952,10 @@ button.primary:active:not(:disabled) {
   background: var(--notice-bg);
 }
 
-/* ----- toolbar and menus (over the viewport) ----- */
-
-.toolbar {
-  position: absolute;
-  top: var(--gap);
-  left: var(--gap);
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--gap);
-}
+/* ----- menus ----- */
 
 .toolbar-dropdown {
   position: relative;
-}
-
-.toolbar button,
-.toolbar-view {
-  box-shadow: var(--shadow);
-}
-
-.toolbar-view {
-  padding: 5px 10px;
-  border: 1px solid var(--border-field);
-  border-radius: 999px;
-  font: inherit;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text);
-  background: var(--panel-bg);
 }
 
 .dropdown-menu,
@@ -909,7 +1037,22 @@ kbd {
   background: var(--hover-bg);
 }
 
+/* One line per row: long names and types end in "…" (the full name is in the Inspector). */
+.tree-name,
 .tree-type {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tree-name {
+  flex: 1 1 auto;
+}
+
+.tree-type {
+  /* The type gives way first, so the name stays readable. */
+  flex: 0 100 auto;
   font-size: 11px;
   font-weight: 400;
   color: var(--text-muted);
@@ -1079,6 +1222,18 @@ kbd {
 /* Face rows hold the most controls: tighter padding keeps them on one line. */
 .field-face input[type='text'] {
   padding-inline: 4px;
+}
+
+.field-face input[type='color'] {
+  width: 26px;
+}
+
+.field-face .field-checkbox {
+  gap: 3px;
+}
+
+.group:has(.field-face) {
+  padding-inline: 8px;
 }
 
 /* Face rows also hold a keyframe button: a narrower alpha box keeps them on one line. */
