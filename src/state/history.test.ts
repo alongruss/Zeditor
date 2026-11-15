@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { findShape } from '../model/scene';
 import { starterScene } from '../model/starterScene';
-import { addShapeOfType, deleteShape, newScene, rename, select, update, type EditorState } from './commands';
+import { addShapeOfType, deleteObject, newScene, rename, select, update, type EditorState } from './commands';
 import {
   HISTORY_LIMIT,
   applyCommand,
@@ -128,7 +128,7 @@ describe('undo and redo', () => {
 
   it('bring a deleted shape back, selected', () => {
     let history = applyCommand(start(), select('box-1'));
-    history = applyCommand(history, deleteShape('box-1'));
+    history = applyCommand(history, deleteObject('box-1'));
     expect(history.present.selectedId).toBeNull();
 
     history = undo(history);

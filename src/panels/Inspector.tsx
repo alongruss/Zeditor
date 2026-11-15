@@ -1,11 +1,12 @@
 import type { ComponentChildren } from 'preact';
 import { groupKeyState, keyState } from '../model/animation';
-import { shapeAtFrame } from '../model/evaluate';
-import { findShape, type ShapePatch } from '../model/scene';
+import { objectAtFrame, shapeAtFrame } from '../model/evaluate';
+import type { ObjectPatch } from '../model/animation';
+import { findObject } from '../model/scene';
 import { getShapeTypeDef, type FieldDef, type FieldGroup } from '../model/shapeTypes';
-import type { FaceValue, PropValue, PropertyPath, ShapeData, Vec3 } from '../model/types';
+import type { CameraData, FaceValue, PropValue, PropertyPath, SceneObject, ShapeData, Vec3 } from '../model/types';
 import { edit, toggleKey } from '../state/commands';
-import { dispatch, useEditorState } from '../state/store';
+import { dispatch, setLookThrough, useEditorState, useLookThrough } from '../state/store';
 import { pause, useTimeline } from '../state/timeline';
 import { CheckboxInput, ColorInput, FaceInput, NumberInput } from './fields';
 import { KeyButton, type KeyButtonState } from './KeyButton';
@@ -15,18 +16,21 @@ const ANGLE_STEP = 1;
 const ANGLE_SHIFT_STEP = 15;
 const SCALE_STEP = 0.1;
 const PERCENT_STEP = 1;
+const SPAN_STEP = 1;
+const MAX_PICTURE_SIZE = 8192;
 const AXES = ['x', 'y', 'z'] as const;
 
-/** Edits the selected shape. Built from the shape type's field list. */
+/** Edits the selected shape (built from its type's field list) or camera. */
 export function Inspector() {
   const { scene, selectedId } = useEditorState();
-  const shape = findShape(scene, selectedId);
-  if (!shape) return <p class="panel-empty">Select a shape to edit it.</p>;
-  // Keyed by id so half-typed text never carries over to another shape.
-  return <ShapeInspector key={shape.id} shape={shape} />;
+  const object = findObject(scene, selectedId);
+  if (!object) return <p class="panel-empty">Select a shape or camera to edit it.</p>;
+  // Keyed by id so half-typed text never carries over to another object.
+  if (object.type === 'Camera') return <CameraInspector key={object.id} camera={object} />;
+  return <ShapeInspector key={object.id} shape={object} />;
 }
 
-type SetPatch = (patch: ShapePatch, group?: string) => void;
+type SetPatch = (patch: ObjectPatch, group?: string) => void;
 
 /** What each field needs to show and change its animation. */
 interface Keys {
@@ -52,19 +56,7 @@ function ShapeInspector({ shape }: { shape: ShapeData }) {
   const { frame } = useTimeline();
   const posed = shapeAtFrame(shape, frame);
   const def = getShapeTypeDef(shape.type);
-  // Changes sharing a group (one drag, one visit to a field) undo as one step.
-  const set: SetPatch = (patch, group) => {
-    pause();
-    dispatch(edit(shape.id, patch, frame), { group });
-  };
-  const keys: Keys = {
-    frame,
-    state: (paths) => (paths.length === 1 ? keyState(shape, paths[0], frame) : groupKeyState(shape, paths, frame)),
-    toggle: (paths) => {
-      pause();
-      dispatch(toggleKey(shape.id, paths, frame));
-    },
-  };
+  const { set, keys } = editorsFor(shape, frame);
   const fieldsIn = (group: FieldGroup) => def.fields.filter((field) => field.group === group);
 
   return (
@@ -126,6 +118,111 @@ function ShapeInspector({ shape }: { shape: ShapeData }) {
   );
 }
 
+/** How the Inspector changes an object and its keys on `frame`. */
+function editorsFor(object: SceneObject, frame: number): { set: SetPatch; keys: Keys } {
+  // Changes sharing a group (one drag, one visit to a field) undo as one step.
+  const set: SetPatch = (patch, group) => {
+    pause();
+    dispatch(edit(object.id, patch, frame), { group });
+  };
+  const keys: Keys = {
+    frame,
+    state: (paths) => (paths.length === 1 ? keyState(object, paths[0], frame) : groupKeyState(object, paths, frame)),
+    toggle: (paths) => {
+      pause();
+      dispatch(toggleKey(object.id, paths, frame));
+    },
+  };
+  return { set, keys };
+}
+
+/**
+ * A camera, as posed on the playhead's frame: where it looks (angle and
+ * target) and how much it shows (view span) can be animated; the picture's
+ * size cannot.
+ */
+function CameraInspector({ camera }: { camera: CameraData }) {
+  const { frame } = useTimeline();
+  const lookingThrough = useLookThrough() === camera.id;
+  const posed = objectAtFrame(camera, frame);
+  const { set, keys } = editorsFor(camera, frame);
+
+  return (
+    <div class="inspector">
+      <div class="inspector-heading">
+        <span class="inspector-name">{camera.name}</span>
+        <span class="inspector-type">Camera</span>
+      </div>
+      <button
+        type="button"
+        class="look-through"
+        aria-pressed={lookingThrough}
+        onClick={() => setLookThrough(lookingThrough ? null : camera.id)}
+      >
+        {lookingThrough ? 'Back to free view' : 'Look through'}
+      </button>
+
+      <VectorGroup
+        legend="Angle"
+        property="rotate"
+        value={posed.rotate}
+        step={ANGLE_STEP}
+        shiftStep={ANGLE_SHIFT_STEP}
+        suffix="°"
+        keys={keys}
+        onCommit={(rotate, group) => set({ rotate }, group)}
+      />
+      <VectorGroup
+        legend="Target"
+        property="target"
+        value={posed.target}
+        step={UNIT_STEP}
+        keys={keys}
+        onCommit={(target, group) => set({ target }, group)}
+      />
+      <fieldset class="group">
+        <legend>Lens</legend>
+        <KeyedRow label="View span" paths={['viewSpan']} keys={keys}>
+          <NumberInput
+            label="View span"
+            value={posed.viewSpan}
+            step={SPAN_STEP}
+            min={0.01}
+            onCommit={(viewSpan, group) => set({ viewSpan }, group)}
+          />
+        </KeyedRow>
+      </fieldset>
+      <fieldset class="group">
+        <legend>Picture</legend>
+        <div class="tuple">
+          <NumberInput
+            label="Width"
+            shortLabel="W"
+            suffix="px"
+            value={camera.width}
+            step={1}
+            min={1}
+            max={MAX_PICTURE_SIZE}
+            integer
+            onCommit={(width, group) => set({ width }, group)}
+          />
+          <NumberInput
+            label="Height"
+            shortLabel="H"
+            suffix="px"
+            value={camera.height}
+            step={1}
+            min={1}
+            max={MAX_PICTURE_SIZE}
+            integer
+            onCommit={(height, group) => set({ height }, group)}
+          />
+        </div>
+      </fieldset>
+    </div>
+  );
+}
+
 /** A field with its keyframe button in front, tinted when animated. */
 function KeyedRow({
   label,
@@ -149,7 +246,7 @@ function KeyedRow({
 
 interface VectorGroupProps {
   readonly legend: string;
-  readonly property: 'translate' | 'rotate';
+  readonly property: 'translate' | 'rotate' | 'target';
   readonly value: Vec3;
   readonly step: number;
   readonly shiftStep?: number;

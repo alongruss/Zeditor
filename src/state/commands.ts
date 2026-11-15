@@ -1,16 +1,19 @@
 import {
+  addCamera,
   addShape,
+  createCamera,
   createShape,
-  duplicateShape,
+  duplicateObject,
   emptyScene,
-  findShape,
-  removeShape,
+  findObject,
+  removeObject,
+  replaceObjects,
   updateShape,
   type ShapePatch,
 } from '../model/scene';
-import { editAtFrame, toggleKeys } from '../model/animation';
+import { editAtFrame, toggleKeys, type ObjectPatch } from '../model/animation';
 import { deleteKeys, moveKeysInScene, retime, setKeysEasing, type KeyRef } from '../model/keyEdits';
-import type { Easing, PropertyPath, Scene, ShapeData, ShapeType } from '../model/types';
+import type { Easing, PropertyPath, Scene, SceneObject, ShapeType } from '../model/types';
 
 /** Everything the editor knows. The UI and the 3D view are drawn from this alone. */
 export interface EditorState {
@@ -28,7 +31,7 @@ export type Command = (state: EditorState) => EditorState;
 export const select =
   (id: string | null): Command =>
   (state) => {
-    const nextId = id !== null && findShape(state.scene, id) ? id : null;
+    const nextId = id !== null && findObject(state.scene, id) ? id : null;
     return nextId === state.selectedId ? state : { ...state, selectedId: nextId };
   };
 
@@ -39,10 +42,11 @@ export const addShapeOfType =
     return { scene: addShape(state.scene, shape), selectedId: shape.id };
   };
 
-export const deleteShape =
+/** Deletes a shape or a camera. */
+export const deleteObject =
   (id: string): Command =>
   (state) => {
-    const scene = removeShape(state.scene, id);
+    const scene = removeObject(state.scene, id);
     if (scene === state.scene) return state;
     return { scene, selectedId: state.selectedId === id ? null : state.selectedId };
   };
@@ -50,7 +54,7 @@ export const deleteShape =
 export const duplicate =
   (id: string): Command =>
   (state) => {
-    const result = duplicateShape(state.scene, id);
+    const result = duplicateObject(state.scene, id);
     return result.id === null ? state : { scene: result.scene, selectedId: result.id };
   };
 
@@ -61,17 +65,22 @@ export const update =
     return scene === state.scene ? state : { ...state, scene };
   };
 
-/** Replaces one shape with a changed version of itself (by id). */
-function withShape(state: EditorState, id: string, change: (shape: ShapeData) => ShapeData): EditorState {
-  const index = state.scene.shapes.findIndex((shape) => shape.id === id);
-  if (index === -1) return state;
-  const before = state.scene.shapes[index];
+/** Replaces one shape or camera with a changed version of itself (by id). */
+function withObject(state: EditorState, id: string, change: (object: SceneObject) => SceneObject): EditorState {
+  const before = findObject(state.scene, id);
+  if (!before) return state;
   const after = change(before);
   if (after === before) return state;
-  const shapes = [...state.scene.shapes];
-  shapes[index] = after;
-  return { ...state, scene: { ...state.scene, shapes } };
+  return { ...state, scene: replaceObjects(state.scene, new Map([[id, after]])) };
 }
+
+/** Adds a camera (see createCamera) and selects it. */
+export const addCameraCommand =
+  (view: Parameters<typeof createCamera>[1]): Command =>
+  (state) => {
+    const camera = createCamera(state.scene, view);
+    return { scene: addCamera(state.scene, camera), selectedId: camera.id };
+  };
 
 /**
  * An edit made with the playhead on `frame` (from the Inspector or the
@@ -79,15 +88,15 @@ function withShape(state: EditorState, id: string, change: (shape: ShapeData) =>
  * See model/animation.ts editAtFrame.
  */
 export const edit =
-  (id: string, patch: ShapePatch, frame: number): Command =>
+  (id: string, patch: ObjectPatch, frame: number): Command =>
   (state) =>
-    withShape(state, id, (shape) => editAtFrame(shape, patch, frame));
+    withObject(state, id, (object) => editAtFrame(object, patch, frame));
 
 /** The keyframe button: keys these properties at `frame`, or removes their keys there. */
 export const toggleKey =
   (id: string, paths: readonly PropertyPath[], frame: number): Command =>
   (state) =>
-    withShape(state, id, (shape) => toggleKeys(shape, paths, frame));
+    withObject(state, id, (object) => toggleKeys(object, paths, frame));
 
 /** Sets the frame rate and/or the length (in frames). Keys are not moved or removed. */
 export const setTiming =
@@ -108,7 +117,7 @@ const withScene = (state: EditorState, scene: Scene): EditorState =>
  * (`origin`), so one drag is one undo step however far it goes back and forth.
  */
 export const moveKeysCommand =
-  (origin: readonly ShapeData[], refs: readonly KeyRef[], delta: number): Command =>
+  (origin: readonly SceneObject[], refs: readonly KeyRef[], delta: number): Command =>
   (state) =>
     withScene(state, moveKeysInScene(state.scene, origin, refs, delta));
 
@@ -132,9 +141,9 @@ export const rename =
   (id: string, name: string): Command =>
   (state) => {
     const trimmed = name.trim();
-    const shape = findShape(state.scene, id);
-    if (!shape || trimmed === '' || trimmed === shape.name) return state;
-    return update(id, { name: trimmed })(state);
+    const object = findObject(state.scene, id);
+    if (!object || trimmed === '' || trimmed === object.name) return state;
+    return withObject(state, id, (o) => ({ ...o, name: trimmed }));
   };
 
 export const newScene: Command = () => ({ scene: emptyScene(), selectedId: null });

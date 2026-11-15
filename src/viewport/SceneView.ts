@@ -1,7 +1,7 @@
 import type * as ZdogTypes from 'zdog';
 import { Zdog } from '../zdog';
 import type { Scene, ShapeData } from '../model/types';
-import { DEFAULT_CAMERA, pixelsPerUnit, type Camera } from './camera';
+import { rootTranslate, type ViewSpec } from '../render/view';
 import { createZdogShape, zdogTransform } from './toZdog';
 
 /** Attribute that ties every SVG element back to the top-level shape that drew it. */
@@ -52,9 +52,6 @@ export class SceneView {
   private readonly untagged = new Set<string>();
   /** How many elements the SVG had after the last tagging pass. */
   private taggedCount = -1;
-  private camera: Camera = DEFAULT_CAMERA;
-  private width = 0;
-  private height = 0;
   private frame = 0;
 
   constructor(
@@ -63,7 +60,7 @@ export class SceneView {
   ) {
     this.illo = new Zdog.Illustration({
       element: svg,
-      // Sized to its column by fit(); zdog's 'fullscreen' used the whole window.
+      // Sized to its column by setView(); zdog's 'fullscreen' used the whole window.
       resize: false,
       // The camera comes from the editor's store (see Viewport), not zdog's dragRotate.
     });
@@ -124,25 +121,16 @@ export class SceneView {
     this.requestRender();
   }
 
-  /** Fits the scene to a `width` x `height` area. Ignored until it has a size. */
-  fit(width: number, height: number): void {
-    this.width = width;
-    this.height = height;
-    this.applyView();
-  }
-
-  setCamera(camera: Camera): void {
-    if (camera === this.camera) return;
-    this.camera = camera;
-    this.applyView();
-  }
-
-  private applyView(): void {
-    const zoom = pixelsPerUnit(this.width, this.height, this.camera);
-    if (zoom === null) return;
-    this.illo.rotate.set({ x: this.camera.rotate.x, y: this.camera.rotate.y, z: 0 });
-    this.illo.zoom = zoom;
-    this.illo.setSize(this.width, this.height);
+  /**
+   * How the scene is seen: the free view or a camera, as a ViewSpec covering
+   * the whole viewport (see render/view.ts).
+   */
+  setView(view: ViewSpec): void {
+    if (view.width <= 0 || view.height <= 0) return;
+    this.illo.rotate.set(view.rotate);
+    this.illo.translate.set(rootTranslate(view));
+    this.illo.zoom = view.pixelsPerUnit;
+    this.illo.setSize(view.width, view.height);
     this.requestRender();
   }
 

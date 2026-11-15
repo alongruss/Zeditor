@@ -1,4 +1,4 @@
-import { deleteShape, duplicate, type Command } from '../state/commands';
+import { deleteObject, duplicate, type Command } from '../state/commands';
 import { dispatch, editor } from '../state/store';
 import { PopupMenu, type MenuPosition } from './PopupMenu';
 
@@ -17,7 +17,7 @@ export function ContextMenu({ position, onClose }: { position: MenuPosition; onC
       onClose={onClose}
       items={[
         { label: 'Duplicate', shortcut: 'Ctrl+D', onSelect: () => run(duplicate) },
-        { label: 'Delete', shortcut: 'Del', onSelect: () => run(deleteShape) },
+        { label: 'Delete', shortcut: 'Del', onSelect: () => run(deleteObject) },
       ]}
     />
   );

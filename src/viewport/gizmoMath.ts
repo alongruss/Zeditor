@@ -39,8 +39,10 @@ export interface ViewTransform {
   readonly height: number;
   /** Screen pixels per world unit. */
   readonly zoom: number;
-  /** Camera rotation in radians. */
-  readonly rotate: { readonly x: number; readonly y: number };
+  /** Rotation of the view in radians (z rolls it; the free view has none). */
+  readonly rotate: { readonly x: number; readonly y: number; readonly z?: number };
+  /** The world point at the center of the view (the origin if not given). */
+  readonly target?: Vec3;
 }
 
 export interface ScreenPoint {
@@ -67,13 +69,14 @@ const roundTo = (value: number, places: number) => Math.round(value * 10 ** plac
 
 /** Where world point `p` is drawn. */
 export function project(p: Vec3, view: ViewTransform): ScreenPoint {
-  const v = turn(p, { x: view.rotate.x, y: view.rotate.y });
+  const target = view.target ?? { x: 0, y: 0, z: 0 };
+  const v = turn({ x: p.x - target.x, y: p.y - target.y, z: p.z - target.z }, view.rotate);
   return { x: view.width / 2 + v.x * view.zoom, y: view.height / 2 + v.y * view.zoom };
 }
 
 /** How a world direction looks on screen, in pixels per world unit. */
 function onScreen(direction: Vec3, view: ViewTransform): ScreenPoint {
-  const v = turn(direction, { x: view.rotate.x, y: view.rotate.y });
+  const v = turn(direction, view.rotate);
   return { x: v.x * view.zoom, y: v.y * view.zoom };
 }
 

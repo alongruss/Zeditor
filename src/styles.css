@@ -666,6 +666,73 @@ button.primary {
   pointer-events: none;
 }
 
+/* ----- cameras (over the viewport) ----- */
+
+/* In the free view: each camera's picture as a dashed frame; only the frame takes the pointer. */
+.camera-frames {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.camera-frame {
+  --frame-color: #333333;
+  cursor: pointer;
+}
+
+.camera-frame.is-selected {
+  --frame-color: var(--accent);
+}
+
+.camera-frame-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 12px;
+  pointer-events: stroke;
+}
+
+.camera-frame-line {
+  fill: none;
+  stroke: var(--frame-color);
+  stroke-width: 1.5px;
+  stroke-dasharray: 6 4;
+  pointer-events: none;
+}
+
+.camera-frame-notch {
+  fill: var(--frame-color);
+  pointer-events: visiblePainted;
+}
+
+.camera-frame-label {
+  font-size: 11px;
+  fill: var(--frame-color);
+  paint-order: stroke;
+  stroke: rgb(255 255 255 / 85%);
+  stroke-width: 3px;
+  pointer-events: visiblePainted;
+}
+
+/* Looking through a camera: everything outside its picture is dimmed. */
+.camera-letterbox {
+  position: absolute;
+  outline: 1px solid rgb(255 255 255 / 70%);
+  box-shadow: 0 0 0 100vmax rgb(0 0 0 / 35%);
+  pointer-events: none;
+}
+
+.camera-letterbox-label {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  padding: 2px 6px;
+  border-radius: var(--radius);
+  font-size: 11px;
+  color: white;
+  background: rgb(0 0 0 / 50%);
+}
+
 /* ----- toolbar and menus (over the viewport) ----- */
 
 .toolbar {
@@ -679,6 +746,17 @@ button.primary {
 
 .toolbar-dropdown {
   position: relative;
+}
+
+.toolbar-view {
+  padding: 5px 6px;
+  border: none;
+  border-radius: var(--radius);
+  font: inherit;
+  font-size: 11px;
+  color: var(--text);
+  background: white;
+  box-shadow: var(--shadow);
 }
 
 .dropdown-menu,
@@ -768,6 +846,21 @@ kbd {
   font-size: 12px;
 }
 
+.scene-tree-sections {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--gap) * 2);
+}
+
+.tree-heading {
+  margin: 0 0 4px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 /* ----- inspector ----- */
 
 .inspector {
@@ -792,6 +885,11 @@ kbd {
 .inspector-type {
   font-size: 11px;
   color: var(--text-muted);
+}
+
+.look-through[aria-pressed='true'] {
+  color: white;
+  background: var(--accent);
 }
 
 .group {

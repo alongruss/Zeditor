@@ -1,4 +1,4 @@
-import { deleteShape, duplicate, select, type Command } from './commands';
+import { deleteObject, duplicate, select, type Command } from './commands';
 
 /** The parts of a KeyboardEvent the shortcuts look at. */
 export interface KeyPress {
@@ -62,7 +62,7 @@ export function shortcutFor(press: KeyPress, selectedId: string | null, keysSele
   const modifier = press.ctrlKey || press.metaKey;
   if (!modifier && !press.altKey && (press.key === 'Delete' || press.key === 'Backspace')) {
     if (keysSelected) return 'deleteKeys';
-    return selectedId === null ? null : deleteShape(selectedId);
+    return selectedId === null ? null : deleteObject(selectedId);
   }
   if (!modifier && !press.altKey) {
     if (press.key === ' ' && !press.shiftKey) return 'togglePlay';

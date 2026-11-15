@@ -2,10 +2,11 @@ import { readFile } from 'node:fs/promises';
 import { type Page } from '@playwright/test';
 import { expect, test } from './fixtures';
 import { lottieAnimation, lottieStill } from '../src/export/lottie/exportScene';
-import { sceneAtFrame } from '../src/model/evaluate';
-import { addShape, createShape, emptyScene } from '../src/model/scene';
-import { SHAPE_TYPES, type Scene, type ShapeData } from '../src/model/types';
-import type { ViewSpec } from '../src/render/view';
+import { setKey } from '../src/model/animation';
+import { objectAtFrame, sceneAtFrame } from '../src/model/evaluate';
+import { addShape, createCamera, createShape, emptyScene } from '../src/model/scene';
+import { SHAPE_TYPES, type CameraData, type Scene, type ShapeData } from '../src/model/types';
+import { rootTranslate, viewFromCamera, type ViewSpec } from '../src/render/view';
 import { zdogOptions } from '../src/viewport/toZdog';
 import { fileMenu, openEditorForEachTest } from './helpers';
 
@@ -64,12 +65,13 @@ async function compare(page: Page, scene: Scene, view: ViewSpec): Promise<Compar
 /** Like `compare`, for frame `frame` of an already baked animation; `scene` is posed on that frame. */
 async function compareFrame(page: Page, scene: Scene, view: ViewSpec, lottie: object, frame: number): Promise<Comparison> {
   const shapes = scene.shapes.map((shape) => ({ type: shape.type, options: zdogOptions(shape) }));
+  const translate = rootTranslate(view);
 
   await page.setContent('<!doctype html><html><body style="margin:0"></body></html>');
   await page.addScriptTag({ path: ZDOG });
   await page.addScriptTag({ path: LOTTIE });
   return page.evaluate(
-    async ({ lottie, shapes, view, frame }) => {
+    async ({ lottie, shapes, view, translate, frame }) => {
       const { width, height } = view;
       const w = window as unknown as {
         Zdog: Record<string, new (options: object) => { updateRenderGraph(): void }>;
@@ -86,7 +88,13 @@ async function compareFrame(page: Page, scene: Scene, view: ViewSpec, lottie: ob
       reference.width = width;
       reference.height = height;
       document.body.append(reference);
-      const illo = new w.Zdog.Illustration({ element: reference, zoom: view.pixelsPerUnit, rotate: view.rotate, resize: false });
+      const illo = new w.Zdog.Illustration({
+        element: reference,
+        zoom: view.pixelsPerUnit,
+        rotate: view.rotate,
+        translate,
+        resize: false,
+      });
       for (const shape of shapes) new w.Zdog[shape.type]({ ...shape.options, addTo: illo });
       illo.updateRenderGraph();
 
@@ -123,7 +131,7 @@ async function compareFrame(page: Page, scene: Scene, view: ViewSpec, lottie: ob
       }
       return { ink, mismatched };
     },
-    { lottie, shapes, view, frame },
+    { lottie, shapes, view, translate, frame },
   );
 }
 
@@ -148,6 +156,44 @@ test.describe('Lottie export fidelity', () => {
       expect(result.mismatched / result.ink).toBeLessThan(0.01);
     });
   }
+});
+
+test.describe('Lottie export fidelity, through a camera', () => {
+  test('a rolled camera looking at a point off the origin', async ({ page }) => {
+    const rolled: ViewSpec = { ...view(-0.35, 0.6), rotate: { x: -0.35, y: 0.6, z: 0.4 }, target: { x: 3, y: -2, z: 1 } };
+    const result = await compare(page, fidelityScene(), rolled);
+    expect(result.ink, 'something was drawn').toBeGreaterThan(20000);
+    expect(result.mismatched / result.ink).toBeLessThan(0.01);
+  });
+
+  test('an animated camera: each frame is filmed through the camera as posed on it', async ({ page }) => {
+    const scene = fidelityScene();
+    let camera: CameraData = createCamera(scene, {
+      rotate: { x: -20, y: 0, z: 0 },
+      target: { x: 0, y: 0, z: 0 },
+      viewSpan: 26,
+      width: 400,
+      height: 300,
+    });
+    camera = setKey(setKey(camera, 'rotate.y', 0, -40), 'rotate.y', 29, 120);
+    camera = setKey(setKey(camera, 'target.x', 0, -4), 'target.x', 29, 4);
+    camera = setKey(setKey(camera, 'viewSpan', 0, 30), 'viewSpan', 29, 18);
+    camera = setKey(setKey(camera, 'rotate.z', 0, 0), 'rotate.z', 29, 25);
+    const frames = Array.from({ length: 30 }, (_, i) => i);
+    const baked = lottieAnimation(scene, (frame) => viewFromCamera(objectAtFrame(camera, frame)), {
+      background: false,
+      name: 'camera',
+      frames,
+    });
+    expect(baked).toMatchObject({ w: 400, h: 300 });
+
+    for (const frame of [0, 11, 29]) {
+      const posed = viewFromCamera(objectAtFrame(camera, frame));
+      const result = await compareFrame(page, scene, posed, baked, frame);
+      expect(result.ink, `frame ${frame} drew something`).toBeGreaterThan(10000);
+      expect(result.mismatched / result.ink, `frame ${frame}`).toBeLessThan(0.01);
+    }
+  });
 });
 
 test.describe('Lottie export fidelity, animated', () => {
@@ -215,6 +261,34 @@ test.describe('Export Lottie dialog', () => {
 
     await expect(dialog).toBeHidden();
     await expect(page.getByRole('status')).toContainText('Saved scene.lottie.json');
+  });
+
+  test('films through a camera at its own picture size; looking through it picks it', async ({ page }) => {
+    await page.getByRole('button', { name: 'Add ▾' }).click();
+    await page.getByRole('menuitem', { name: 'Camera' }).click();
+    for (const [label, value] of [['Width', '320'], ['Height', '200']]) {
+      await page.getByLabel(label, { exact: true }).fill(value);
+      await page.getByLabel(label, { exact: true }).press('Tab');
+    }
+    await page.getByRole('button', { name: 'Look through' }).click();
+
+    await fileMenu(page, 'Export Lottie…');
+    const dialog = page.getByRole('dialog', { name: 'Export Lottie' });
+    await expect(dialog.getByLabel('View')).toHaveValue('camera-1');
+    await expect(dialog.getByLabel('Width')).toHaveValue('320');
+    await expect(dialog.getByLabel('Width')).toBeDisabled();
+    await expect(dialog.getByLabel('Height')).toHaveValue('200');
+    await expect(dialog.getByText(/^About \d+ KB\.$/)).toBeVisible();
+    const download = page.waitForEvent('download');
+    await dialog.getByRole('button', { name: 'Export' }).click();
+    const lottie = JSON.parse(await readFile(await (await download).path(), 'utf8'));
+    expect(lottie).toMatchObject({ w: 320, h: 200 });
+
+    // The free view can still be chosen, at a size of its own.
+    await fileMenu(page, 'Export Lottie…');
+    await dialog.getByLabel('View').selectOption({ label: 'Free view' });
+    await expect(dialog.getByLabel('Width')).toBeEnabled();
+    await expect(dialog.getByLabel('Width')).not.toHaveValue('320');
   });
 
   test('Esc or Cancel closes it without exporting', async ({ page }) => {

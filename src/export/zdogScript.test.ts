@@ -1,11 +1,20 @@
 import * as Zdog from 'zdog';
 import { describe, expect, it } from 'vitest';
-import { addShape, createShape, emptyScene, updateShape } from '../model/scene';
+import { addShape, createCamera, createShape, emptyScene, updateShape } from '../model/scene';
 import { starterScene } from '../model/starterScene';
 import type { Scene, ShapeData } from '../model/types';
-import { DEFAULT_CAMERA, type Camera } from '../viewport/camera';
+import { turn } from '../render/view';
+import { DEFAULT_FREE_VIEW, type FreeView } from '../viewport/freeView';
 import { createZdogShape, zdogOptions } from '../viewport/toZdog';
-import { EXPORT_CANVAS_SIZE, constName, exportZdogScript } from './zdogScript';
+import {
+  EXPORT_CANVAS_SIZE,
+  constName,
+  exportZdogScript,
+  scriptViewFromCamera,
+  scriptViewFromFreeView,
+} from './zdogScript';
+
+const FREE = scriptViewFromFreeView(DEFAULT_FREE_VIEW);
 
 type FakeIllustration = Zdog.Anchor & { options: Record<string, unknown> };
 
@@ -72,7 +81,7 @@ describe('exportZdogScript', () => {
     let scene: Scene = starterScene();
     scene = updateShape(scene, 'box-1', { rotate: { x: 30, y: -45, z: 12.5 }, scale: 1.5, opacity: 0.5 });
     scene = updateShape(scene, 'cone-1', { props: { stroke: 0, fill: false } });
-    const ran = run(exportZdogScript(scene, DEFAULT_CAMERA));
+    const ran = run(exportZdogScript(scene, FREE));
     const children = childrenOf(ran.illo);
     expect(children).toHaveLength(scene.shapes.length);
     scene.shapes.forEach((shape, i) => expectSameShape(children[i], shape));
@@ -81,7 +90,7 @@ describe('exportZdogScript', () => {
 
   it('keeps 0 and false values, and fades colors by opacity', () => {
     const scene = updateShape(starterScene(), 'cone-1', { opacity: 0.5, props: { stroke: 0, fill: false } });
-    const script = exportZdogScript(scene, DEFAULT_CAMERA);
+    const script = exportZdogScript(scene, FREE);
     const block = /const cone1 = new Zdog\.Cone\(\{([\s\S]*?)\n\}\);/.exec(script)?.[1] ?? '';
     expect(block).toContain('stroke: 0,');
     expect(block).toContain('fill: false,');
@@ -90,8 +99,8 @@ describe('exportZdogScript', () => {
   });
 
   it('starts from the current camera and the scene background', () => {
-    const camera: Camera = { rotate: { x: -0.25, y: 0.5 }, zoom: 2 };
-    const ran = run(exportZdogScript(starterScene(), camera));
+    const camera: FreeView = { rotate: { x: -0.25, y: 0.5 }, zoom: 2 };
+    const ran = run(exportZdogScript(starterScene(), scriptViewFromFreeView(camera)));
     const rotate = ran.illo.rotate as Zdog.Vector;
     expect(rotate.x).toBeCloseTo(-0.25, 3);
     expect(rotate.y).toBeCloseTo(0.5, 3);
@@ -102,14 +111,42 @@ describe('exportZdogScript', () => {
     expect(ran.element.style.background).toBe('#ffddbb');
   });
 
+  it('looks through a camera: its roll, target, view span and picture size', () => {
+    const scene = starterScene();
+    const camera = {
+      ...createCamera(scene, {
+        rotate: { x: -20, y: 35, z: 15 },
+        target: { x: 3, y: -2, z: 1.5 },
+        viewSpan: 24,
+        width: 640,
+        height: 360,
+      }),
+    };
+    const view = scriptViewFromCamera(camera);
+    const ran = run(exportZdogScript(scene, view));
+    expect(ran.element).toMatchObject({ width: 640, height: 360 });
+    expect(ran.illo.options.zoom).toBeCloseTo(360 / 24);
+    // Every shape lands where the editor puts it: turned around the target.
+    ran.illo.updateGraph();
+    const world = childrenOf(ran.illo)[0];
+    const shapes = childrenOf(world);
+    expect(shapes).toHaveLength(scene.shapes.length);
+    scene.shapes.forEach((shape, i) => {
+      const p = shape.translate;
+      const expected = turn({ x: p.x - 3, y: p.y + 2, z: p.z - 1.5 }, view.rotate);
+      const actual = (shapes[i] as unknown as { renderOrigin: Zdog.Vector }).renderOrigin;
+      for (const axis of ['x', 'y', 'z'] as const) expect(actual[axis], `${shape.id} ${axis}`).toBeCloseTo(expected[axis], 3);
+    });
+  });
+
   it('exports an empty scene', () => {
-    expect(childrenOf(run(exportZdogScript(emptyScene(), DEFAULT_CAMERA)).illo)).toHaveLength(0);
+    expect(childrenOf(run(exportZdogScript(emptyScene(), FREE)).illo)).toHaveLength(0);
   });
 
   it('never breaks out of a comment or string, whatever a shape is called', () => {
     for (const lineBreak of [10, 13, 0x2028, 0x2029].map((code) => String.fromCharCode(code))) {
       const shape = { ...createShape(emptyScene(), 'Box'), name: `Evil${lineBreak}});throw 1;//` };
-      const script = exportZdogScript(addShape(emptyScene(), shape), DEFAULT_CAMERA);
+      const script = exportZdogScript(addShape(emptyScene(), shape), FREE);
       expect(script).not.toContain(lineBreak === '\n' ? '\n});throw' : lineBreak);
       expect(childrenOf(run(script).illo)).toHaveLength(1);
     }

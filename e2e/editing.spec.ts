@@ -160,7 +160,7 @@ test('add, rename, duplicate and delete shapes', async ({ page }) => {
   await page.keyboard.press('Delete');
   await expect(treeItem(page, 'Box 3')).toHaveCount(0);
   await expect(page.locator('svg.scene [data-shape-id="box-3"]')).toHaveCount(0);
-  await expect(inspector(page).getByText('Select a shape to edit it.')).toBeVisible();
+  await expect(inspector(page).getByText('Select a shape or camera to edit it.')).toBeVisible();
 });
 
 test('right-click menu deletes the shape under the pointer', async ({ page }) => {
