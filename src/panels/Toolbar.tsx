@@ -15,6 +15,7 @@ import {
   useLookThrough,
   useUndoAvailability,
 } from '../state/store';
+import { setTheme, useTheme } from '../state/theme';
 import { viewportSize, useViewportSize } from '../state/viewportSize';
 import { VIEW_SPAN } from '../viewport/fitZoom';
 import { Dropdown } from './Dropdown';
@@ -37,6 +38,7 @@ export function confirmNewScene(): void {
 }
 
 export function FileMenu() {
+  const theme = useTheme();
   return (
     <Dropdown
       label="File"
@@ -47,6 +49,9 @@ export function FileMenu() {
         { label: 'Save', shortcut: 'Ctrl+S', onSelect: saveScene },
         { label: 'Export Zdog JS', onSelect: () => void exportScript() },
         { label: 'Export Lottie…', onSelect: openLottieDialog },
+        { label: 'Theme: match system', checked: theme === 'system', onSelect: () => setTheme('system') },
+        { label: 'Theme: light', checked: theme === 'light', onSelect: () => setTheme('light') },
+        { label: 'Theme: dark', checked: theme === 'dark', onSelect: () => setTheme('dark') },
       ]}
     />
   );
