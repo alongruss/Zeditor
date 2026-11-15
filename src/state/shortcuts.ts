@@ -11,8 +11,22 @@ export interface KeyPress {
   readonly altKey: boolean;
 }
 
-/** What a shortcut does: run a command, step through the undo history, or save/open a file. */
-export type Shortcut = Command | 'undo' | 'redo' | 'save' | 'open';
+/** What a shortcut does: run a command, or one of the editor's other actions. */
+export type Shortcut =
+  | Command
+  | 'undo'
+  | 'redo'
+  | 'save'
+  | 'open'
+  | 'togglePlay'
+  | 'deleteKeys'
+  | 'firstFrame'
+  | 'lastFrame'
+  | { readonly stepFrames: number };
+
+/** Timeline shortcuts, which act on the playhead or selected keys rather than the page's focus. */
+const isTimelineShortcut = (shortcut: Shortcut): boolean =>
+  shortcut === 'togglePlay' || shortcut === 'firstFrame' || shortcut === 'lastFrame' || typeof shortcut === 'object';
 
 /** Leaves the state alone. Claims a key so the browser's own action doesn't run. */
 const nothing: Command = (state) => state;
@@ -38,11 +52,24 @@ function letterOf(press: KeyPress): string {
  *   Ctrl+Shift+Z, Ctrl+Y (Cmd too)  redo
  *   Ctrl+S (Cmd+S)                  save the scene file (not the web page)
  *   Ctrl+O (Cmd+O)                  open a scene file
+ *   Space                           play / pause
+ *   Left / Right (Shift: 10)        step the playhead
+ *   Home / End                      first / last frame
+ * With keys selected in the timeline, Delete / Backspace delete those keys
+ * instead of the shape.
  */
-export function shortcutFor(press: KeyPress, selectedId: string | null): Shortcut | null {
+export function shortcutFor(press: KeyPress, selectedId: string | null, keysSelected = false): Shortcut | null {
   const modifier = press.ctrlKey || press.metaKey;
   if (!modifier && !press.altKey && (press.key === 'Delete' || press.key === 'Backspace')) {
+    if (keysSelected) return 'deleteKeys';
     return selectedId === null ? null : deleteShape(selectedId);
+  }
+  if (!modifier && !press.altKey) {
+    if (press.key === ' ' && !press.shiftKey) return 'togglePlay';
+    if (press.key === 'ArrowLeft') return { stepFrames: press.shiftKey ? -10 : -1 };
+    if (press.key === 'ArrowRight') return { stepFrames: press.shiftKey ? 10 : 1 };
+    if (press.key === 'Home' && !press.shiftKey) return 'firstFrame';
+    if (press.key === 'End' && !press.shiftKey) return 'lastFrame';
   }
   if (press.key === 'Escape' && !modifier) {
     return selectedId === null ? null : select(null);
@@ -81,9 +108,17 @@ export function isHistoryShortcut(press: KeyPress): boolean {
  * live fields.
  */
 export function shortcutAllowedIn(target: EventTarget | null, shortcut: Shortcut): boolean {
+  // Space ticks a checkbox and opens a select; arrows move within them.
+  if (isTimelineShortcut(shortcut) && isChoiceControl(target)) return false;
   if (!isTypingTarget(target) || shortcut === 'save' || shortcut === 'open') return true;
   const history = shortcut === 'undo' || shortcut === 'redo';
   return history && target instanceof HTMLElement && target.hasAttribute(LIVE_FIELD_ATTRIBUTE);
+}
+
+/** A control where Space and the arrow keys already mean something (checkbox, radio, select). */
+function isChoiceControl(target: EventTarget | null): boolean {
+  if (target instanceof HTMLSelectElement) return true;
+  return target instanceof HTMLInputElement && ['checkbox', 'radio', 'range', 'color'].includes(target.type);
 }
 
 /** True while the user is typing somewhere, so shortcuts must stay out of the way. */

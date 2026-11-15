@@ -266,10 +266,27 @@ timeline with keyframes and tweening, cameras, and a Lottie export of the viewpo
       playing.
   - **Exports:** the Lottie export bakes every frame (or only the current one) at the scene's fps.
     The Zdog JS export writes the pose on the current frame.
-- **C. Timeline editing:**
-  - rows per object and property, selection, dragging keys to retime them;
-  - an easing menu, Delete, and keyboard shortcuts;
-  - "keep timing" when changing fps.
+- **C. Timeline editing** (`anim/c-timeline`):
+  - **Timeline panel** under the transport bar (the Timeline button hides or shows it):
+    - one row per animated shape (and the selected shape), which you can expand into a row per
+      animated property;
+    - keys are diamonds, hold keys are squares;
+    - the shape's own row shows a summary diamond for each frame with keys.
+  - **Selecting keys:** click a key, Shift-click to add or remove one, or drag across empty space to
+    select a group. Keys that stop existing (after Undo, say) drop out of the selection.
+  - **Moving keys:** drag them left or right, in whole frames. A key that lands on another replaces it.
+    The drag works from where the keys started, so moving back and forth never loses a key it passed
+    over, and the whole drag is one undo step.
+  - **Easing:** the panel's Easing menu or the key's right-click menu; one undo step.
+  - **Delete / Backspace** deletes the selected keys when there are any, otherwise the shape. Removing a
+    property's last key keeps its value.
+  - **Keys:** Space plays and pauses; ←/→ step a frame (Shift: 10); Home/End jump to the first or last
+    frame. None of them act inside text fields, and Space and the arrows leave checkboxes and menus alone.
+  - **fps** is a choice of common rates. If the scene has keys, changing it asks: keep the timing in
+    seconds (keys and length are rescaled and rounded; keys that meet keep the later one), or keep keys
+    on their frames. Shortening the length never deletes keys.
+  - **Code:** `src/model/keyEdits.ts` holds the pure key edits. The right-click menus share a
+    `PopupMenu`.
 - **D. Cameras** (file version 3):
   - camera objects, a camera Inspector, and look-through mode with the output frame letterboxed;
   - the camera's frame drawn in the free view;

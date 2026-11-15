@@ -266,6 +266,209 @@ body {
   pointer-events: none;
 }
 
+/* ----- timeline panel (under the transport bar) ----- */
+
+.timeline-panel {
+  --tl-label-width: 176px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  height: 176px;
+  font-size: 11px;
+  background: #fafafa;
+  border-top: 1px solid var(--border);
+}
+
+.tl-header {
+  display: grid;
+  grid-template-columns: var(--tl-label-width) minmax(0, 1fr);
+  flex: none;
+  height: 28px;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel-bg);
+}
+
+.tl-corner {
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  border-right: 1px solid var(--border);
+}
+
+.tl-easing {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+}
+
+.tl-easing select,
+.transport-setting select {
+  font: inherit;
+  font-size: 11px;
+}
+
+.tl-ruler {
+  position: relative;
+  cursor: ew-resize;
+  touch-action: none;
+}
+
+.tl-ruler:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.tl-ruler-label {
+  position: absolute;
+  bottom: 4px;
+  transform: translateX(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.tl-playhead-head {
+  position: absolute;
+  bottom: 0;
+  width: 10px;
+  height: 6px;
+  margin-left: -5px;
+  background: var(--accent);
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  pointer-events: none;
+}
+
+.tl-body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  touch-action: none;
+  user-select: none;
+}
+
+.tl-row {
+  display: grid;
+  grid-template-columns: var(--tl-label-width) minmax(0, 1fr);
+  height: 24px;
+  border-bottom: 1px solid #eeeeee;
+}
+
+.tl-label {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  padding: 0 6px;
+  border-right: 1px solid var(--border);
+}
+
+.tl-property .tl-label {
+  padding-left: 28px;
+  color: var(--text-muted);
+}
+
+.tl-expand,
+.tl-shape {
+  padding: 2px 4px;
+  font-size: 11px;
+  background: transparent;
+  box-shadow: none;
+}
+
+.tl-expand {
+  flex: none;
+  width: 20px;
+  padding: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.tl-shape {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tl-shape.is-selected {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.tl-lane {
+  position: relative;
+}
+
+.tl-hint,
+.tl-empty {
+  color: var(--text-muted);
+}
+
+.tl-hint {
+  position: absolute;
+  top: 5px;
+  left: var(--lane-pad);
+}
+
+.tl-empty {
+  margin: 12px;
+}
+
+.tl-key {
+  position: absolute;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  border: 1.5px solid #c98a00;
+  background: #e8a500;
+  transform: rotate(45deg);
+  cursor: grab;
+}
+
+.tl-key.is-summary {
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  border-color: #9b9b9b;
+  background: #c4c4c4;
+}
+
+/* Hold keys are squares: the value jumps at the next key. */
+.tl-key.is-hold {
+  transform: none;
+}
+
+.tl-key.is-selected {
+  border-color: #1d3f99;
+  background: var(--accent);
+}
+
+.tl-key.is-partial {
+  border-color: var(--accent);
+}
+
+.tl-playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--accent);
+  pointer-events: none;
+}
+
+.tl-marquee {
+  position: absolute;
+  border: 1px solid var(--accent);
+  background: rgb(47 95 208 / 12%);
+  pointer-events: none;
+}
+
+.transport-toggle {
+  flex: none;
+}
+
 /* ----- keyframe buttons and animated fields ----- */
 
 .keyed-row,

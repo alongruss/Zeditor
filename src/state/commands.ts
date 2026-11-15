@@ -9,7 +9,8 @@ import {
   type ShapePatch,
 } from '../model/scene';
 import { editAtFrame, toggleKeys } from '../model/animation';
-import type { PropertyPath, Scene, ShapeData, ShapeType } from '../model/types';
+import { deleteKeys, moveKeysInScene, retime, setKeysEasing, type KeyRef } from '../model/keyEdits';
+import type { Easing, PropertyPath, Scene, ShapeData, ShapeType } from '../model/types';
 
 /** Everything the editor knows. The UI and the 3D view are drawn from this alone. */
 export interface EditorState {
@@ -98,6 +99,34 @@ export const setTiming =
     if (fps === settings.fps && duration === settings.duration) return state;
     return { ...state, scene: { ...state.scene, settings: { ...settings, fps, duration } } };
   };
+
+const withScene = (state: EditorState, scene: Scene): EditorState =>
+  scene === state.scene ? state : { ...state, scene };
+
+/**
+ * Moves keys `delta` frames, from where they were when the drag began
+ * (`origin`), so one drag is one undo step however far it goes back and forth.
+ */
+export const moveKeysCommand =
+  (origin: readonly ShapeData[], refs: readonly KeyRef[], delta: number): Command =>
+  (state) =>
+    withScene(state, moveKeysInScene(state.scene, origin, refs, delta));
+
+export const deleteKeysCommand =
+  (refs: readonly KeyRef[]): Command =>
+  (state) =>
+    withScene(state, deleteKeys(state.scene, refs));
+
+export const setEasingCommand =
+  (refs: readonly KeyRef[], easing: Easing): Command =>
+  (state) =>
+    withScene(state, setKeysEasing(state.scene, refs, easing));
+
+/** A new frame rate that keeps the animation's timing in seconds (keys and length are rescaled). */
+export const retimeCommand =
+  (fps: number): Command =>
+  (state) =>
+    withScene(state, retime(state.scene, fps));
 
 export const rename =
   (id: string, name: string): Command =>

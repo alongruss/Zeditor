@@ -1,10 +1,13 @@
 import { type Page } from '@playwright/test';
 import { expect, test } from './fixtures';
-import { field, fileMenu, openEditorForEachTest, shapeBounds, treeItem } from './helpers';
+import { afterRedraw, field, fileMenu, openEditorForEachTest, shapeBounds, treeItem } from './helpers';
 
 openEditorForEachTest(test);
 
 const frameField = (page: Page) => page.getByLabel('Frame', { exact: true });
+/** Cone 1's frames with keys, as the timeline panel shows them. */
+const coneKeys = (page: Page) =>
+  page.getByRole('region', { name: 'Timeline' }).getByRole('button', { name: /^Cone 1 keys on frame/ });
 const keyButton = (page: Page, label: string) => page.getByRole('button', { name: new RegExp(` ${label} at frame`) });
 
 /** Moves the playhead by typing in the Frame field. */
@@ -31,7 +34,7 @@ async function animateConeX(page: Page) {
 
 test('keys at two frames tween the value in between, and the ruler shows them', async ({ page }) => {
   await animateConeX(page);
-  await expect(page.locator('.ruler .ruler-key')).toHaveCount(2);
+  await expect(coneKeys(page)).toHaveCount(2);
 
   // Halfway, ease in-out is exactly halfway: 16.
   await goToFrame(page, 30);
@@ -53,15 +56,18 @@ test('keys at two frames tween the value in between, and the ruler shows them', 
 test('Play moves the shape, and Pause stops on the frame it reached', async ({ page }) => {
   await animateConeX(page);
   await goToFrame(page, 0);
+  await afterRedraw(page);
   const start = (await shapeBounds(page, 'cone-1'))!;
 
   await page.getByRole('button', { name: 'Play' }).click();
-  await expect.poll(async () => Number(await frameField(page).inputValue())).toBeGreaterThan(15);
+  // While playing, the shape moves (X goes from 12 towards 20).
+  await expect.poll(async () => (await shapeBounds(page, 'cone-1'))?.left ?? start.left).toBeGreaterThan(start.left + 5);
   await page.getByRole('button', { name: 'Pause' }).click();
+  // Wherever it stopped (on a slow machine the loop may have wrapped around), it stays there.
   const stoppedAt = await frameField(page).inputValue();
-  await expect.poll(async () => (await shapeBounds(page, 'cone-1'))!.left).toBeGreaterThan(start.left + 5);
   await page.waitForTimeout(300);
   await expect(frameField(page)).toHaveValue(stoppedAt);
+  await expect(page.getByRole('button', { name: 'Play' })).toBeVisible();
 });
 
 test('Undo removes a key, and a reload keeps the animation', async ({ page }) => {
@@ -69,9 +75,9 @@ test('Undo removes a key, and a reload keeps the animation', async ({ page }) =>
   await page.getByRole('list', { name: 'Shapes' }).getByRole('button', { name: /^Cone 1/ }).focus();
   await page.keyboard.press('Control+z'); // the edit that keyed frame 60
   await expect(field(page, 'Position X')).toHaveValue('12');
-  await expect(page.locator('.ruler .ruler-key')).toHaveCount(1);
+  await expect(coneKeys(page)).toHaveCount(1);
   await page.keyboard.press('Control+Shift+z');
-  await expect(page.locator('.ruler .ruler-key')).toHaveCount(2);
+  await expect(coneKeys(page)).toHaveCount(2);
 
   await expect
     .poll(() => page.evaluate(() => localStorage.getItem('zeditor.autosave') ?? ''))
