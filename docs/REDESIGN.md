@@ -1,6 +1,6 @@
 # Zeditor UI redesign: design brief
 
-**Status:** draft for review. Nothing here is built yet.
+**Status:** decisions settled (section 6). Nothing here is built yet; R1 comes next.
 
 **Goal:** make Zeditor feel fun and friendly, borrowing the good parts of Spotify Wrapped,
 Leonardo.ai, Recraft and Canva. This brief turns that research into a direction, a migration plan
@@ -27,10 +27,10 @@ Does well:
 - A big palette with a system: 48 shape-and-color combinations on a 16×16 grid, one family.
 - A cheeky, celebratory tone that makes your own data the star.
 
-**We take:** the **export celebration** (big numbers on a sticker-colored card, a looping preview);
+**We take:** the **export card** (big numbers on a sticker-colored card, a looping preview);
 a **sticker palette** of 8 saturated category colors, always paired with a label or icon; **one
-display face**, used rarely and large; short warm **copy**. **We leave:** the story format and
-statistics screens. An editor is not a recap.
+display face**, used rarely and large; short warm **copy**. **We leave:** the story format,
+statistics screens, and the cheeky tone (decision 1: calm and friendly). An editor is not a recap.
 
 ### Leonardo.ai: a dark stage that makes art glow
 
@@ -114,13 +114,14 @@ one switch away.
 3. **Each color has one job.** Violet: primary action and focus. Coral: selection. Amber: keys.
    Stickers: categories, always with a label or icon.
 4. **Big type and pictures for moments** (empty stage, export card, Add menu); working UI is 13px.
-5. **Celebrate finishing, not doing.** Nothing playful runs during playback or drags; motion is
-   150–200ms and off under `prefers-reduced-motion`.
+5. **Acknowledge finishing, calmly.** The voice is calm and friendly: warm, plain words, no jokes
+   and no confetti. Nothing moves for show during playback or drags; motion is 150–200ms and off
+   under `prefers-reduced-motion`.
 6. **Nothing gets lost.** Every control keeps an equal-or-shorter path and its accessible name.
 
 ### Where delight lives, and where precision is protected
 
-| Delight (allowed to be playful) | Calm precision (never animated, never decorated) |
+| Delight (friendly, never noisy) | Calm precision (never animated, never decorated) |
 |---|---|
 | Empty stage, export card, first-key tip | Inspector fields, scrub labels, the gizmo (nothing covers a handle) |
 | Add picker tiles (spin on hover only) | Timeline lanes, keys, the playhead |
@@ -202,8 +203,8 @@ using them need no renaming. All ratios use the WCAG 2 formula.
   selection outline stays 4px.
 - 4px grid: 8px inside controls, 12px between fields, 16px card padding, 12px between cards and
   the window edge. Hit targets ≥28px (WCAG 2.2 asks 24px); card-header buttons 32px.
-- 150ms hovers and presses; 200ms `cubic-bezier(0.2, 0.8, 0.2, 1)` for cards and menus; up to
-  900ms with spring overshoot for celebrations only.
+- 150ms hovers and presses; 200ms `cubic-bezier(0.2, 0.8, 0.2, 1)` for cards and menus, the export
+  card included. No springs or overshoot.
 
 ### Layout
 
@@ -312,13 +313,13 @@ covers.
 4. **Empty stage.** "What will you make today?" in display type, with tiles "Add a shape", "Open a
    file", "Start from the sample scene" (undoable). `pointer-events: none` except the buttons, so
    drag and right-click still work. The Scene card keeps today's sentence.
-5. **Export celebration.** The dialog closes as today; a non-modal sunflower card, "Export done",
+5. **Export card.** The dialog closes as today; a non-modal sunflower card, "Export done",
    slides up at the safe area's bottom center: the animation looping (zdog frames, not
    lottie-web), "90 frames · 3.0 s · 48 KB" in the display face (ink, 11.80:1), and Done. It takes
    no focus and is not a live region (the existing "Saved scene.lottie.json" notice announces
-   once); Done, Escape or the next edit closes it. Zdog-shape confetti bursts once (≤24 elements,
-   transform and opacity only, removed after 900ms). Reduced motion: no confetti, a still frame.
-6. **First key.** The dock opens if closed, the diamond pops once (300ms), and the notice says
+   once); Done, Escape or the next edit closes it. No confetti or jokes (decision 1). Reduced
+   motion: a still frame instead of the loop.
+6. **First key.** The dock opens if closed, and the notice says
    "Move to another frame and change something to animate it". Once per browser (`localStorage` in
    try/catch; if blocked, the tip just reappears).
 7. **Toasts.** `NoticeBar` stays the one always-mounted region, restyled as a toast at the safe
@@ -336,9 +337,9 @@ covers.
   visual order and today's tab order. Both `<aside>`s keep their headings and stay mounted. Collapse
   buttons use `aria-expanded`; Escape closes any menu and returns focus to its opener.
 - **Reduced motion.** CSS `@media (prefers-reduced-motion: reduce)` sets durations to 0.01ms; JS
-  motion (tile spin, confetti, preview loop) checks one helper in `src/state/motion.ts`. An e2e test
-  with `page.emulateMedia({ reducedMotion: 'reduce' })` exports and checks there is no `.confetti`
-  and the preview is still.
+  motion (tile spin, preview loop) checks one helper in `src/state/motion.ts`. An e2e test with
+  `page.emulateMedia({ reducedMotion: 'reduce' })` exports and checks the preview is still and the
+  hovered picker tile doesn't turn.
 - **Playback speed.** No `backdrop-filter`, and no new `filter` on `svg.scene` or anything redrawn
   per frame; cards are opaque. The toolbar adds one `project()` call to bounds `SceneView.ts`
   already measures, and both stop while playing (`SceneView.ts:111`). Check: `timeline.spec.ts`
@@ -364,7 +365,7 @@ Strings the tests rely on:
 | "Undo", "Redo", "Reset view", combobox "View", region "Timeline", "Look through", "Back to free view" | **Keep, one of each.** |
 | buttons "Duplicate", "Delete" (cameras.spec.ts:69, :109, page-wide) | **Keep, one of each**: R4 moves them and removes the header copies in the same PR (strict mode). |
 | `status` / `alert` (files.spec.ts:54, 64, 75, 79, 110; lottie.spec.ts:263, 309 expects an empty `status`) | **Keep** the single `NoticeBar` region. |
-| dialog "Export Lottie" hidden after export (lottie.spec.ts:261) | **Keep**; the celebration is a separate card. |
+| dialog "Export Lottie" hidden after export (lottie.spec.ts:261) | **Keep**; the export card is separate. |
 
 ### R1: Tokens and type (no layout change)
 
@@ -477,19 +478,20 @@ viewport column (all insets 0); center = its middle.
   `page.emulateMedia({ colorScheme: 'dark' })` checks dark cards and an untouched scene background.
   No string changes.
 
-## 6. Decisions to settle before building
+## 6. Decisions (settled 2026-11-15)
 
-1. **Tone.** "Playroom" names the direction, not the product. Cheeky copy and celebration, or calmer?
-2. **Light first, dark optional** (recommended), or dark first like Leonardo and Spotify?
-3. **Fonts:** Figtree and Bricolage Grotesque (recommended), or keep Ubuntu for UI?
-4. **Color roles:** violet as the one primary and focus color, coral selection, amber keys, lime
-   only as a sticker (recommended), or an accent nearer the default peach?
-5. **Inspector with no selection:** mounted, header plus one line (recommended; keeps
-   editing.spec.ts:163 and helpers.ts:68), or hidden (more stage; those tests rewritten in R3)?
-6. **Top controls in card headers** (recommended; scene ~472px tall at 1280×720), or a floating top
-   bar like Canva and Recraft (~420px)?
-7. **New cameras and Lottie exports sized to** the safe area (recommended; you film what you see;
-   two tests change), or the full stage as today?
+1. **Tone:** calm and friendly. Warm, plain copy; the export card shows the numbers and the preview,
+   with no confetti or jokes; the first-key tip is a plain notice.
+2. **Theme:** light first; the dark theme (following the system setting) comes in R6.
+3. **Fonts:** Figtree for the UI, Bricolage Grotesque for display moments, both bundled.
+4. **Color roles:** violet `#6c3cf4` is the one primary-action and focus color; coral marks
+   selection; keys stay amber; lime is only a sticker color.
+5. **Inspector with no selection:** stays mounted with its header and one line, so the stage never
+   shifts and editing.spec.ts:163 and helpers.ts:68 stay as they are.
+6. **Top controls:** in the card headers (scene about 472px tall at 1280×720), not a separate top
+   bar.
+7. **New cameras and Lottie exports** default to the visible safe area; the two size tests change
+   in R3.
 
 ## Sources
 
