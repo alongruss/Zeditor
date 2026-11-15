@@ -1,5 +1,5 @@
 import type { ComponentChildren } from 'preact';
-import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
+import { useLayoutEffect, useRef, useState } from 'preact/hooks';
 
 export interface DropdownItem {
   readonly label: string;
@@ -50,7 +50,9 @@ export function Dropdown({ label, menuLabel, items, primary, className, icon, co
     if (refocus) buttonRef.current?.focus();
   };
 
-  useEffect(() => {
+  // Layout effects run before the browser paints, so no key press can land
+  // between opening the menu and these being in place.
+  useLayoutEffect(() => {
     if (!open) return;
     const onPointerDown = (event: PointerEvent) => {
       if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
@@ -79,7 +81,7 @@ export function Dropdown({ label, menuLabel, items, primary, className, icon, co
   }, [open, grid]);
 
   // The first item takes focus, so the arrow keys work straight away.
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (open) menuRef.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
   }, [open]);
 
@@ -116,7 +118,15 @@ export function Dropdown({ label, menuLabel, items, primary, className, icon, co
   }
 
   return (
-    <div class={className ? `toolbar-dropdown ${className}` : 'toolbar-dropdown'} ref={rootRef}>
+    <div
+      class={className ? `toolbar-dropdown ${className}` : 'toolbar-dropdown'}
+      ref={rootRef}
+      onKeyDown={(event) => {
+        // Escape from the button or the menu closes at once, even before the
+        // window listener (attached after the menu first paints) exists.
+        if (event.key === 'Escape' && open) close(true);
+      }}
+    >
       <button
         ref={buttonRef}
         type="button"
