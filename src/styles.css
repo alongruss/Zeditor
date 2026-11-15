@@ -1,19 +1,54 @@
+/*
+ * Design tokens ("Playroom", docs/REDESIGN.md). Every color the UI uses is
+ * here; src/styles.contrast.test.ts checks the pairs that must stay readable.
+ * The scene's own background is the user's artwork and is never themed.
+ */
 :root {
   --panel-width: 320px;
-  --panel-bg: #f0f0f0;
-  --group-bg: #f8f8f8;
-  --hover-bg: #e8eefc;
+  --panel-bg: #ffffff;
+  --page-bg: #f4f1ec;
+  --group-bg: #f7f5f2;
+  --hover-bg: #efe9ff;
   --scene-bg: #ffddbb;
-  --text: #222222;
-  --text-muted: #666666;
-  --border: #c8c8c8;
-  --accent: #2f5fd0;
-  --shadow: 0 4px 8px rgb(0 0 0 / 20%);
-  --radius: 4px;
+  /* Ink: body text. */
+  --text: #1d1b22;
+  --text-muted: #615d6b;
+  /* Dividers only (decorative); the edges of fields use --border-field. */
+  --border: #e3dfe8;
+  --border-field: #8a8496;
+  /* The one main action, and focus. */
+  --accent: #6c3cf4;
+  --accent-pressed: #5527d6;
+  --accent-wash: rgb(108 60 244 / 12%);
+  /* What is selected in the scene (never a button color). */
+  --select: #ff5a36;
+  --halo: rgb(255 255 255 / 90%);
+  /* Keyframes stay amber, as in Blender. */
+  --key: #e8a500;
+  --key-edge: #a87300;
+  --summary-key: #c4c4c4;
+  --summary-key-edge: #8a8496;
+  /* Field tints: keyed on this frame, or animated with no key here. */
+  --anim-key-bg: #fff3c4;
+  --anim-tween-bg: #e6f4e8;
+  --danger: #b42318;
+  --notice-bg: rgb(29 27 34 / 92%);
+  --scrim: rgb(29 27 34 / 30%);
+  --shadow: 0 8px 24px rgb(29 27 34 / 12%);
+  --shadow-menu: 0 12px 32px rgb(29 27 34 / 18%);
+  --radius: 10px;
+  --radius-menu: 12px;
   --gap: 8px;
 
-  font-family: 'Ubuntu', system-ui, sans-serif;
+  font-family: 'Figtree Variable', system-ui, sans-serif;
+  font-size: 13px;
   color: var(--text);
+}
+
+/* One focus ring everywhere: 2px violet, 2px out (5.85:1 on white). */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 *,
@@ -47,16 +82,17 @@ body {
   flex-direction: column;
   gap: var(--gap);
   min-height: 0;
-  padding: var(--gap);
+  padding: 12px;
   overflow-y: auto;
   background-color: var(--panel-bg);
-  box-shadow: var(--shadow);
+  /* A 1px divider, not a shadow: panels sit flat beside the scene. */
+  box-shadow: 0 0 0 1px var(--border);
 }
 
 .panel-title {
   margin: 0;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .panel-empty {
@@ -98,7 +134,7 @@ body {
   overflow: visible;
   pointer-events: none;
   /* A thin halo keeps the handles visible over shapes of the same color. */
-  filter: drop-shadow(0 0 1px rgb(255 255 255 / 90%));
+  filter: drop-shadow(0 0 1px var(--halo));
 }
 
 .gizmo-handle {
@@ -179,7 +215,7 @@ body {
   padding: 0 10px;
   font-size: 12px;
   background: var(--panel-bg);
-  box-shadow: 0 -2px 6px rgb(0 0 0 / 12%);
+  border-top: 1px solid var(--border);
 }
 
 .transport-play {
@@ -187,6 +223,13 @@ body {
   width: 34px;
   padding: 6px 0;
   font-size: 12px;
+}
+
+.transport-time,
+.transport .field-number input,
+.tl-ruler-label,
+.ruler-label {
+  font-variant-numeric: tabular-nums;
 }
 
 .transport .field-number input {
@@ -240,7 +283,7 @@ body {
   position: absolute;
   top: -15px;
   left: 3px;
-  font-size: 9px;
+  font-size: 11px;
   color: var(--text-muted);
   pointer-events: none;
 }
@@ -251,7 +294,7 @@ body {
   width: 7px;
   height: 7px;
   margin: -4px 0 0 -4px;
-  background: #e8a500;
+  background: var(--key);
   transform: rotate(45deg);
   pointer-events: none;
 }
@@ -262,7 +305,7 @@ body {
   bottom: -2px;
   width: 2px;
   margin-left: -1px;
-  background: var(--accent);
+  background: var(--text);
   pointer-events: none;
 }
 
@@ -276,7 +319,7 @@ body {
   flex: none;
   height: 176px;
   font-size: 11px;
-  background: #fafafa;
+  background: var(--panel-bg);
   border-top: 1px solid var(--border);
 }
 
@@ -305,8 +348,13 @@ body {
 
 .tl-easing select,
 .transport-setting select {
+  padding: 2px 6px;
+  border: 1px solid var(--border-field);
+  border-radius: 999px;
   font: inherit;
   font-size: 11px;
+  color: var(--text);
+  background: var(--panel-bg);
 }
 
 .tl-ruler {
@@ -334,7 +382,7 @@ body {
   width: 10px;
   height: 6px;
   margin-left: -5px;
-  background: var(--accent);
+  background: var(--text);
   clip-path: polygon(0 0, 100% 0, 50% 100%);
   pointer-events: none;
 }
@@ -352,7 +400,7 @@ body {
   display: grid;
   grid-template-columns: var(--tl-label-width) minmax(0, 1fr);
   height: 24px;
-  border-bottom: 1px solid #eeeeee;
+  border-bottom: 1px solid var(--border);
 }
 
 .tl-label {
@@ -372,7 +420,10 @@ body {
 .tl-expand,
 .tl-shape {
   padding: 2px 4px;
+  border-color: transparent;
+  border-radius: var(--radius);
   font-size: 11px;
+  font-weight: 500;
   background: transparent;
   box-shadow: none;
 }
@@ -393,7 +444,7 @@ body {
 
 .tl-shape.is-selected {
   color: var(--accent);
-  font-weight: 500;
+  font-weight: 700;
 }
 
 .tl-lane {
@@ -421,8 +472,8 @@ body {
   width: 10px;
   height: 10px;
   margin: -5px 0 0 -5px;
-  border: 1.5px solid #c98a00;
-  background: #e8a500;
+  border: 1.5px solid var(--key-edge);
+  background: var(--key);
   transform: rotate(45deg);
   cursor: grab;
 }
@@ -431,8 +482,8 @@ body {
   width: 8px;
   height: 8px;
   margin: -4px 0 0 -4px;
-  border-color: #9b9b9b;
-  background: #c4c4c4;
+  border-color: var(--summary-key-edge);
+  background: var(--summary-key);
 }
 
 /* Hold keys are squares: the value jumps at the next key. */
@@ -441,7 +492,7 @@ body {
 }
 
 .tl-key.is-selected {
-  border-color: #1d3f99;
+  border-color: var(--accent-pressed);
   background: var(--accent);
 }
 
@@ -454,14 +505,14 @@ body {
   top: 0;
   bottom: 0;
   width: 1px;
-  background: var(--accent);
+  background: var(--text);
   pointer-events: none;
 }
 
 .tl-marquee {
   position: absolute;
   border: 1px solid var(--accent);
-  background: rgb(47 95 208 / 12%);
+  background: var(--accent-wash);
   pointer-events: none;
 }
 
@@ -488,6 +539,8 @@ body {
   width: 16px;
   height: 16px;
   padding: 2px;
+  border: none;
+  border-radius: 4px;
   background: transparent;
   box-shadow: none;
 }
@@ -500,7 +553,7 @@ body {
 
 .key-button path {
   fill: none;
-  stroke: var(--border);
+  stroke: var(--border-field);
   stroke-width: 1.4;
 }
 
@@ -510,39 +563,39 @@ body {
 
 .key-track path,
 .key-mixed path {
-  stroke: #c98a00;
+  stroke: var(--key-edge);
 }
 
 .key-key path,
 .key-mixed .key-half {
-  fill: #e8a500;
-  stroke: #c98a00;
+  fill: var(--key);
+  stroke: var(--key-edge);
 }
 
 /* Animated values: yellow on a keyframe, green in between (as in Blender). */
 .anim-key input[type='text'] {
-  background: #fff3c4;
+  background: var(--anim-key-bg);
 }
 
 .anim-track input[type='text'] {
-  background: #e6f4e8;
+  background: var(--anim-tween-bg);
 }
 
 /* ----- dialogs ----- */
 
 .dialog {
   width: min(420px, calc(100vw - 32px));
-  padding: 16px;
+  padding: 20px;
   border: none;
-  border-radius: var(--radius);
-  font-size: 12px;
+  border-radius: 16px;
+  font-size: 13px;
   color: var(--text);
-  background: white;
-  box-shadow: 0 12px 32px rgb(0 0 0 / 30%);
+  background: var(--panel-bg);
+  box-shadow: var(--shadow-menu);
 }
 
 .dialog::backdrop {
-  background: rgb(0 0 0 / 30%);
+  background: var(--scrim);
 }
 
 .dialog form {
@@ -554,7 +607,7 @@ body {
 .dialog-title {
   margin: 0;
   font-size: 15px;
-  font-weight: 500;
+  font-weight: 700;
 }
 
 .dialog-note,
@@ -564,7 +617,7 @@ body {
 }
 
 .dialog-error {
-  color: #b42318;
+  color: var(--danger);
 }
 
 .dialog-row {
@@ -582,11 +635,12 @@ body {
 
 .dialog-field input {
   width: 7em;
-  padding: 4px 6px;
-  border: 1px solid var(--border);
-  border-radius: 2px;
+  padding: 5px 8px;
+  border: 1px solid var(--border-field);
+  border-radius: var(--radius);
   font: inherit;
   color: var(--text);
+  font-variant-numeric: tabular-nums;
 }
 
 .dialog-unit {
@@ -606,7 +660,7 @@ body {
 .dialog-choices legend {
   margin-bottom: 6px;
   padding: 0;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .dialog-buttons {
@@ -616,8 +670,15 @@ body {
 }
 
 button.primary {
+  border-color: var(--accent);
   color: white;
   background: var(--accent);
+}
+
+button.primary:hover:not(:disabled),
+button.primary:active:not(:disabled) {
+  border-color: var(--accent-pressed);
+  background: var(--accent-pressed);
 }
 
 /* ----- notices (bottom of the viewport) ----- */
@@ -638,22 +699,23 @@ button.primary {
   gap: var(--gap);
   max-width: 100%;
   padding: 6px 6px 6px 12px;
-  border-radius: var(--radius);
+  border-radius: 999px;
   font-size: 12px;
   color: white;
-  background: rgb(34 34 34 / 90%);
+  background: var(--notice-bg);
   box-shadow: var(--shadow);
   pointer-events: auto;
 }
 
 .notice-error {
-  background: #b42318;
+  background: var(--danger);
 }
 
 .notice-close {
   padding: 0 6px;
   font-size: 14px;
   line-height: 1;
+  border-color: transparent;
   color: inherit;
   background: transparent;
   box-shadow: none;
@@ -661,8 +723,11 @@ button.primary {
 
 .selection-outline {
   position: absolute;
-  border: 1.5px dashed var(--accent);
-  border-radius: var(--radius);
+  border: 1.5px dashed var(--select);
+  border-radius: 4px;
+  box-shadow:
+    0 0 0 1px var(--halo),
+    inset 0 0 0 1px var(--halo);
   pointer-events: none;
 }
 
@@ -677,12 +742,12 @@ button.primary {
 }
 
 .camera-frame {
-  --frame-color: #333333;
+  --frame-color: var(--text);
   cursor: pointer;
 }
 
 .camera-frame.is-selected {
-  --frame-color: var(--accent);
+  --frame-color: var(--select);
 }
 
 .camera-frame-hit {
@@ -726,11 +791,12 @@ button.primary {
   position: absolute;
   right: 4px;
   bottom: 4px;
-  padding: 2px 6px;
-  border-radius: var(--radius);
+  padding: 2px 8px;
+  border-radius: 999px;
   font-size: 11px;
+  font-weight: 600;
   color: white;
-  background: rgb(0 0 0 / 50%);
+  background: var(--notice-bg);
 }
 
 /* ----- toolbar and menus (over the viewport) ----- */
@@ -748,15 +814,20 @@ button.primary {
   position: relative;
 }
 
+.toolbar button,
 .toolbar-view {
-  padding: 5px 6px;
-  border: none;
-  border-radius: var(--radius);
-  font: inherit;
-  font-size: 11px;
-  color: var(--text);
-  background: white;
   box-shadow: var(--shadow);
+}
+
+.toolbar-view {
+  padding: 5px 10px;
+  border: 1px solid var(--border-field);
+  border-radius: 999px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--panel-bg);
 }
 
 .dropdown-menu,
@@ -767,9 +838,10 @@ button.primary {
   flex-direction: column;
   min-width: 160px;
   padding: 4px;
-  border-radius: var(--radius);
-  background: white;
-  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-menu);
+  background: var(--panel-bg);
+  box-shadow: var(--shadow-menu);
 }
 
 .dropdown-menu {
@@ -782,7 +854,10 @@ button.primary {
   display: flex;
   justify-content: space-between;
   gap: var(--gap);
+  border-color: transparent;
+  border-radius: var(--radius);
   text-align: left;
+  font-weight: 500;
   box-shadow: none;
 }
 
@@ -815,33 +890,36 @@ kbd {
   align-items: baseline;
   gap: var(--gap);
   width: 100%;
+  border-color: transparent;
+  border-radius: var(--radius);
   text-align: left;
   font-size: 12px;
+  font-weight: 500;
   box-shadow: none;
   background: transparent;
 }
 
 .tree-item:hover {
+  background: var(--group-bg);
+}
+
+/* Selected: a violet wash and bold name (coral is for the scene itself). */
+.is-selected > .tree-item {
+  font-weight: 700;
   background: var(--hover-bg);
 }
 
-.is-selected > .tree-item {
-  color: white;
-  background: var(--accent);
-}
-
 .tree-type {
-  font-size: 10px;
+  font-size: 11px;
+  font-weight: 400;
   color: var(--text-muted);
-}
-
-.is-selected .tree-type {
-  color: rgb(255 255 255 / 80%);
 }
 
 .tree-rename {
   width: 100%;
   padding: 6px var(--gap);
+  border: 1px solid var(--border-field);
+  border-radius: var(--radius);
   font: inherit;
   font-size: 12px;
 }
@@ -855,7 +933,7 @@ kbd {
 .tree-heading {
   margin: 0 0 4px;
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -878,7 +956,8 @@ kbd {
 }
 
 .inspector-name {
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 700;
   overflow-wrap: anywhere;
 }
 
@@ -888,8 +967,8 @@ kbd {
 }
 
 .look-through[aria-pressed='true'] {
-  color: white;
-  background: var(--accent);
+  border-color: var(--accent);
+  background: var(--hover-bg);
 }
 
 .group {
@@ -897,19 +976,18 @@ kbd {
   flex-direction: column;
   gap: var(--gap);
   margin: 0;
-  padding: var(--gap);
+  padding: 10px;
   border: none;
-  border-radius: var(--radius);
+  border-radius: var(--radius-menu);
   background-color: var(--group-bg);
-  box-shadow: var(--shadow);
 }
 
 .group > legend {
   float: left;
   width: 100%;
   padding: 0;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .tuple {
@@ -929,6 +1007,7 @@ kbd {
 .field-label {
   flex: none;
   min-width: 1em;
+  font-weight: 600;
   color: var(--text-muted);
 }
 
@@ -936,10 +1015,14 @@ kbd {
 .field-hex {
   width: 100%;
   min-width: 0;
-  padding: 3px 4px;
-  border: 1px solid var(--border);
-  border-radius: 2px;
+  padding: 4px 8px;
+  border: 1px solid var(--border-field);
+  border-radius: var(--radius);
   font: inherit;
+  color: var(--text);
+  background: var(--panel-bg);
+  /* Digits keep one width, so values don't jiggle while scrubbing. */
+  font-variant-numeric: tabular-nums;
 }
 
 .group > .field-number .field-label,
@@ -958,7 +1041,8 @@ kbd {
 }
 
 .field-alpha input {
-  width: 3.2em;
+  width: 3.6em;
+  padding-inline: 4px;
   text-align: right;
 }
 
@@ -976,11 +1060,11 @@ kbd {
 /* Face rows hold a label, picker, hex, alpha and a checkbox: keep them tight. */
 .field-face {
   justify-content: space-between;
-  gap: 4px;
+  gap: 2px;
 }
 
 .field-face .field-color {
-  gap: 4px;
+  gap: 2px;
 }
 
 .field-face .field-color > .field-label {
@@ -989,7 +1073,12 @@ kbd {
 
 .field-face .field-hex {
   flex: none;
-  width: 5.1em;
+  width: 5.2em;
+}
+
+/* Face rows hold the most controls: tighter padding keeps them on one line. */
+.field-face input[type='text'] {
+  padding-inline: 4px;
 }
 
 /* Face rows also hold a keyframe button: a narrower alpha box keeps them on one line. */
@@ -1005,16 +1094,22 @@ input:disabled {
   opacity: 0.4;
 }
 
+/* Buttons are outlined pills; the one primary action is filled violet (button.primary). */
 button {
-  padding: 6px var(--gap);
-  border: none;
-  border-radius: var(--radius);
+  padding: 5px 12px;
+  border: 1px solid var(--border-field);
+  border-radius: 999px;
   font: inherit;
-  font-size: 11px;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--text);
-  background-color: white;
-  box-shadow: var(--shadow);
+  background-color: var(--panel-bg);
   cursor: pointer;
+}
+
+/* Low specificity, so buttons with their own look (menus, tree rows, the notice's close) keep it. */
+button:where(:hover:not(:disabled)) {
+  background-color: var(--hover-bg);
 }
 
 button:disabled {
@@ -1028,7 +1123,7 @@ input[type='color'] {
   height: 22px;
   margin: 0;
   padding: 0;
-  border: none;
-  box-shadow: var(--shadow);
+  border: 1px solid var(--border-field);
+  border-radius: 6px;
   cursor: pointer;
 }

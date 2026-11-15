@@ -4,6 +4,8 @@ import { browserStorage, startAutosave, takeAutosaveRefusal } from './state/auto
 import { showNotice } from './state/notice';
 import { editor } from './state/store';
 import { startTimeline } from './state/timeline';
+// Figtree, bundled with the app (no request to Google at runtime).
+import '@fontsource-variable/figtree';
 import './styles.css';
 
 const root = document.getElementById('app');
