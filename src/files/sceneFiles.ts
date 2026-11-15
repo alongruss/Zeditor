@@ -119,7 +119,7 @@ export function lottieText(settings: LottieSettings): { readonly text: string } 
     view = (frame) => viewFromCamera(objectAtFrame(camera, frame));
   }
   try {
-    const frames = settings.frames === 'all' ? allFrames(scene) : [currentFrame()];
+    const frames = lottieFrames(settings);
     const animation = lottieAnimation(scene, view, { background: settings.background, name: baseName, frames });
     return { text: JSON.stringify(animation) };
   } catch (error) {
@@ -128,15 +128,23 @@ export function lottieText(settings: LottieSettings): { readonly text: string } 
   }
 }
 
-/** Downloads the current view as a Lottie file. Returns false (with a notice) if it couldn't. */
-export function saveLottie(settings: LottieSettings): boolean {
+/**
+ * Downloads the scene as a Lottie file. Returns the file's size in bytes, or
+ * null (with a notice) if it couldn't be made.
+ */
+export function saveLottie(settings: LottieSettings): number | null {
   const result = lottieText(settings);
   if ('error' in result) {
     showNotice(`Couldn't export Lottie. ${result.error}`, 'error');
-    return false;
+    return null;
   }
   const fileName = `${baseName}.lottie.json`;
   download(fileName, result.text, 'application/json');
   showNotice(`Saved ${fileName} to your downloads.`);
-  return true;
+  return new Blob([result.text]).size;
+}
+
+/** The frames a Lottie export bakes, for its settings. */
+export function lottieFrames(settings: Pick<LottieSettings, 'frames'>): number[] {
+  return settings.frames === 'all' ? allFrames(editor.get().scene) : [currentFrame()];
 }

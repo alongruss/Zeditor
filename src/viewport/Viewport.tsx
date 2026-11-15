@@ -26,6 +26,8 @@ import { currentFrame, pause, timeline, useTimeline } from '../state/timeline';
 import { setViewportSize } from '../state/viewportSize';
 import { CameraFrames } from './CameraFrames';
 import { ContextToolbar } from './ContextToolbar';
+import { EmptyStage } from './EmptyStage';
+import { ExportDone } from '../panels/ExportDone';
 import { orbit, wheelZoomFactor, zoomByWheel, type FreeView } from './freeView';
 import { Gizmo } from './Gizmo';
 import { unproject, type ViewTransform } from './gizmoMath';
@@ -308,6 +310,8 @@ export function Viewport() {
           scene={svgRef.current}
         />
       )}
+      {scene.shapes.length === 0 && scene.cameras.length === 0 && <EmptyStage />}
+      <ExportDone />
       <ZoomControls />
       <NoticeBar />
       {menu && <ContextMenu position={menu} onClose={() => setMenu(null)} />}

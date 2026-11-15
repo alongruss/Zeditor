@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { lottieText, saveLottie, type LottieSettings } from '../files/sceneFiles';
+import { lottieFrames, lottieText, saveLottie, type LottieSettings } from '../files/sceneFiles';
 import { isAnimated } from '../model/evaluate';
 import { findCamera } from '../model/scene';
+import { showExportDone } from '../state/dialogs';
 import { editor } from '../state/store';
 import { currentFrame } from '../state/timeline';
 
@@ -83,9 +84,12 @@ export function ExportLottieDialog({ defaultWidth, defaultHeight, defaultCamera,
         method="dialog"
         onSubmit={(event) => {
           event.preventDefault();
-          if (w !== null && h !== null && saveLottie({ camera: cameraId, width: w, height: h, background, frames })) {
-            dialogRef.current?.close();
-          }
+          if (w === null || h === null) return;
+          const settings = { camera: cameraId, width: w, height: h, background, frames };
+          const bytes = saveLottie(settings);
+          if (bytes === null) return;
+          dialogRef.current?.close();
+          showExportDone({ frames: lottieFrames(settings), fps, bytes, camera: cameraId, width: w, height: h });
         }}
       >
         <h2 id="export-lottie-title" class="dialog-title">

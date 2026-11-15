@@ -53,6 +53,8 @@
   --radius-menu: 12px;
   --gap: 8px;
 
+  --font-display: 'Bricolage Grotesque Variable', 'Figtree Variable', system-ui, sans-serif;
+
   font-family: 'Figtree Variable', system-ui, sans-serif;
   font-size: 13px;
   color: var(--text);
@@ -911,6 +913,183 @@ button.primary:active:not(:disabled) {
   }
 }
 
+/* ----- an empty scene: a calm question and three ways to begin ----- */
+
+.empty-stage {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px;
+  text-align: center;
+  /* Only the buttons take the pointer: the scene can still be dragged and right-clicked. */
+  pointer-events: none;
+}
+
+.empty-stage-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(32px, 6vw, 52px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  color: var(--text);
+}
+
+.empty-stage-note {
+  margin: 0 0 14px;
+  font-size: 15px;
+  color: var(--text);
+}
+
+.empty-stage-choices {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}
+
+.start-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  width: 190px;
+  padding: 14px;
+  border: none;
+  border-radius: 16px;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: left;
+  /* Ink on every sticker color here: 11.80, 10.81 and 6.64:1. */
+  color: var(--text);
+  box-shadow: var(--shadow);
+  pointer-events: auto;
+}
+
+.start-tile:hover:not(:disabled) {
+  filter: brightness(1.04);
+}
+
+.start-tile small {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.start-tile svg {
+  width: 36px;
+  height: 36px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+/* ----- the export card (bottom center of the scene, above the zoom pill) ----- */
+
+.export-done {
+  position: absolute;
+  bottom: 56px;
+  left: 50%;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: min(440px, calc(100% - 24px));
+  padding: 14px;
+  border-radius: 16px;
+  color: var(--text);
+  background: var(--sticker-sunflower);
+  box-shadow: var(--shadow-menu);
+  transform: translateX(-50%);
+  animation: export-done-in 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes export-done-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+}
+
+.export-preview {
+  flex: none;
+  border-radius: var(--radius-menu);
+  box-shadow: inset 0 0 0 1px var(--scrim);
+}
+
+.export-done-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.export-done-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.export-done-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.export-done-close {
+  border-color: var(--text);
+  background: transparent;
+}
+
+.export-done :focus-visible {
+  outline-color: var(--text);
+}
+
+.export-done-numbers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+}
+
+.export-done-numbers > div {
+  display: flex;
+  flex-direction: column;
+}
+
+.export-number {
+  font-family: var(--font-display);
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.export-unit {
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Less motion: transitions and animations finish at once (the export preview shows a still frame). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
 /* ----- zoom pill (the scene's bottom right) ----- */
 
 .zoom-controls {
@@ -953,14 +1132,31 @@ button.primary:active:not(:disabled) {
   padding: 6px 6px 6px 12px;
   border-radius: 999px;
   font-size: 12px;
-  color: white;
-  background: var(--notice-bg);
+  font-weight: 600;
+  /* Text on a sticker color is always ink: 11.80:1 on sunflower, 6.05:1 on tomato. */
+  color: var(--text);
+  background: var(--sticker-sunflower);
   box-shadow: var(--shadow);
   pointer-events: auto;
 }
 
 .notice-error {
-  background: var(--danger);
+  background: var(--sticker-tomato);
+}
+
+.notice-icon {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+
+/* Violet would be 2.08:1 on tomato, so the focus ring on a toast is ink. */
+.notice :focus-visible {
+  outline-color: var(--text);
 }
 
 .notice-close {
