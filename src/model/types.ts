@@ -64,6 +64,34 @@ export interface ShapeData {
   readonly tracks?: Tracks;
 }
 
+/**
+ * A camera in the scene: a view of it that can be animated and exported
+ * (scenes are drawn as zdog does: no perspective).
+ */
+export interface CameraData {
+  /** Permanent, readable id, e.g. `camera-1`; never the same as a shape's. */
+  readonly id: string;
+  readonly name: string;
+  readonly type: 'Camera';
+  /** How the world is turned in the picture, in degrees (x tilts, y turns, z rolls it). */
+  readonly rotate: Vec3;
+  /** The world point at the center of the picture. */
+  readonly target: Vec3;
+  /** World units across the picture's shorter side: smaller zooms in. */
+  readonly viewSpan: number;
+  /** Picture size in pixels (not animatable: a Lottie file has one size). */
+  readonly width: number;
+  readonly height: number;
+  /** Animation, as for shapes (see animatable.ts for the camera's properties). */
+  readonly tracks?: Tracks;
+}
+
+/** Anything in the scene that can be selected and animated. */
+export type SceneObject = ShapeData | CameraData;
+
+/** A shape type, or 'Camera'. */
+export type ObjectType = SceneObject['type'];
+
 /** How a keyframe eases into the next one. "Ease in" starts slowly, as in CSS. */
 export const EASINGS = ['linear', 'easeIn', 'easeOut', 'easeInOut', 'hold'] as const;
 export type Easing = (typeof EASINGS)[number];
@@ -96,12 +124,13 @@ export interface SceneSettings {
 export const DEFAULT_FPS = 30;
 export const DEFAULT_DURATION = 90;
 
-/** Version 2 added animation (tracks, fps, duration). */
-export const SCENE_VERSION = 2;
+/** Version 2 added animation (tracks, fps, duration); version 3 added cameras. */
+export const SCENE_VERSION = 3;
 
 export interface Scene {
   readonly version: typeof SCENE_VERSION;
   readonly settings: SceneSettings;
   /** Flat list of top-level shapes, in draw order. */
   readonly shapes: readonly ShapeData[];
+  readonly cameras: readonly CameraData[];
 }

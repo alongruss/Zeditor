@@ -2,7 +2,16 @@ import { propertySpec, readBase, writeBase, type PropertySpec } from './animatab
 import { parseCssColor, type Rgba } from './cssColor';
 import { ease } from './easing';
 import type { ShapePatch } from './scene';
-import type { Easing, Keyframe, PropertyPath, ShapeData, TrackValue, Tracks } from './types';
+import type { Easing, Keyframe, PropertyPath, PropValue, SceneObject, TrackValue, Tracks, Vec3 } from './types';
+
+/** An edit to a shape or a camera: a shape's fields, or a camera's target, view span and size. */
+export interface ObjectPatch extends ShapePatch {
+  readonly target?: Partial<Vec3>;
+  readonly viewSpan?: number;
+  /** A camera's picture size: not animatable, so it changes for the whole animation. */
+  readonly width?: number;
+  readonly height?: number;
+}
 
 /**
  * Keyframes: what a property's value is at a frame, and edits made at the
@@ -54,14 +63,14 @@ export function trackValueAt(track: readonly Keyframe[], frame: number, spec: Pr
   return between(spec, from.value, to.value, ease(from.easing, (frame - from.frame) / (to.frame - from.frame)));
 }
 
-function specFor(shape: ShapeData, path: PropertyPath): PropertySpec {
+function specFor(shape: SceneObject, path: PropertyPath): PropertySpec {
   const spec = propertySpec(shape.type, path);
   if (!spec) throw new Error(`${shape.type} has no animatable property ${path}`);
   return spec;
 }
 
 /** A property's value at `frame`: from its track if it has one, otherwise its own value. */
-export function valueAt(shape: ShapeData, path: PropertyPath, frame: number): TrackValue {
+export function valueAt(shape: SceneObject, path: PropertyPath, frame: number): TrackValue {
   const track = shape.tracks?.[path];
   return track && track.length > 0 ? trackValueAt(track, frame, specFor(shape, path)) : readBase(shape, path);
 }
@@ -69,17 +78,17 @@ export function valueAt(shape: ShapeData, path: PropertyPath, frame: number): Tr
 export type KeyState = 'none' | 'track' | 'key';
 
 /** none: not animated; track: animated but no key on this frame; key: a key on this frame. */
-export function keyState(shape: ShapeData, path: PropertyPath, frame: number): KeyState {
+export function keyState(shape: SceneObject, path: PropertyPath, frame: number): KeyState {
   const track = shape.tracks?.[path];
   if (!track || track.length === 0) return 'none';
   return track.some((key) => key.frame === frame) ? 'key' : 'track';
 }
 
-function withTrack(shape: ShapeData, path: PropertyPath, track: readonly Keyframe[] | null): ShapeData {
+function withTrack<T extends SceneObject>(shape: T, path: PropertyPath, track: readonly Keyframe[] | null): T {
   const tracks: Record<PropertyPath, readonly Keyframe[]> = { ...shape.tracks };
   if (track) tracks[path] = track;
   else delete tracks[path];
-  const next: ShapeData = { ...shape, tracks };
+  const next: T = { ...shape, tracks };
   if (Object.keys(tracks).length === 0) delete (next as { tracks?: Tracks }).tracks;
   return next;
 }
@@ -94,7 +103,7 @@ function keyValue(spec: PropertySpec, value: TrackValue): TrackValue {
 }
 
 /** Adds or replaces the key at `frame`. A new key eases like the key before it. */
-export function setKey(shape: ShapeData, path: PropertyPath, frame: number, value: TrackValue): ShapeData {
+export function setKey<T extends SceneObject>(shape: T, path: PropertyPath, frame: number, value: TrackValue): T {
   const spec = specFor(shape, path);
   const track = shape.tracks?.[path] ?? [];
   const existing = track.find((key) => key.frame === frame);
@@ -113,7 +122,7 @@ export function setKey(shape: ShapeData, path: PropertyPath, frame: number, valu
  * Removes the key at `frame`. Removing the last key removes the track and
  * keeps the value it had at that frame, so nothing jumps.
  */
-export function removeKey(shape: ShapeData, path: PropertyPath, frame: number): ShapeData {
+export function removeKey<T extends SceneObject>(shape: T, path: PropertyPath, frame: number): T {
   const track = shape.tracks?.[path];
   if (!track?.some((key) => key.frame === frame)) return shape;
   const rest = track.filter((key) => key.frame !== frame);
@@ -126,7 +135,7 @@ export function removeKey(shape: ShapeData, path: PropertyPath, frame: number): 
  * y and z together): if every one has a key on this frame, they are removed;
  * otherwise each gets a key holding its current value.
  */
-export function toggleKeys(shape: ShapeData, paths: readonly PropertyPath[], frame: number): ShapeData {
+export function toggleKeys<T extends SceneObject>(shape: T, paths: readonly PropertyPath[], frame: number): T {
   const allKeyed = paths.every((path) => keyState(shape, path, frame) === 'key');
   return paths.reduce(
     (next, path) =>
@@ -136,20 +145,21 @@ export function toggleKeys(shape: ShapeData, paths: readonly PropertyPath[], fra
 }
 
 /** The button state for several properties together; 'mixed' when they differ. */
-export function groupKeyState(shape: ShapeData, paths: readonly PropertyPath[], frame: number): KeyState | 'mixed' {
+export function groupKeyState(shape: SceneObject, paths: readonly PropertyPath[], frame: number): KeyState | 'mixed' {
   const states = new Set(paths.map((path) => keyState(shape, path, frame)));
   return states.size === 1 ? [...states][0] : 'mixed';
 }
 
 /** A patch as property paths and values (only the parts it sets). */
-function flatten(patch: ShapePatch): [PropertyPath, TrackValue | import('./types').PropValue][] {
-  const entries: [PropertyPath, TrackValue | import('./types').PropValue][] = [];
-  for (const key of ['translate', 'rotate'] as const) {
+function flatten(patch: ObjectPatch): [PropertyPath, TrackValue | PropValue][] {
+  const entries: [PropertyPath, TrackValue | PropValue][] = [];
+  for (const key of ['translate', 'rotate', 'target'] as const) {
     const vector = patch[key];
     if (vector) for (const [axis, value] of Object.entries(vector)) if (value !== undefined) entries.push([`${key}.${axis}`, value]);
   }
   if (patch.scale !== undefined) entries.push(['scale', patch.scale]);
   if (patch.opacity !== undefined) entries.push(['opacity', patch.opacity]);
+  if (patch.viewSpan !== undefined) entries.push(['viewSpan', patch.viewSpan]);
   if (patch.props) for (const [key, value] of Object.entries(patch.props)) entries.push([`props.${key}`, value]);
   return entries;
 }
@@ -163,8 +173,13 @@ const same = (a: unknown, b: unknown) =>
  * dragging one axis). An animated property gets a key at this frame; any
  * other property changes for the whole animation.
  */
-export function editAtFrame(shape: ShapeData, patch: ShapePatch, frame: number): ShapeData {
+export function editAtFrame<T extends SceneObject>(shape: T, patch: ObjectPatch, frame: number): T {
   let next = patch.name !== undefined && patch.name !== shape.name ? { ...shape, name: patch.name } : shape;
+  // A camera's picture size isn't animatable: it is one size for the whole animation.
+  if (shape.type === 'Camera') {
+    const size = { width: patch.width ?? shape.width, height: patch.height ?? shape.height };
+    if (size.width !== shape.width || size.height !== shape.height) next = { ...next, ...size };
+  }
   for (const [path, value] of flatten(patch)) {
     const spec = propertySpec(shape.type, path);
     if (!spec) {

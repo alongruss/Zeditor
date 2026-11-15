@@ -12,7 +12,7 @@ function animatedBox(): ShapeData {
 }
 
 const sceneWith = (shape: ShapeData): Scene => addShape(emptyScene(), shape);
-const x = (frame: number): KeyRef => ({ shapeId: 'box-1', path: 'translate.x', frame });
+const x = (frame: number): KeyRef => ({ objectId: 'box-1', path: 'translate.x', frame });
 const framesOf = (scene: Scene, path = 'translate.x') => scene.shapes[0].tracks![path].map((k) => k.frame);
 
 describe('moveKeys', () => {

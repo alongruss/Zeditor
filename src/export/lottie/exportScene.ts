@@ -18,17 +18,23 @@ export function allFrames(scene: Scene): number[] {
   return Array.from({ length: scene.settings.duration }, (_, i) => i);
 }
 
+/** One view for every frame, or a view per frame (e.g. through an animated camera). */
+export type ViewSource = ViewSpec | ((frame: number) => ViewSpec);
+
 /**
  * The scene as seen through `view`, baked frame by frame into a Lottie
  * animation at the scene's frame rate. Each frame is the scene as posed on
- * that frame, drawn exactly as zdog draws it.
+ * that frame, drawn exactly as zdog draws it. The picture's size is the
+ * first frame's view's size (a camera's size never changes).
  */
-export function lottieAnimation(scene: Scene, view: ViewSpec, options: LottieExportOptions): LottieAnimation {
+export function lottieAnimation(scene: Scene, view: ViewSource, options: LottieExportOptions): LottieAnimation {
+  const viewAt = typeof view === 'function' ? view : () => view;
+  const size = viewAt(options.frames[0] ?? 0);
   return bakeLottie(
-    options.frames.map((frame) => recordFrame(sceneAtFrame(scene, frame), view)),
+    options.frames.map((frame) => recordFrame(sceneAtFrame(scene, frame), viewAt(frame))),
     {
-      width: view.width,
-      height: view.height,
+      width: size.width,
+      height: size.height,
       fps: scene.settings.fps,
       background: options.background ? scene.settings.background : null,
       name: options.name,
@@ -39,7 +45,7 @@ export function lottieAnimation(scene: Scene, view: ViewSpec, options: LottieExp
 /** One frame (the scene as it is, or as posed on `frame`), as a single-frame Lottie. */
 export function lottieStill(
   scene: Scene,
-  view: ViewSpec,
+  view: ViewSource,
   options: { readonly background: boolean; readonly name: string; readonly frame?: number },
 ): LottieAnimation {
   return lottieAnimation(scene, view, { ...options, frames: [options.frame ?? 0] });

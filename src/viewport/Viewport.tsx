@@ -1,14 +1,29 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { sceneAtFrame, shapeAtFrame } from '../model/evaluate';
+import { objectAtFrame, sceneAtFrame } from '../model/evaluate';
 import { findShape } from '../model/scene';
+import type { CameraData } from '../model/types';
 import { ContextMenu, type MenuPosition } from '../panels/ContextMenu';
 import { NoticeBar } from '../panels/NoticeBar';
 import { Toolbar } from '../panels/Toolbar';
-import { select } from '../state/commands';
-import { camera, dispatch, editor, setCamera, useCamera, useEditorState } from '../state/store';
-import { currentFrame, timeline, useTimeline } from '../state/timeline';
-import { orbit, pixelsPerUnit, zoomByWheel, type Camera } from './camera';
+import { cameraFrame } from '../render/view';
+import { edit, select } from '../state/commands';
+import { currentViewSpec, lookedThroughCamera } from '../state/currentView';
+import { newGroup } from '../state/history';
+import {
+  dispatch,
+  editor,
+  freeView,
+  lookThrough,
+  setFreeView,
+  useEditorState,
+  useFreeView,
+  useLookThrough,
+} from '../state/store';
+import { currentFrame, pause, timeline, useTimeline } from '../state/timeline';
+import { CameraFrames } from './CameraFrames';
+import { orbit, wheelZoomFactor, zoomByWheel, type FreeView } from './freeView';
 import { Gizmo } from './Gizmo';
+import type { ViewTransform } from './gizmoMath';
 import { SceneView } from './SceneView';
 
 /** A pointer that moves less than this between press and release is a click. */
@@ -17,31 +32,46 @@ const CLICK_TOLERANCE_PX = 3;
 /** Pixels per wheel "line" or "page", for mice that scroll in those units. */
 const WHEEL_LINE_PX = 16;
 
+/** Wheel scrolling with gaps shorter than this is one undo step (when it zooms a camera). */
+const WHEEL_STEP_GAP_MS = 400;
+
+/** Camera angles from a drag are kept to hundredths of a degree, like the gizmo's rings. */
+const roundAngle = (degrees: number) => Math.round(degrees * 100) / 100;
+
+const MIN_VIEW_SPAN = 0.1;
+const MAX_VIEW_SPAN = 100000;
+
 interface Size {
   readonly width: number;
   readonly height: number;
 }
 
-/** A press on the scene: a click if it barely moves, otherwise a camera drag. */
+/** A press on the scene: a click if it barely moves, otherwise a drag that turns the view. */
 interface Press {
   readonly pointerId: number;
   readonly x: number;
   readonly y: number;
   /** What was under the pointer when pressed: that is what a click selects. */
   readonly target: EventTarget | null;
-  readonly camera: Camera;
+  readonly freeView: FreeView;
+  /** When looking through a camera: the camera as it was when the drag began. */
+  readonly camera: CameraData | null;
+  /** The drag's undo group (when it turns a camera). */
+  readonly group: string;
   orbiting: boolean;
 }
 
 /**
- * The 3D view. It is sized to its own grid column (not the window), shows the
- * scene from the editor store through the camera, and turns clicks into
- * selection and drags into camera turns. The wheel zooms. The selected shape
- * gets the move/rotate gizmo.
+ * The 3D view. It is sized to its own grid column (not the window) and shows
+ * the scene as posed on the playhead's frame, through the free view or a
+ * camera. Clicks select; dragging turns the view and the wheel zooms. While
+ * looking through a camera, those change the camera itself (keyed on this
+ * frame if it is animated), and its picture is shown letterboxed.
  */
 export function Viewport() {
   const { scene, selectedId } = useEditorState();
-  const currentCamera = useCamera();
+  useFreeView(); // re-render the overlays when the free view turns
+  const lookingThrough = useLookThrough();
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const outlineRef = useRef<HTMLDivElement>(null);
@@ -60,29 +90,29 @@ export function Viewport() {
     svg.setAttribute('height', String(Math.max(1, container.clientHeight)));
 
     const view = new SceneView(svg, outline);
-    // The scene as posed on the playhead's frame. Playback only moves the
-    // playhead; it never goes through the editor store or the undo history.
+    let area: Size = { width: container.clientWidth, height: container.clientHeight };
+    // The scene as posed on the playhead's frame, through the current view.
+    // Playback only moves the playhead; it never goes through the undo history.
     const show = () => {
       const { scene, selectedId } = editor.get();
       view.setPlaying(timeline.get().playing);
+      const spec = currentViewSpec(area.width, area.height);
+      if (spec) view.setView(spec);
       view.setScene(sceneAtFrame(scene, currentFrame()));
       view.setSelected(selectedId);
     };
     show();
-    const unsubscribeEditor = editor.subscribe(show);
-    const unsubscribeTimeline = timeline.subscribe(show);
-    const unsubscribe = () => {
-      unsubscribeEditor();
-      unsubscribeTimeline();
-    };
-    view.setCamera(camera.get());
-    const unsubscribeCamera = camera.subscribe((next) => view.setCamera(next));
+    const unsubscribers = [
+      editor.subscribe(show),
+      timeline.subscribe(show),
+      freeView.subscribe(show),
+      lookThrough.subscribe(show),
+    ];
 
     const resize = (width: number, height: number) => {
-      view.fit(width, height);
-      setSize((previous) =>
-        previous?.width === width && previous.height === height ? previous : { width, height },
-      );
+      area = { width, height };
+      show();
+      setSize((previous) => (previous?.width === width && previous.height === height ? previous : { width, height }));
     };
     resize(container.clientWidth, container.clientHeight);
     const observer = new ResizeObserver((entries) => {
@@ -91,7 +121,7 @@ export function Viewport() {
     });
     observer.observe(container);
 
-    // A press-and-release without movement selects; a drag turns the camera
+    // A press-and-release without movement selects; a drag turns the view
     // and leaves the selection alone.
     let press: Press | null = null;
     const onPointerDown = (event: PointerEvent) => {
@@ -101,7 +131,9 @@ export function Viewport() {
         x: event.clientX,
         y: event.clientY,
         target: event.target,
-        camera: camera.get(),
+        freeView: freeView.get(),
+        camera: lookedThroughCamera(),
+        group: newGroup(),
         orbiting: false,
       };
       svg.setPointerCapture(event.pointerId);
@@ -113,7 +145,21 @@ export function Viewport() {
       if (!press.orbiting && Math.hypot(dx, dy) < CLICK_TOLERANCE_PX) return;
       press.orbiting = true;
       const displaySize = Math.min(container.clientWidth, container.clientHeight);
-      setCamera(orbit(press.camera, dx, dy, displaySize));
+      if (press.camera) {
+        // The same feel as the free view: a drag across the shorter side is a full turn.
+        const { rotate } = press.camera;
+        pause();
+        dispatch(
+          edit(
+            press.camera.id,
+            { rotate: { x: roundAngle(rotate.x - (dy / displaySize) * 360), y: roundAngle(rotate.y - (dx / displaySize) * 360) } },
+            currentFrame(),
+          ),
+          { group: press.group },
+        );
+      } else {
+        setFreeView(orbit(press.freeView, dx, dy, displaySize));
+      }
     };
     const onPointerUp = (event: PointerEvent) => {
       if (!press || event.pointerId !== press.pointerId) return;
@@ -135,6 +181,8 @@ export function Viewport() {
       const bounds = container.getBoundingClientRect();
       setMenu({ x: event.clientX - bounds.left, y: event.clientY - bounds.top });
     };
+    let wheelGroup: string | null = null;
+    let wheelTimer: ReturnType<typeof setTimeout> | undefined;
     const onWheel = (event: WheelEvent) => {
       event.preventDefault();
       const unit =
@@ -143,7 +191,21 @@ export function Viewport() {
           : event.deltaMode === WheelEvent.DOM_DELTA_PAGE
             ? container.clientHeight
             : 1;
-      setCamera((current) => zoomByWheel(current, event.deltaY * unit));
+      const camera = lookedThroughCamera();
+      if (!camera) {
+        setFreeView((current) => zoomByWheel(current, event.deltaY * unit));
+        return;
+      }
+      // Zooming in makes the camera's view span smaller. One burst of scrolling is one undo step.
+      wheelGroup ??= newGroup();
+      clearTimeout(wheelTimer);
+      wheelTimer = setTimeout(() => (wheelGroup = null), WHEEL_STEP_GAP_MS);
+      const viewSpan = Math.min(
+        MAX_VIEW_SPAN,
+        Math.max(MIN_VIEW_SPAN, camera.viewSpan / wheelZoomFactor(event.deltaY * unit)),
+      );
+      pause();
+      dispatch(edit(camera.id, { viewSpan }, currentFrame()), { group: wheelGroup });
     };
     svg.addEventListener('pointerdown', onPointerDown);
     svg.addEventListener('pointermove', onPointerMove);
@@ -159,29 +221,58 @@ export function Viewport() {
       svg.removeEventListener('pointercancel', onPointerCancel);
       svg.removeEventListener('contextmenu', onContextMenu);
       container.removeEventListener('wheel', onWheel);
+      clearTimeout(wheelTimer);
       observer.disconnect();
-      unsubscribe();
-      unsubscribeCamera();
+      for (const unsubscribe of unsubscribers) unsubscribe();
       view.destroy();
     };
   }, []);
 
   const { frame } = useTimeline();
   const found = findShape(scene, selectedId);
-  const selected = found && shapeAtFrame(found, frame);
-  const zoom = size && pixelsPerUnit(size.width, size.height, currentCamera);
+  const selected = found && objectAtFrame(found, frame);
+  const posedCameras = scene.cameras.map((camera) => objectAtFrame(camera, frame));
+  const throughCamera = posedCameras.find((camera) => camera.id === lookingThrough) ?? null;
+  const spec = size && currentViewSpec(size.width, size.height);
+  const transform: ViewTransform | null = spec && {
+    width: spec.width,
+    height: spec.height,
+    zoom: spec.pixelsPerUnit,
+    rotate: spec.rotate,
+    target: spec.target,
+  };
+  const frameRect = throughCamera && size ? cameraFrame(throughCamera, size.width, size.height) : null;
 
   return (
     <div class="viewport" ref={containerRef} style={{ background: scene.settings.background }}>
       <svg class="scene" ref={svgRef} aria-label="Scene" />
       <div class="selection-outline" ref={outlineRef} hidden aria-hidden="true" />
-      {selected && size && zoom && (
-        <Gizmo
-          shape={selected}
-          frame={frame}
-          view={{ width: size.width, height: size.height, zoom, rotate: currentCamera.rotate }}
+      {transform && !throughCamera && (
+        <CameraFrames
+          cameras={posedCameras}
+          view={transform}
+          selectedId={selectedId}
+          onSelect={(id) => dispatch(select(id))}
         />
       )}
+      {frameRect && throughCamera && (
+        <div
+          class="camera-letterbox"
+          role="img"
+          aria-label={`Looking through ${throughCamera.name}`}
+          style={{
+            left: `${frameRect.left}px`,
+            top: `${frameRect.top}px`,
+            width: `${frameRect.width}px`,
+            height: `${frameRect.height}px`,
+          }}
+        >
+          <span class="camera-letterbox-label">
+            {throughCamera.name} · {throughCamera.width}×{throughCamera.height}
+          </span>
+        </div>
+      )}
+      {selected && transform && <Gizmo shape={selected} frame={frame} view={transform} />}
       <Toolbar viewSize={size} />
       <NoticeBar />
       {menu && <ContextMenu position={menu} onClose={() => setMenu(null)} />}

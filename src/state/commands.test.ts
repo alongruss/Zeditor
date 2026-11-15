@@ -3,7 +3,7 @@ import { findShape } from '../model/scene';
 import { starterScene } from '../model/starterScene';
 import {
   addShapeOfType,
-  deleteShape,
+  deleteObject,
   duplicate,
   newScene,
   rename,
@@ -43,15 +43,15 @@ describe('addShapeOfType', () => {
   });
 });
 
-describe('deleteShape', () => {
+describe('deleteObject', () => {
   it('removes the shape and clears the selection if it was selected', () => {
-    const state = deleteShape('box-1')(select('box-1')(initial()));
+    const state = deleteObject('box-1')(select('box-1')(initial()));
     expect(findShape(state.scene, 'box-1')).toBeUndefined();
     expect(state.selectedId).toBeNull();
   });
 
   it('keeps another selected shape selected', () => {
-    const state = deleteShape('box-1')(select('cone-1')(initial()));
+    const state = deleteObject('box-1')(select('cone-1')(initial()));
     expect(state.selectedId).toBe('cone-1');
   });
 });

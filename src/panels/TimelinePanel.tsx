@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { propertiesOf } from '../model/animatable';
 import { EASING_LABELS } from '../model/easing';
 import { keyRefId, moveKeys, sharedEasing, type KeyRef } from '../model/keyEdits';
-import { EASINGS, type Easing, type Scene, type ShapeData } from '../model/types';
+import { allObjects } from '../model/scene';
+import { EASINGS, type Easing, type Scene, type SceneObject } from '../model/types';
 import { deleteKeysCommand, moveKeysCommand, select, setEasingCommand } from '../state/commands';
 import { newGroup } from '../state/history';
 import { dispatch, editor, useEditorState } from '../state/store';
@@ -14,7 +15,7 @@ const PAD = 8;
 /** A press that moves less than this is a click, not a drag. */
 const CLICK_TOLERANCE_PX = 3;
 
-/** One diamond on screen: a single key, or (on a shape's own row) every key on that frame. */
+/** One diamond on screen: a single key, or (on an object's own row) every key on that frame. */
 interface Diamond {
   readonly refs: readonly KeyRef[];
   readonly frame: number;
@@ -24,48 +25,48 @@ interface Diamond {
 
 interface Row {
   readonly id: string;
-  readonly shape: ShapeData;
-  /** A property row's label; undefined for the shape's own row. */
+  readonly object: SceneObject;
+  /** A property row's label; undefined for the object's own row. */
   readonly property?: string;
   readonly diamonds: readonly Diamond[];
 }
 
-/** The rows: each animated shape (and the selected one), then its animated properties if expanded. */
+/** The rows: each animated shape or camera (and the selected one), then its animated properties if expanded. */
 function buildRows(scene: Scene, selectedId: string | null, expanded: ReadonlySet<string>): Row[] {
   const rows: Row[] = [];
-  for (const shape of scene.shapes) {
-    const tracks = shape.tracks ?? {};
-    if (Object.keys(tracks).length === 0 && shape.id !== selectedId) continue;
+  for (const object of allObjects(scene)) {
+    const tracks = object.tracks ?? {};
+    if (Object.keys(tracks).length === 0 && object.id !== selectedId) continue;
     const byFrame = new Map<number, KeyRef[]>();
     for (const [path, track] of Object.entries(tracks)) {
       for (const key of track) {
         const refs = byFrame.get(key.frame) ?? [];
-        refs.push({ shapeId: shape.id, path, frame: key.frame });
+        refs.push({ objectId: object.id, path, frame: key.frame });
         byFrame.set(key.frame, refs);
       }
     }
     rows.push({
-      id: shape.id,
-      shape,
+      id: object.id,
+      object,
       diamonds: [...byFrame].map(([frame, refs]) => ({
         refs,
         frame,
-        label: `${shape.name} keys on frame ${frame}`,
+        label: `${object.name} keys on frame ${frame}`,
         hold: false,
       })),
     });
-    if (!expanded.has(shape.id)) continue;
-    for (const spec of propertiesOf(shape.type)) {
+    if (!expanded.has(object.id)) continue;
+    for (const spec of propertiesOf(object.type)) {
       const track = tracks[spec.path];
       if (!track) continue;
       rows.push({
-        id: `${shape.id}|${spec.path}`,
-        shape,
+        id: `${object.id}|${spec.path}`,
+        object,
         property: spec.label,
         diamonds: track.map((key) => ({
-          refs: [{ shapeId: shape.id, path: spec.path, frame: key.frame }],
+          refs: [{ objectId: object.id, path: spec.path, frame: key.frame }],
           frame: key.frame,
-          label: `${shape.name} ${spec.label} key on frame ${key.frame}, ${EASING_LABELS[key.easing]}`,
+          label: `${object.name} ${spec.label} key on frame ${key.frame}, ${EASING_LABELS[key.easing]}`,
           hold: key.easing === 'hold',
         })),
       });
@@ -79,7 +80,7 @@ type Drag =
       readonly kind: 'keys';
       readonly pointerId: number;
       readonly startX: number;
-      readonly origin: readonly ShapeData[];
+      readonly origin: readonly SceneObject[];
       readonly refs: readonly KeyRef[];
       readonly group: string;
       delta: number;
@@ -96,7 +97,7 @@ type Drag =
   | { readonly kind: 'scrub'; readonly pointerId: number };
 
 /**
- * The timeline: a row for each animated shape (expand it for a row per
+ * The timeline: a row for each animated shape or camera (expand it for a row per
  * animated property), with its keyframes as diamonds.
  * - Click a key to select it, Shift-click to add or remove it, or drag across
  *   empty space to select a group.
@@ -188,7 +189,7 @@ export function TimelinePanel() {
         kind: 'keys',
         pointerId: event.pointerId,
         startX: event.clientX,
-        origin: editor.get().scene.shapes,
+        origin: allObjects(editor.get().scene),
         refs: timeline.get().selectedKeys,
         group: newGroup(),
         delta: 0,
@@ -343,7 +344,7 @@ export function TimelinePanel() {
         }}
       >
         {rows.length === 0 && (
-          <p class="tl-empty">Nothing is animated yet. Select a shape and click a ◇ in the Inspector to add a key.</p>
+          <p class="tl-empty">Nothing is animated yet. Select a shape or camera and click a ◇ in the Inspector to add a key.</p>
         )}
         {rows.map((row) => (
           <div key={row.id} class={row.property ? 'tl-row tl-property' : 'tl-row'}>
@@ -355,19 +356,19 @@ export function TimelinePanel() {
                   <button
                     type="button"
                     class="tl-expand"
-                    aria-expanded={expanded.has(row.shape.id)}
-                    aria-label={`${expanded.has(row.shape.id) ? 'Hide' : 'Show'} ${row.shape.name} properties`}
+                    aria-expanded={expanded.has(row.object.id)}
+                    aria-label={`${expanded.has(row.object.id) ? 'Hide' : 'Show'} ${row.object.name} properties`}
                     disabled={row.diamonds.length === 0}
-                    onClick={() => toggleExpanded(row.shape.id)}
+                    onClick={() => toggleExpanded(row.object.id)}
                   >
-                    {expanded.has(row.shape.id) ? '▾' : '▸'}
+                    {expanded.has(row.object.id) ? '▾' : '▸'}
                   </button>
                   <button
                     type="button"
-                    class={row.shape.id === selectedId ? 'tl-shape is-selected' : 'tl-shape'}
-                    onClick={() => dispatch(select(row.shape.id))}
+                    class={row.object.id === selectedId ? 'tl-shape is-selected' : 'tl-shape'}
+                    onClick={() => dispatch(select(row.object.id))}
                   >
-                    {row.shape.name}
+                    {row.object.name}
                   </button>
                 </>
               )}

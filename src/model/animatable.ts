@@ -1,11 +1,11 @@
 import { getShapeTypeDef } from './shapeTypes';
-import type { PropertyPath, PropValue, ShapeData, ShapeType, TrackValue, Vec3 } from './types';
+import type { ObjectType, PropertyPath, PropValue, SceneObject, ShapeType, TrackValue, Vec3 } from './types';
 
 /**
  * The one list of what can be animated, used by the evaluator, the editor,
  * the file checks, the Inspector and the exports. Every Inspector value is
  * animatable: position, rotation, scale and opacity on every shape, plus the
- * shape type's own fields.
+ * shape type's own fields; a camera's angle, target and view span.
  */
 
 /**
@@ -36,10 +36,17 @@ const TRANSFORM: readonly PropertySpec[] = [
   { path: 'opacity', label: 'Opacity', kind: 'number', min: 0, max: 1 },
 ];
 
+const CAMERA: readonly PropertySpec[] = [
+  ...AXES.map((axis): PropertySpec => ({ path: `rotate.${axis}`, label: `Angle ${axis.toUpperCase()}`, kind: 'number' })),
+  ...AXES.map((axis): PropertySpec => ({ path: `target.${axis}`, label: `Target ${axis.toUpperCase()}`, kind: 'number' })),
+  { path: 'viewSpan', label: 'View span', kind: 'number', min: 0.01 },
+];
+
 const byType = new Map<ShapeType, readonly PropertySpec[]>();
 
-/** Every animatable property of a shape type, in Inspector order. */
-export function propertiesOf(type: ShapeType): readonly PropertySpec[] {
+/** Every animatable property of a shape type (or of a camera), in Inspector order. */
+export function propertiesOf(type: ObjectType): readonly PropertySpec[] {
+  if (type === 'Camera') return CAMERA;
   let list = byType.get(type);
   if (!list) {
     const fields = getShapeTypeDef(type).fields.map((field): PropertySpec => {
@@ -61,49 +68,61 @@ export function propertiesOf(type: ShapeType): readonly PropertySpec[] {
   return list;
 }
 
-export function propertySpec(type: ShapeType, path: PropertyPath): PropertySpec | undefined {
+export function propertySpec(type: ObjectType, path: PropertyPath): PropertySpec | undefined {
   return propertiesOf(type).find((spec) => spec.path === path);
 }
 
-const vectorOf = (path: PropertyPath): ['translate' | 'rotate', Axis] | null => {
-  const match = /^(translate|rotate)\.([xyz])$/.exec(path);
-  return match ? [match[1] as 'translate' | 'rotate', match[2] as Axis] : null;
+type VectorKey = 'translate' | 'rotate' | 'target';
+type NumberKey = 'scale' | 'opacity' | 'viewSpan';
+
+const vectorOf = (path: PropertyPath): [VectorKey, Axis] | null => {
+  const match = /^(translate|rotate|target)\.([xyz])$/.exec(path);
+  return match ? [match[1] as VectorKey, match[2] as Axis] : null;
 };
 
-/** A property's own (un-animated) value. */
-export function readBase(shape: ShapeData, path: PropertyPath): TrackValue {
+const isNumberKey = (path: PropertyPath): path is NumberKey =>
+  path === 'scale' || path === 'opacity' || path === 'viewSpan';
+
+/** A property's own (un-animated) value, on a shape or a camera. */
+export function readBase(object: SceneObject, path: PropertyPath): TrackValue {
+  const record = object as unknown as Record<string, unknown>;
   const vector = vectorOf(path);
-  if (vector) return shape[vector[0]][vector[1]];
-  if (path === 'scale') return shape.scale;
-  if (path === 'opacity') return shape.opacity;
-  if (path.startsWith('props.')) {
+  if (vector) {
+    const value = (record[vector[0]] as Vec3 | undefined)?.[vector[1]];
+    if (typeof value === 'number') return value;
+  } else if (isNumberKey(path)) {
+    const value = record[path];
+    if (typeof value === 'number') return value;
+  } else if (path.startsWith('props.') && object.type !== 'Camera') {
     const key = path.slice('props.'.length);
-    const value = shape.props[key] ?? getShapeTypeDef(shape.type).defaults[key];
+    const value = object.props[key] ?? getShapeTypeDef(object.type).defaults[key];
     if (typeof value === 'number' || typeof value === 'string' || typeof value === 'boolean') return value;
   }
-  throw new Error(`Not an animatable property: ${path}`);
+  throw new Error(`Not an animatable property of ${object.type}: ${path}`);
 }
 
 /**
- * The shape with a property's own value set. Only the objects on the way to
+ * The object with a property's own value set. Only the objects on the way to
  * that property are new; the rest are shared, so unchanged parts keep their
  * identity.
  */
-export function writeBase(shape: ShapeData, path: PropertyPath, value: TrackValue | PropValue): ShapeData {
+export function writeBase<T extends SceneObject>(object: T, path: PropertyPath, value: TrackValue | PropValue): T {
+  const record = object as unknown as Record<string, unknown>;
   const vector = vectorOf(path);
   if (vector) {
     const [key, axis] = vector;
-    if (shape[key][axis] === value) return shape;
-    const next: Vec3 = { ...shape[key], [axis]: value as number };
-    return { ...shape, [key]: next };
+    const current = record[key] as Vec3 | undefined;
+    if (!current) throw new Error(`Not an animatable property of ${object.type}: ${path}`);
+    if (current[axis] === value) return object;
+    return { ...object, [key]: { ...current, [axis]: value as number } };
   }
-  if (path === 'scale' || path === 'opacity') {
-    return shape[path] === value ? shape : { ...shape, [path]: value as number };
+  if (isNumberKey(path) && path in record) {
+    return record[path] === value ? object : { ...object, [path]: value as number };
   }
-  if (path.startsWith('props.')) {
+  if (path.startsWith('props.') && object.type !== 'Camera') {
     const key = path.slice('props.'.length);
-    if (shape.props[key] === value) return shape;
-    return { ...shape, props: { ...shape.props, [key]: value as PropValue } };
+    if (object.props[key] === value) return object;
+    return { ...object, props: { ...object.props, [key]: value as PropValue } };
   }
-  throw new Error(`Not an animatable property: ${path}`);
+  throw new Error(`Not an animatable property of ${object.type}: ${path}`);
 }

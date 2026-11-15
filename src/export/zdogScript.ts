@@ -1,5 +1,5 @@
-import type { PropValue, Scene, ShapeData, Vec3 } from '../model/types';
-import type { Camera } from '../viewport/camera';
+import type { CameraData, PropValue, Scene, ShapeData, Vec3 } from '../model/types';
+import type { FreeView } from '../viewport/freeView';
 import { VIEW_SPAN } from '../viewport/fitZoom';
 import { fadedProps } from '../viewport/toZdog';
 
@@ -7,12 +7,43 @@ import { fadedProps } from '../viewport/toZdog';
 export const EXPORT_CANVAS_SIZE = 480;
 
 const RAD_TO_DEG = 180 / Math.PI;
+const DEG_TO_RAD = Math.PI / 180;
+
+/** Where the script's view looks from: the editor's free view or a scene camera. */
+export interface ScriptView {
+  /** Rotation of the world, in radians. */
+  readonly rotate: Vec3;
+  /** The world point at the middle of the picture. */
+  readonly target: Vec3;
+  /** World units across the picture's shorter side. */
+  readonly viewSpan: number;
+  /** Size of the canvas the script adds when the page has none (480 x 480 if not given). */
+  readonly width?: number;
+  readonly height?: number;
+}
+
+/** The free view, for the script: same angle and zoom, aimed at the origin. */
+export function scriptViewFromFreeView(view: FreeView): ScriptView {
+  return { rotate: { x: view.rotate.x, y: view.rotate.y, z: 0 }, target: { x: 0, y: 0, z: 0 }, viewSpan: VIEW_SPAN / view.zoom };
+}
+
+/** A camera (as posed on some frame), for the script, with a canvas of its picture size. */
+export function scriptViewFromCamera(camera: CameraData): ScriptView {
+  const { rotate } = camera;
+  return {
+    rotate: { x: rotate.x * DEG_TO_RAD, y: rotate.y * DEG_TO_RAD, z: rotate.z * DEG_TO_RAD },
+    target: camera.target,
+    viewSpan: camera.viewSpan,
+    width: camera.width,
+    height: camera.height,
+  };
+}
 
 /** Every kind of line break, including U+2028 and U+2029, which also end a // comment. */
 const LINE_BREAKS = new RegExp(`[${String.fromCharCode(10, 13, 0x2028, 0x2029)}]+`, 'g');
 
 /** Names the script itself uses, so no shape may take them. */
-const TAKEN = new Set(['illo', 'element', 'animate', 'DEG', 'Zdog', 'document', 'window']);
+const TAKEN = new Set(['illo', 'world', 'element', 'animate', 'DEG', 'Zdog', 'document', 'window']);
 
 const RESERVED = new Set(
   (
@@ -68,8 +99,8 @@ const vector = (v: Vec3) => `{ x: ${num(v.x)}, y: ${num(v.y)}, z: ${num(v.z)} }`
 const angles = (v: Vec3) => `{ x: ${num(v.x)} * DEG, y: ${num(v.y)} * DEG, z: ${num(v.z)} * DEG }`;
 const isZero = (v: Vec3) => v.x === 0 && v.y === 0 && v.z === 0;
 
-function shapeSource(shape: ShapeData, name: string): string {
-  const lines = ['  addTo: illo,', `  translate: ${vector(shape.translate)},`];
+function shapeSource(shape: ShapeData, name: string, parent: string): string {
+  const lines = [`  addTo: ${parent},`, `  translate: ${vector(shape.translate)},`];
   if (!isZero(shape.rotate)) lines.push(`  rotate: ${angles(shape.rotate)},`);
   if (shape.scale !== 1) lines.push(`  scale: ${num(shape.scale)},`);
   // Every prop is written out, so 0 and false (e.g. stroke: 0) are kept.
@@ -82,27 +113,43 @@ function shapeSource(shape: ShapeData, name: string): string {
 }
 
 /**
- * A complete script that draws the scene with Zdog, as seen from the current
- * camera: an Illustration you can drag to turn, one named `const` per shape
- * (so you can animate them), and a draw loop. It never includes the gizmo.
+ * A complete script that draws the scene with Zdog, as seen from `view`: an
+ * Illustration you can drag to turn, one named `const` per shape (so you can
+ * animate them), and a draw loop. It never includes the gizmo or cameras.
+ * When the view looks at a point other than the origin, the shapes go in a
+ * `world` anchor moved so that point is in the middle, and dragging turns
+ * around it.
  */
-export function exportZdogScript(scene: Scene, camera: Camera): string {
+export function exportZdogScript(scene: Scene, view: ScriptView): string {
   const used = new Set<string>();
-  const shapes = scene.shapes.map((shape) => shapeSource(shape, constName(shape, used)));
-  const span = num(VIEW_SPAN / camera.zoom, 3);
-  const size = EXPORT_CANVAS_SIZE;
+  const parent = isZero(view.target) ? 'illo' : 'world';
+  const shapes = scene.shapes.map((shape) => shapeSource(shape, constName(shape, used), parent));
+  const span = num(view.viewSpan, 3);
+  const width = Math.round(view.width ?? EXPORT_CANVAS_SIZE);
+  const height = Math.round(view.height ?? EXPORT_CANVAS_SIZE);
+  const { rotate, target } = view;
+  const rotateText = `{ x: ${num(rotate.x * RAD_TO_DEG, 2)} * DEG, y: ${num(rotate.y * RAD_TO_DEG, 2)} * DEG${
+    rotate.z === 0 ? '' : `, z: ${num(rotate.z * RAD_TO_DEG, 2)} * DEG`
+  } }`;
+  const world =
+    parent === 'world'
+      ? `
+// The view looks at ${vector(target)}: move that point to the middle.
+const world = new Zdog.Anchor({ addTo: illo, translate: ${vector({ x: -target.x, y: -target.y, z: -target.z })} });
+`
+      : '';
 
   return `// Made with Zeditor.
 // Needs Zdog 1.x on the page first, for example:
 // <script src="https://unpkg.com/zdog@1/dist/zdog.dist.min.js"></script>
-// Draws into <canvas class="zeditor-scene"> if the page has one, or adds a ${size} x ${size} one.
+// Draws into <canvas class="zeditor-scene"> if the page has one, or adds a ${width} x ${height} one.
 
 let element = document.querySelector('canvas.zeditor-scene');
 if (!element) {
   element = document.createElement('canvas');
   element.className = 'zeditor-scene';
-  element.width = ${size};
-  element.height = ${size};
+  element.width = ${width};
+  element.height = ${height};
   document.body.append(element);
 }
 element.style.background = ${JSON.stringify(scene.settings.background)};
@@ -113,10 +160,10 @@ const illo = new Zdog.Illustration({
   element,
   // ${span} world units fit across the shorter side.
   zoom: Math.min(element.width, element.height) / ${span},
-  rotate: { x: ${num(camera.rotate.x * RAD_TO_DEG, 2)} * DEG, y: ${num(camera.rotate.y * RAD_TO_DEG, 2)} * DEG },
+  rotate: ${rotateText},
   dragRotate: true,
 });
-
+${world}
 ${shapes.join('\n\n')}
 
 function animate() {

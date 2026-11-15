@@ -287,10 +287,37 @@ timeline with keyframes and tweening, cameras, and a Lottie export of the viewpo
     on their frames. Shortening the length never deletes keys.
   - **Code:** `src/model/keyEdits.ts` holds the pure key edits. The right-click menus share a
     `PopupMenu`.
-- **D. Cameras** (file version 3):
-  - camera objects, a camera Inspector, and look-through mode with the output frame letterboxed;
-  - the camera's frame drawn in the free view;
-  - the Lottie export from a camera.
+- **D. Cameras** (`anim/d-cameras`, file version 3):
+  - **Free view:** the editor's own view (once called the camera) is now the free view, `FreeView`
+    and the `freeView` store, so the scene's cameras can be called cameras.
+  - **Camera objects:** Add > Camera makes one that films exactly what the view shows. The scene
+    tree lists cameras under Cameras; they can be selected, renamed, duplicated and deleted like
+    shapes.
+  - **Camera Inspector:**
+    - Angle (x/y/z, where z rolls the picture), Target (the point at the middle of the picture) and
+      View span (world units across the picture's shorter side), each with keyframe buttons;
+    - the picture's Width and Height, which can't be animated;
+    - a Look through button.
+  - **Look-through mode** (the toolbar's View menu, or the Inspector button):
+    - the camera's picture is letterboxed in the viewport, with the rest dimmed;
+    - dragging turns the camera, and the wheel changes its view span: one undo step per drag or wheel
+      burst, keyed on the current frame when that property is animated;
+    - Reset view is off, as it only resets the free view.
+  - **In the free view** each camera is drawn as a dashed frame where its picture sits in the world,
+    with a notch on its top edge. Clicking it selects the camera.
+  - **Views:** `src/render/view.ts` turns the free view or a camera into a `ViewSpec` (rotation
+    including roll, target, pixels per unit, size). zdog draws through it with the root anchor's
+    `translate = −R·target`, and the gizmo and camera frames use the same projection.
+  - **Exports:**
+    - the Lottie dialog's View menu films through the free view or a camera; through a camera, each
+      frame uses the camera as posed on that frame, at its picture size;
+    - the Zdog JS export goes through the current view (when looking through a camera: its angle,
+      roll, target, span and picture size).
+  - **Files:** version 3 adds `cameras`. Older files open with none. Ids are unique across shapes and
+    cameras.
+  - **Tests:** Lottie fidelity through a rolled camera off the origin and through an animated camera.
+    What look-through shows matches the camera's exported picture, and a camera's frame corners land
+    on its letterbox.
 - **Later:** the keyframed Lottie mode, animated Zdog JS export, custom easing curves and a graph editor.
 - **After D: a UI redesign.** The user asked for the editor to become more fun and friendly, drawing on
   Spotify Wrapped, Leonardo.ai, Recraft and Canva: research their design, take the good parts, then

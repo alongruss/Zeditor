@@ -1,12 +1,14 @@
 import { LottieExportError } from '../export/lottie/bake';
 import { allFrames, lottieAnimation } from '../export/lottie/exportScene';
-import { exportZdogScript } from '../export/zdogScript';
-import { sceneAtFrame } from '../model/evaluate';
+import { exportZdogScript, scriptViewFromCamera, scriptViewFromFreeView } from '../export/zdogScript';
+import { objectAtFrame, sceneAtFrame } from '../model/evaluate';
+import { findCamera } from '../model/scene';
 import { MAX_SCENE_FILE_BYTES, SCENE_FILE_EXTENSION, parseSceneFile, serializeScene } from '../model/sceneFile';
 import { loadScene } from '../state/commands';
 import { showNotice } from '../state/notice';
-import { viewFromCamera } from '../render/view';
-import { camera, dispatch, editor } from '../state/store';
+import { viewFromCamera, viewFromFreeView, type ViewSpec } from '../render/view';
+import { lookedThroughCamera } from '../state/currentView';
+import { dispatch, editor, freeView } from '../state/store';
 import { currentFrame } from '../state/timeline';
 
 /** Base name for saved and exported files: the last opened file's, or "scene". */
@@ -69,8 +71,11 @@ export function chooseSceneFile(): void {
 /** Copies the Zdog script to the clipboard and downloads it. */
 export async function exportScript(): Promise<void> {
   const fileName = `${baseName}.zdog.js`;
-  // The pose on the current frame; animated script export comes later.
-  const script = exportZdogScript(sceneAtFrame(editor.get().scene, currentFrame()), camera.get());
+  // The pose on the current frame, through the current view (the camera
+  // being looked through, or the free view); animated script export comes later.
+  const camera = lookedThroughCamera();
+  const view = camera ? scriptViewFromCamera(camera) : scriptViewFromFreeView(freeView.get());
+  const script = exportZdogScript(sceneAtFrame(editor.get().scene, currentFrame()), view);
   download(fileName, script, 'text/javascript');
   let copied = false;
   try {
@@ -87,7 +92,12 @@ export async function exportScript(): Promise<void> {
 }
 
 export interface LottieSettings {
-  /** Picture size in pixels. */
+  /**
+   * The camera to film through (its picture size, following it as it
+   * moves), or null for the free view at `width` x `height`.
+   */
+  readonly camera: string | null;
+  /** Picture size in pixels, for the free view. */
   readonly width: number;
   readonly height: number;
   /** Draw the scene's background color (otherwise transparent). */
@@ -96,12 +106,19 @@ export interface LottieSettings {
   readonly frames: 'all' | 'current';
 }
 
-/** The current view as Lottie JSON text, or why it can't be made. */
+/** The scene through the free view or a camera as Lottie JSON text, or why it can't be made. */
 export function lottieText(settings: LottieSettings): { readonly text: string } | { readonly error: string } {
-  const view = viewFromCamera(camera.get(), settings.width, settings.height);
-  if (!view) return { error: 'Width and height must be more than 0.' };
+  const { scene } = editor.get();
+  let view: ViewSpec | ((frame: number) => ViewSpec) | null;
+  if (settings.camera === null) {
+    view = viewFromFreeView(freeView.get(), settings.width, settings.height);
+    if (!view) return { error: 'Width and height must be more than 0.' };
+  } else {
+    const camera = findCamera(scene, settings.camera);
+    if (!camera) return { error: 'That camera is no longer in the scene.' };
+    view = (frame) => viewFromCamera(objectAtFrame(camera, frame));
+  }
   try {
-    const { scene } = editor.get();
     const frames = settings.frames === 'all' ? allFrames(scene) : [currentFrame()];
     const animation = lottieAnimation(scene, view, { background: settings.background, name: baseName, frames });
     return { text: JSON.stringify(animation) };

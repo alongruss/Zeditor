@@ -1,8 +1,8 @@
 import type * as ZdogTypes from 'zdog';
-import type { Scene, Vec3 } from '../model/types';
+import type { Scene } from '../model/types';
 import { createZdogShape } from '../viewport/toZdog';
 import { Zdog } from '../zdog';
-import type { ViewSpec } from './view';
+import { rootTranslate, type ViewSpec } from './view';
 
 /**
  * Captures a frame exactly as zdog draws it, as flat 2D paths in drawing
@@ -219,12 +219,6 @@ function mapSegment(segment: Segment, map: (p: Point) => Point): Segment {
     : { kind: 'bezier', c1: map(segment.c1), c2: map(segment.c2), to: map(segment.to) };
 }
 
-/** Rotates `v` the way zdog does (z, then y, then x), angles in radians. */
-function turn(v: Vec3, rotate: Vec3): Vec3 {
-  const out = new Zdog.Vector(v);
-  out.rotate(rotate);
-  return { x: out.x, y: out.y, z: out.z };
-}
 
 /**
  * Draws `scene` through `view` and returns what was drawn, back to front, in
@@ -232,11 +226,7 @@ function turn(v: Vec3, rotate: Vec3): Vec3 {
  */
 export function recordFrame(scene: Scene, view: ViewSpec): DrawOp[] {
   // The root turns the world; moving it by the turned target puts the target at the center.
-  const turnedTarget = turn(view.target, view.rotate);
-  const root: ZdogTypes.Anchor = new Zdog.Anchor({
-    rotate: view.rotate,
-    translate: { x: -turnedTarget.x, y: -turnedTarget.y, z: -turnedTarget.z },
-  });
+  const root: ZdogTypes.Anchor = new Zdog.Anchor({ rotate: view.rotate, translate: rootTranslate(view) });
   for (const shape of scene.shapes) root.addChild(createZdogShape(shape));
   root.updateGraph();
 

@@ -6,9 +6,10 @@ Zdog shapes, save your scene, and export it as a ready-to-run Zdog script.
 > **Status:** the rebuild's five phases are done. You can add, select, rename, edit, duplicate and
 > delete shapes, move and rotate them with the gizmo, set color alpha and shape opacity, turn and zoom
 > the view, undo or redo any change, save and open `.zeditor.json` files (your work is also kept
-> between visits), and export a ready-to-run Zdog script or a Lottie file of the current view.
+> between visits), and export a ready-to-run Zdog script or a Lottie file.
 > Animation: key any Inspector value on any frame, with easing, play it back, and edit keys on a
-> timeline (move, ease, delete); the Lottie export bakes every frame. Next up: cameras.
+> timeline (move, ease, delete); the Lottie export bakes every frame. Cameras: add cameras to the
+> scene, look through them, animate them, and export through them. Next up: a friendlier UI redesign.
 > See [docs/PLAN.md](docs/PLAN.md). The 2020 editor is preserved at the
 > [`legacy-2020`](https://github.com/alongruss/Zeditor/tree/legacy-2020) tag.
 

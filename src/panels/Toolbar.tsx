@@ -1,9 +1,21 @@
 import { chooseSceneFile, exportScript, saveScene } from '../files/sceneFiles';
 import { SHAPE_TYPE_DEFS } from '../model/shapeTypes';
 import { SHAPE_TYPES } from '../model/types';
-import { addShapeOfType, deleteShape, duplicate, newScene } from '../state/commands';
-import { dispatch, redo, setCamera, undo, useCamera, useEditorState, useUndoAvailability } from '../state/store';
-import { DEFAULT_CAMERA, isDefaultCamera } from '../viewport/camera';
+import { addCameraCommand, addShapeOfType, deleteObject, duplicate, newScene } from '../state/commands';
+import { lookedThroughCamera } from '../state/currentView';
+import {
+  dispatch,
+  redo,
+  setFreeView,
+  setLookThrough,
+  undo,
+  useEditorState,
+  useFreeView,
+  useLookThrough,
+  useUndoAvailability,
+} from '../state/store';
+import { DEFAULT_FREE_VIEW, isDefaultFreeView, type FreeView } from '../viewport/freeView';
+import { VIEW_SPAN } from '../viewport/fitZoom';
 import { useCallback, useState } from 'preact/hooks';
 import { Dropdown } from './Dropdown';
 import { ExportLottieDialog } from './ExportLottieDialog';
@@ -20,11 +32,31 @@ interface ToolbarProps {
   readonly viewSize: { readonly width: number; readonly height: number } | null;
 }
 
-/** Floating toolbar over the viewport: File, Add, Duplicate, Delete, Undo, Redo, Reset view. */
+const RAD_TO_DEG = 180 / Math.PI;
+
+/**
+ * A new camera's view: the camera being looked through, or the free view
+ * (same angle and zoom, aimed at the origin), with the viewport's size.
+ */
+function newCameraView(free: FreeView, viewSize: ToolbarProps['viewSize']) {
+  const through = lookedThroughCamera();
+  if (through) return through;
+  return {
+    rotate: { x: free.rotate.x * RAD_TO_DEG, y: free.rotate.y * RAD_TO_DEG, z: 0 },
+    target: { x: 0, y: 0, z: 0 },
+    viewSpan: VIEW_SPAN / free.zoom,
+    width: Math.max(1, Math.round(viewSize?.width ?? 640)),
+    height: Math.max(1, Math.round(viewSize?.height ?? 480)),
+  };
+}
+
+/** Floating toolbar over the viewport: File, Add, View, Duplicate, Delete, Undo, Redo, Reset view. */
 export function Toolbar({ viewSize }: ToolbarProps) {
-  const { selectedId } = useEditorState();
+  const { scene, selectedId } = useEditorState();
   const { canUndo, canRedo } = useUndoAvailability();
-  const camera = useCamera();
+  const camera = useFreeView();
+  const lookingThrough = useLookThrough();
+  const viewing = scene.cameras.some((c) => c.id === lookingThrough) ? lookingThrough : null;
   const hasSelection = selectedId !== null;
   const [lottieOpen, setLottieOpen] = useState(false);
   const closeLottie = useCallback(() => setLottieOpen(false), []);
@@ -44,12 +76,29 @@ export function Toolbar({ viewSize }: ToolbarProps) {
       />
       <Dropdown
         label="Add"
-        menuLabel="Add shape"
-        items={SHAPE_TYPES.map((type) => ({
-          label: SHAPE_TYPE_DEFS[type].addLabel ?? SHAPE_TYPE_DEFS[type].label,
-          onSelect: () => dispatch(addShapeOfType(type)),
-        }))}
+        menuLabel="Add"
+        items={[
+          ...SHAPE_TYPES.map((type) => ({
+            label: SHAPE_TYPE_DEFS[type].addLabel ?? SHAPE_TYPE_DEFS[type].label,
+            onSelect: () => dispatch(addShapeOfType(type)),
+          })),
+          { label: 'Camera', onSelect: () => dispatch(addCameraCommand(newCameraView(camera, viewSize))) },
+        ]}
       />
+      <select
+        class="toolbar-view"
+        aria-label="View"
+        title="Look through a camera, or use the free view"
+        value={viewing ?? ''}
+        onChange={(event) => setLookThrough(event.currentTarget.value || null)}
+      >
+        <option value="">Free view</option>
+        {scene.cameras.map((c) => (
+          <option key={c.id} value={c.id}>
+            {c.name}
+          </option>
+        ))}
+      </select>
       <button
         type="button"
         disabled={!hasSelection}
@@ -60,7 +109,7 @@ export function Toolbar({ viewSize }: ToolbarProps) {
       <button
         type="button"
         disabled={!hasSelection}
-        onClick={() => selectedId && dispatch(deleteShape(selectedId))}
+        onClick={() => selectedId && dispatch(deleteObject(selectedId))}
       >
         Delete
       </button>
@@ -73,8 +122,8 @@ export function Toolbar({ viewSize }: ToolbarProps) {
       <button
         type="button"
         title="Turn and zoom the view back to the start"
-        disabled={isDefaultCamera(camera)}
-        onClick={() => setCamera(DEFAULT_CAMERA)}
+        disabled={viewing !== null || isDefaultFreeView(camera)}
+        onClick={() => setFreeView(DEFAULT_FREE_VIEW)}
       >
         Reset view
       </button>
@@ -82,6 +131,7 @@ export function Toolbar({ viewSize }: ToolbarProps) {
         <ExportLottieDialog
           defaultWidth={viewSize?.width ?? 512}
           defaultHeight={viewSize?.height ?? 512}
+          defaultCamera={viewing}
           onClose={closeLottie}
         />
       )}

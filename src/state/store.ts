@@ -1,6 +1,6 @@
 import { useEffect, useReducer } from 'preact/hooks';
 import { starterScene } from '../model/starterScene';
-import { DEFAULT_CAMERA, type Camera } from '../viewport/camera';
+import { DEFAULT_FREE_VIEW, type FreeView } from '../viewport/freeView';
 import type { Command, EditorState } from './commands';
 import { browserStorage, readAutosave } from './autosave';
 import * as history from './history';
@@ -72,14 +72,33 @@ export function closeUndoGroup(): void {
 }
 
 /**
- * The camera. Kept apart from the editor state so that turning or zooming the
- * view is never an undo step, and Undo never moves the camera.
+ * The free view: how you look at the scene while editing (not a scene camera).
+ * Kept apart from the editor state so that turning or zooming the view is
+ * never an undo step, and Undo never moves it.
  */
-export const camera: Store<Camera> = createStore<Camera>(DEFAULT_CAMERA);
+export const freeView: Store<FreeView> = createStore<FreeView>(DEFAULT_FREE_VIEW);
 
-export function setCamera(update: Camera | ((current: Camera) => Camera)): void {
-  camera.dispatch(typeof update === 'function' ? update : () => update);
+export function setFreeView(update: FreeView | ((current: FreeView) => FreeView)): void {
+  freeView.dispatch(typeof update === 'function' ? update : () => update);
 }
+
+/**
+ * The camera the viewport looks through, or null for the free view. Like the
+ * free view, it isn't saved and isn't an undo step.
+ */
+export const lookThrough: Store<string | null> = createStore<string | null>(null);
+
+export function setLookThrough(id: string | null): void {
+  lookThrough.dispatch(() => id);
+}
+
+// A camera that leaves the scene (deleted, undone, or another scene opened)
+// can't be looked through: go back to the free view. Otherwise a later camera
+// that reuses its id would be looked through by surprise.
+editor.subscribe(({ scene }) => {
+  const id = lookThrough.get();
+  if (id !== null && !scene.cameras.some((camera) => camera.id === id)) setLookThrough(null);
+});
 
 /** The store's current value; re-renders the calling component whenever it changes. */
 export function useStore<T>(store: Store<T>): T {
@@ -105,7 +124,11 @@ export function useUndoAvailability(): { canUndo: boolean; canRedo: boolean } {
   return { canUndo: history.canUndo(current), canRedo: history.canRedo(current) };
 }
 
-/** The current camera; re-renders the component when it changes. */
-export function useCamera(): Camera {
-  return useStore(camera);
+export function useLookThrough(): string | null {
+  return useStore(lookThrough);
+}
+
+/** The current free view; re-renders the component when it changes. */
+export function useFreeView(): FreeView {
+  return useStore(freeView);
 }

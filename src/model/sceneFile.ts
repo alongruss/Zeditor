@@ -7,8 +7,10 @@ import {
   EASINGS,
   SCENE_VERSION,
   SHAPE_TYPES,
+  type CameraData,
   type Easing,
   type Keyframe,
+  type ObjectType,
   type PathData,
   type PropValue,
   type Scene,
@@ -27,7 +29,8 @@ import { parseCssColor } from './cssColor';
  * checks wherever it comes from. A file is treated as untrusted input: every
  * value is checked, and anything unknown is left out.
  *
- * Versions: 1 (the first), 2 (adds animation: tracks, fps, duration). Older
+ * Versions: 1 (the first), 2 (adds animation: tracks, fps, duration), 3 (adds
+ * cameras). Older
  * files are read and brought up to date; newer ones are refused, so nothing
  * a newer version saved is ever silently dropped.
  */
@@ -135,7 +138,7 @@ function readKeyValue(value: unknown, spec: PropertySpec): TrackValue | null {
 }
 
 /** A shape's animation tracks, every key checked against its property's rules. */
-function readTracks(raw: unknown, type: ShapeType, where: string): Tracks | undefined {
+function readTracks(raw: unknown, type: ObjectType, where: string): Tracks | undefined {
   if (raw === undefined) return undefined;
   if (!isRecord(raw)) return fail(`${where}: tracks isn't an object.`);
   const tracks: Record<string, readonly Keyframe[]> = {};
@@ -175,6 +178,38 @@ function readWholeSetting(value: unknown, name: string, fallback: number, max: n
     return fail(`The scene's ${name} must be a whole number from 1 to ${max}.`);
   }
   return value;
+}
+
+const MAX_CAMERAS = 100;
+const MAX_PICTURE_SIDE = 8192;
+const MAX_VIEW_SPAN = 1e6;
+
+function readCamera(raw: unknown, index: number): CameraData {
+  const where = `Camera ${index + 1}`;
+  if (!isRecord(raw)) return fail(`${where} isn't a camera.`);
+  const id = raw.id;
+  if (typeof id !== 'string' || !/^[A-Za-z][\w-]{0,63}$/.test(id)) return fail(`${where} has no valid id.`);
+  const name = typeof raw.name === 'string' && raw.name.trim() !== '' ? raw.name.trim().slice(0, MAX_NAME_LENGTH) : id;
+  const viewSpan = raw.viewSpan;
+  if (!isFiniteNumber(viewSpan) || viewSpan <= 0 || viewSpan > MAX_VIEW_SPAN) {
+    return fail(`${where}: the view span must be a number above 0.`);
+  }
+  const side = (value: unknown, label: string): number =>
+    isFiniteNumber(value) && Number.isInteger(value) && value >= 1 && value <= MAX_PICTURE_SIDE
+      ? value
+      : fail(`${where}: the picture ${label} must be a whole number from 1 to ${MAX_PICTURE_SIDE}.`);
+  const camera: CameraData = {
+    id,
+    name,
+    type: 'Camera',
+    rotate: readVec3(raw.rotate, `${where} rotate`),
+    target: readVec3(raw.target, `${where} target`),
+    viewSpan,
+    width: side(raw.width, 'width'),
+    height: side(raw.height, 'height'),
+  };
+  const tracks = readTracks(raw.tracks, 'Camera', where);
+  return tracks ? { ...camera, tracks } : camera;
 }
 
 function readShape(raw: unknown, index: number, version: number): ShapeData {
@@ -232,7 +267,7 @@ export function parseSceneFile(text: string): SceneFileResult {
     if (!isRecord(data) || !Array.isArray(data.shapes)) return fail(NOT_A_SCENE);
 
     const version = data.version;
-    if (version !== SCENE_VERSION && version !== 1) {
+    if (version !== SCENE_VERSION && version !== 1 && version !== 2) {
       if (isFiniteNumber(version) && version > SCENE_VERSION) {
         return fail(
           `This scene was saved by a newer version of Zeditor (file version ${version}). ` +
@@ -250,13 +285,18 @@ export function parseSceneFile(text: string): SceneFileResult {
       version >= 2 ? readWholeSetting(settings.duration, 'length', DEFAULT_DURATION, MAX_FRAME) : DEFAULT_DURATION;
 
     const shapes = data.shapes.map((raw, i) => readShape(raw, i, version));
+    // Version 3 added cameras.
+    const rawCameras = version >= 3 && data.cameras !== undefined ? data.cameras : [];
+    if (!Array.isArray(rawCameras)) return fail(`The scene's cameras aren't a list.`);
+    if (rawCameras.length > MAX_CAMERAS) return fail(`This scene has more than ${MAX_CAMERAS} cameras.`);
+    const cameras = rawCameras.map(readCamera);
     const ids = new Set<string>();
-    for (const shape of shapes) {
-      if (ids.has(shape.id)) return fail(`Two shapes have the same id: ${shape.id}.`);
+    for (const shape of [...shapes, ...cameras]) {
+      if (ids.has(shape.id)) return fail(`Two shapes or cameras have the same id: ${shape.id}.`);
       ids.add(shape.id);
     }
 
-    return { ok: true, scene: { version: SCENE_VERSION, settings: { background, fps, duration }, shapes } };
+    return { ok: true, scene: { version: SCENE_VERSION, settings: { background, fps, duration }, shapes, cameras } };
   } catch (error) {
     if (error instanceof SceneFileError) return { ok: false, error: error.message };
     throw error;

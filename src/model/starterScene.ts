@@ -99,5 +99,6 @@ export function starterScene(): Scene {
         bottomFace: '#663366',
       }),
     ],
+    cameras: [],
   };
 }
