@@ -1,6 +1,6 @@
 # Zeditor UI redesign: design brief
 
-**Status:** decisions settled (section 6). R1–R4 are built (tokens and type; docked layout; picker, selection toolbar, scene focus, right-click add; welcome, export card, first-key tip, toasts). R5, the dark theme, comes next.
+**Status:** built. R1–R5 are done: tokens and type; docked layout; picker, selection toolbar, scene focus, right-click add; welcome, export card, first-key tip, toasts; and the dark theme.
 
 **Goal:** make Zeditor feel fun and friendly, borrowing the good parts of Spotify Wrapped,
 Leonardo.ai, Recraft and Canva. This brief turns that research into a direction, a migration plan

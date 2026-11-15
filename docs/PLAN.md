@@ -319,9 +319,11 @@ timeline with keyframes and tweening, cameras, and a Lottie export of the viewpo
     What look-through shows matches the camera's exported picture, and a camera's frame corners land
     on its letterbox.
 - **Later:** the keyframed Lottie mode, animated Zdog JS export, custom easing curves and a graph editor.
-- **After D: a UI redesign.** The user asked for the editor to become more fun and friendly, drawing on
-  Spotify Wrapped, Leonardo.ai, Recraft and Canva: research their design, take the good parts, then
-  refine the result with the simmer skill.
+- **After D: a UI redesign ("Playroom").** The user asked for the editor to become more fun and
+  friendly, drawing on Spotify Wrapped, Leonardo.ai, Recraft and Canva. The research, decisions and
+  plan are in [docs/REDESIGN.md](REDESIGN.md), refined with the simmer skill. Built in five PRs: R1
+  tokens and type, R2 docked layout, R3 picker, selection toolbar, scene focus and right-click add,
+  R4 welcome, export card, first-key tip and toasts, R5 dark theme.
 
 ## Later
 

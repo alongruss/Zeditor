@@ -11,8 +11,14 @@
   --group-bg: #f7f5f2;
   --hover-bg: #efe9ff;
   --scene-bg: #ffddbb;
-  /* Ink: body text. */
+  /* Body text (themed). */
   --text: #1d1b22;
+  /*
+   * Ink is never themed: text on sticker colors, and things drawn over the
+   * scene (camera frames, the empty-scene question), whose background is
+   * the user's artwork.
+   */
+  --ink: #1d1b22;
   --text-muted: #615d6b;
   /* Dividers only (decorative); the edges of fields use --border-field. */
   --border: #e3dfe8;
@@ -20,6 +26,8 @@
   /* The one main action, and focus. */
   --accent: #6c3cf4;
   --accent-pressed: #5527d6;
+  /* Text on the accent: white here (5.85:1), ink in the dark theme. */
+  --on-accent: #ffffff;
   --accent-wash: rgb(108 60 244 / 12%);
   /* What is selected in the scene (never a button color). */
   --select: #ff5a36;
@@ -58,6 +66,66 @@
   font-family: 'Figtree Variable', system-ui, sans-serif;
   font-size: 13px;
   color: var(--text);
+  color-scheme: light;
+}
+
+/*
+ * The dark theme: chosen in File ▾, or following the system when you
+ * haven't chosen Light. Raised surfaces get lighter instead of shadowed.
+ * Stickers, ink, the selection coral and the scene's focus ring don't
+ * change, and the scene's background is the user's own color.
+ * (Each pair is checked in src/styles.contrast.test.ts.)
+ */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --panel-bg: #1c1a22;
+  --page-bg: #121016;
+  --group-bg: #2a2731;
+  --hover-bg: #2f2a45;
+  --text: #ece9f1;
+  --text-muted: #a8a3b3;
+  --border: #34303d;
+  --border-field: #7a7484;
+  --accent: #9b7bff;
+  --accent-pressed: #b9a3ff;
+  --on-accent: #1d1b22;
+  --accent-wash: rgb(155 123 255 / 18%);
+  --summary-key: #6a6575;
+  --summary-key-edge: #a8a3b3;
+  --anim-key-bg: #3d3214;
+  --anim-tween-bg: #1f3527;
+  --danger: #ff8a7a;
+  --notice-bg: rgb(18 16 22 / 92%);
+  --scrim: rgb(0 0 0 / 55%);
+  --shadow: 0 8px 24px rgb(0 0 0 / 40%);
+  --shadow-menu: 0 12px 32px rgb(0 0 0 / 55%);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --panel-bg: #1c1a22;
+    --page-bg: #121016;
+    --group-bg: #2a2731;
+    --hover-bg: #2f2a45;
+    --text: #ece9f1;
+    --text-muted: #a8a3b3;
+    --border: #34303d;
+    --border-field: #7a7484;
+    --accent: #9b7bff;
+    --accent-pressed: #b9a3ff;
+    --on-accent: #1d1b22;
+    --accent-wash: rgb(155 123 255 / 18%);
+    --summary-key: #6a6575;
+    --summary-key-edge: #a8a3b3;
+    --anim-key-bg: #3d3214;
+    --anim-tween-bg: #1f3527;
+    --danger: #ff8a7a;
+    --notice-bg: rgb(18 16 22 / 92%);
+    --scrim: rgb(0 0 0 / 55%);
+    --shadow: 0 8px 24px rgb(0 0 0 / 40%);
+    --shadow-menu: 0 12px 32px rgb(0 0 0 / 55%);
+  }
 }
 
 /* One focus ring everywhere: 2px violet, 2px out (5.85:1 on white). */
@@ -148,7 +216,7 @@ body {
   border-radius: var(--radius);
   font-size: 18px;
   font-weight: 800;
-  color: white;
+  color: var(--panel-bg);
   background: var(--text);
 }
 
@@ -265,7 +333,7 @@ body {
 }
 
 .gizmo-handle {
-  --axis-color: var(--text);
+  --axis-color: var(--ink);
   cursor: grab;
 }
 
@@ -328,7 +396,7 @@ body {
 
 .gizmo-center {
   fill: white;
-  stroke: var(--text);
+  stroke: var(--ink);
   stroke-width: 1.5px;
 }
 
@@ -388,7 +456,7 @@ body {
   min-width: 80px;
   height: 30px;
   border-radius: var(--radius);
-  background: white;
+  background: var(--panel-bg);
   box-shadow: inset 0 0 0 1px var(--border);
   cursor: ew-resize;
   touch-action: none;
@@ -773,6 +841,7 @@ body {
   border-radius: var(--radius);
   font: inherit;
   color: var(--text);
+  background: var(--panel-bg);
   font-variant-numeric: tabular-nums;
 }
 
@@ -804,7 +873,7 @@ body {
 
 button.primary {
   border-color: var(--accent);
-  color: white;
+  color: var(--on-accent);
   background: var(--accent);
 }
 
@@ -937,13 +1006,13 @@ button.primary:active:not(:disabled) {
   font-weight: 800;
   letter-spacing: -0.03em;
   line-height: 1.05;
-  color: var(--text);
+  color: var(--ink);
 }
 
 .empty-stage-note {
   margin: 0 0 14px;
   font-size: 15px;
-  color: var(--text);
+  color: var(--ink);
 }
 
 .empty-stage-choices {
@@ -966,9 +1035,14 @@ button.primary:active:not(:disabled) {
   font-weight: 700;
   text-align: left;
   /* Ink on every sticker color here: 11.80, 10.81 and 6.64:1. */
-  color: var(--text);
+  color: var(--ink);
   box-shadow: var(--shadow);
   pointer-events: auto;
+}
+
+/* Ink, not violet: these sit on the scene, where violet would be 2.45:1 in the dark theme. */
+.start-tile:focus-visible {
+  outline-color: var(--ink);
 }
 
 .start-tile:hover:not(:disabled) {
@@ -1003,7 +1077,7 @@ button.primary:active:not(:disabled) {
   width: min(440px, calc(100% - 24px));
   padding: 14px;
   border-radius: 16px;
-  color: var(--text);
+  color: var(--ink);
   background: var(--sticker-sunflower);
   box-shadow: var(--shadow-menu);
   transform: translateX(-50%);
@@ -1045,12 +1119,12 @@ button.primary:active:not(:disabled) {
 }
 
 .export-done-close {
-  border-color: var(--text);
+  border-color: var(--ink);
   background: transparent;
 }
 
 .export-done :focus-visible {
-  outline-color: var(--text);
+  outline-color: var(--ink);
 }
 
 .export-done-numbers {
@@ -1134,7 +1208,7 @@ button.primary:active:not(:disabled) {
   font-size: 12px;
   font-weight: 600;
   /* Text on a sticker color is always ink: 11.80:1 on sunflower, 6.05:1 on tomato. */
-  color: var(--text);
+  color: var(--ink);
   background: var(--sticker-sunflower);
   box-shadow: var(--shadow);
   pointer-events: auto;
@@ -1156,7 +1230,7 @@ button.primary:active:not(:disabled) {
 
 /* Violet would be 2.08:1 on tomato, so the focus ring on a toast is ink. */
 .notice :focus-visible {
-  outline-color: var(--text);
+  outline-color: var(--ink);
 }
 
 .notice-close {
@@ -1190,7 +1264,7 @@ button.primary:active:not(:disabled) {
 }
 
 .camera-frame {
-  --frame-color: var(--text);
+  --frame-color: var(--ink);
   cursor: pointer;
 }
 
@@ -1361,6 +1435,11 @@ button.primary:active:not(:disabled) {
 kbd {
   font: inherit;
   color: var(--text-muted);
+}
+
+.menu-check {
+  color: var(--accent);
+  font-weight: 700;
 }
 
 /* ----- scene tree ----- */

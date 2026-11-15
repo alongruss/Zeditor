@@ -11,6 +11,8 @@ export interface DropdownItem {
   readonly tileColor?: string;
   /** In a grid menu: items with the same group share a captioned section. */
   readonly group?: string;
+  /** A choice among several (e.g. the theme): shown with a check when it's the current one. */
+  readonly checked?: boolean;
 }
 
 interface DropdownProps {
@@ -82,11 +84,11 @@ export function Dropdown({ label, menuLabel, items, primary, className, icon, co
 
   // The first item takes focus, so the arrow keys work straight away.
   useLayoutEffect(() => {
-    if (open) menuRef.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
+    if (open) menuRef.current?.querySelector<HTMLElement>('[role^="menuitem"]')?.focus();
   }, [open]);
 
   const onMenuKeyDown = (event: KeyboardEvent) => {
-    const all = [...(menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [])];
+    const all = [...(menuRef.current?.querySelectorAll<HTMLElement>('[role^="menuitem"]') ?? [])];
     const index = all.indexOf(document.activeElement as HTMLElement);
     const across = columns ?? 1;
     const moves: Record<string, number | undefined> = {
@@ -171,9 +173,20 @@ export function Dropdown({ label, menuLabel, items, primary, className, icon, co
                 </div>
               ))
             : items.map((item) => (
-                <button key={item.label} type="button" role="menuitem" onClick={() => choose(item)}>
+                <button
+                  key={item.label}
+                  type="button"
+                  role={item.checked === undefined ? 'menuitem' : 'menuitemradio'}
+                  aria-checked={item.checked}
+                  onClick={() => choose(item)}
+                >
                   {item.label}
                   {item.shortcut && <kbd>{item.shortcut}</kbd>}
+                  {item.checked && (
+                    <span class="menu-check" aria-hidden="true">
+                      ✓
+                    </span>
+                  )}
                 </button>
               ))}
         </div>
