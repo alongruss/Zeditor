@@ -110,7 +110,12 @@ function readProp(key: string, value: unknown, field: FieldDef | undefined, wher
   if (key === 'path') return isPathData(value) ? structuredClone(value) : bad();
   switch (field?.kind) {
     case 'number':
-      return isFiniteNumber(value) && value >= field.min && (!field.integer || Number.isInteger(value)) ? value : bad();
+      return isFiniteNumber(value) &&
+        value >= field.min &&
+        (field.max === undefined || value <= field.max) &&
+        (!field.integer || Number.isInteger(value))
+        ? value
+        : bad();
     case 'color':
       return isSafeColor(value) ? value : bad();
     case 'boolean':

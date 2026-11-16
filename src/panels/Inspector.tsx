@@ -422,6 +422,7 @@ function FieldControl({ field, shape, set }: { field: FieldDef; shape: ShapeData
           value={typeof raw === 'number' ? raw : 0}
           step={field.step}
           min={field.min}
+          max={field.max}
           integer={field.integer}
           onCommit={commit}
         />

@@ -9,6 +9,8 @@ import { STICKER } from './shapeTiles';
 
 /** Indent per level of nesting, in pixels. */
 const INDENT_PX = 14;
+/** Groups this deep (0 = at the top) start open; deeper ones start closed, so a big scene reads at a glance. */
+const OPEN_DEPTH = 2;
 
 const typeLabel = (object: SceneObject) =>
   object.type === 'Camera' ? 'Camera' : object.type === 'Group' ? 'Group' : SHAPE_TYPE_DEFS[object.type].label;
@@ -26,23 +28,19 @@ function openForSelection(scene: Scene, selectedId: string | null): Set<string> 
 export function SceneTree() {
   const { scene, selectedId } = useEditorState();
   const [renamingId, setRenamingId] = useState<string | null>(null);
-  const [closed, setClosed] = useState<ReadonlySet<string>>(new Set());
+  // Groups you opened or closed yourself; the rest follow OPEN_DEPTH.
+  const [toggled, setToggled] = useState<ReadonlyMap<string, boolean>>(new Map());
   // Something selected inside a closed group (e.g. by clicking it in the scene) opens it.
   const mustOpen = openForSelection(scene, selectedId);
-  const isOpen = (id: string) => !closed.has(id) || mustOpen.has(id);
-  const toggle = (id: string) =>
-    setClosed((current) => {
-      const next = new Set(current);
-      if (isOpen(id)) next.add(id);
-      else next.delete(id);
-      return next;
-    });
+  const isOpen = (id: string, depth: number) => mustOpen.has(id) || (toggled.get(id) ?? depth < OPEN_DEPTH);
+  const toggle = (id: string, depth: number) =>
+    setToggled((current) => new Map(current).set(id, !isOpen(id, depth)));
 
   const item = (object: SceneObject, depth: number) => {
     const selected = object.id === selectedId;
     const isCamera = object.type === 'Camera';
     const isGroup = object.type === 'Group';
-    const open = isGroup && isOpen(object.id);
+    const open = isGroup && isOpen(object.id, depth);
     const inside = isGroup && open ? childrenOf(scene, object.id) : [];
     return (
       <li key={object.id} class={selected ? 'is-selected' : undefined}>
@@ -53,7 +51,7 @@ export function SceneTree() {
               class="tree-toggle"
               aria-expanded={open}
               aria-label={`${open ? 'Close' : 'Open'} ${object.name}`}
-              onClick={() => toggle(object.id)}
+              onClick={() => toggle(object.id, depth)}
             >
               {open ? '▾' : '▸'}
             </button>

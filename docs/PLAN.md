@@ -334,8 +334,11 @@ gains groups:
   Group when "Draw together" is on). Grouping, ungrouping and moving into a group keep things
   where they are in the world. The gizmo works in a group's turned and scaled space. The tree
   nests, and the Inspector has a Group picker.
-- **G2:** the zdog options the example needs, an importer for zdog scripts, and the example itself,
-  with a turntable camera.
+- **G2:** the zdog options the example needs (a circle's quarters and closed, a shape's closed and
+  visible), an importer for zdog scripts (`scripts/import-zdog.mjs`), and File ▾ › Example: Nippu,
+  with a Turntable camera. A browser test runs the original script with zdog and compares it with
+  the editor's export of the imported scene, from three angles. Big trees start open two levels
+  deep.
 - **G3:** the walking version.
 
 ## Later

@@ -1,14 +1,17 @@
 import { useCallback } from 'preact/hooks';
 import { chooseSceneFile, exportScript, saveScene } from '../files/sceneFiles';
+import { EXAMPLES, exampleScene, type Example } from '../examples';
 import { SHAPE_TYPE_DEFS } from '../model/shapeTypes';
 import { SHAPE_TYPES } from '../model/types';
-import { addCameraCommand, addShapeOfType, newScene } from '../state/commands';
+import { addCameraCommand, addShapeOfType, loadScene, newScene } from '../state/commands';
+import { showNotice } from '../state/notice';
 import { lookedThroughCamera } from '../state/currentView';
 import { closeLottieDialog, openLottieDialog, useLottieDialogOpen } from '../state/dialogs';
 import {
   dispatch,
   freeView,
   redo,
+  setFreeView,
   setLookThrough,
   undo,
   useEditorState,
@@ -37,6 +40,17 @@ export function confirmNewScene(): void {
   if (window.confirm(NEW_SCENE_PROMPT)) dispatch(newScene);
 }
 
+/** Asks first, then opens an example in place of the scene (undoable), from its best angle. */
+export function openExample(example: Example): void {
+  if (!window.confirm(`Open the "${example.title.replace(/^Example: /, '')}" example in place of this scene? You can undo this with Ctrl+Z.`)) {
+    return;
+  }
+  dispatch(loadScene(exampleScene(example)));
+  setLookThrough(null);
+  setFreeView(example.freeView);
+  showNotice(example.credit);
+}
+
 export function FileMenu() {
   const theme = useTheme();
   return (
@@ -49,6 +63,7 @@ export function FileMenu() {
         { label: 'Save', shortcut: 'Ctrl+S', onSelect: saveScene },
         { label: 'Export Zdog JS', onSelect: () => void exportScript() },
         { label: 'Export Lottie…', onSelect: openLottieDialog },
+        ...EXAMPLES.map((example) => ({ label: example.title, onSelect: () => openExample(example) })),
         { label: 'Theme: match system', checked: theme === 'system', onSelect: () => setTheme('system') },
         { label: 'Theme: light', checked: theme === 'light', onSelect: () => setTheme('light') },
         { label: 'Theme: dark', checked: theme === 'dark', onSelect: () => setTheme('dark') },

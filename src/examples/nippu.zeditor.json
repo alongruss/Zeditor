@@ -1,0 +1,3528 @@
+{
+  "version": 4,
+  "settings": {
+    "background": "#0099dd",
+    "fps": 30,
+    "duration": 120
+  },
+  "shapes": [
+    {
+      "id": "shape-1",
+      "name": "Hips shape",
+      "type": "Shape",
+      "translate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {
+            "x": -5.656854
+          },
+          {
+            "x": 5.656854
+          }
+        ],
+        "color": "#ffcc99",
+        "stroke": 8,
+        "fill": false,
+        "closed": true,
+        "visible": true
+      },
+      "parent": "group-3"
+    },
+    {
+      "id": "shape-2",
+      "name": "Right thigh shape",
+      "type": "Shape",
+      "translate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {
+            "y": 0
+          },
+          {
+            "y": 18
+          }
+        ],
+        "color": "#ffcc99",
+        "stroke": 8,
+        "fill": false,
+        "closed": true,
+        "visible": true
+      },
+      "parent": "group-4"
+    },
+    {
+      "id": "shape-3",
+      "name": "Right thigh line",
+      "type": "Shape",
+      "translate": {
+        "x": -4,
+        "y": 0,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {
+            "y": 0
+          },
+          {
+            "y": 18
+          }
+        ],
+        "color": "#ffffff",
+        "stroke": 0.5,
+        "fill": false,
+        "closed": true,
+        "visible": true
+      },
+      "parent": "group-4"
+    },
+    {
+      "id": "shape-4",
+      "name": "Right shin shape",
+      "type": "Shape",
+      "translate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {
+            "y": 0
+          },
+          {
+            "y": 22
+          }
+        ],
+        "color": "#ffcc99",
+        "stroke": 8,
+        "fill": false,
+        "closed": true,
+        "visible": true
+      },
+      "parent": "group-5"
+    },
+    {
+      "id": "shape-5",
+      "name": "Shape 5",
+      "type": "Shape",
+      "translate": {
+        "x": -4,
+        "y": 0,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {
+            "y": -2
+          },
+          {
+            "y": 22
+          }
+        ],
+        "color": "#ffffff",
+        "stroke": 0.5,
+        "fill": false,
+        "closed": true,
+        "visible": true
+      },
+      "parent": "group-5"
+    },
+    {
+      "id": "shape-6",
+      "name": "Right ankle shape",
+      "type": "Shape",
+      "translate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {
+            "y": 3
+          },
+          {
+            "y": 4
+          }
+        ],
+        "color": "#ff8888",
+        "stroke": 6,
+        "fill": false,
+        "closed": true,
+        "visible": true
+      },
+      "parent": "group-6"
+    },
+    {
+      "id": "rounded-rect-1",
+      "name": "Shoe shape",
+      "type": "RoundedRect",
+      "translate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "width": 2,
+        "height": 10,
+        "cornerRadius": 2,
+        "color": "#ffffff",
+        "stroke": 6,
+        "fill": true
+      },
+      "parent": "group-7"
+    },
+    {
+      "id": "shape-7",
+      "name": "Shoe lace",
+      "type": "Shape",
+      "translate": {
+        "x": 0,
+        "y": -2,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {
+            "x": -2
+          },
+          {
+            "x": 2
+          }
+        ],
+        "color": "#6666cc",
+        "stroke": 1,
+        "fill": false,
+        "closed": true,
+        "visible": true
+      },
+      "parent": "group-8"
+    },
+    {
+      "id": "shape-8",
+      "name": "Shape 8",
+      "type": "Shape",
+      "translate": {
+        "x": 0,
+        "y": -4,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {
+            "x": -2
+          },
+          {
+            "x": 2
+          }
+        ],
+        "color": "#6666cc",
+        "stroke": 1,
+        "fill": false,
+        "closed": true,
+        "visible": true
+      },
+      "parent": "group-8"
+    },
+    {
+      "id": "shape-9",
+      "name": "Shape 9",
+      "type": "Shape",
+      "translate": {
+        "x": 0,
+        "y": 4,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {}
+        ],
+        "color": "#333333",
+        "stroke": 1,
+        "fill": false,
+        "closed": true,
+        "visible": false
+      },
+      "parent": "group-8"
+    },
+    {
+      "id": "rounded-rect-2",
+      "name": "Rounded rectangle 2",
+      "type": "RoundedRect",
+      "translate": {
+        "x": 0,
+        "y": 0,
+        "z": 3.5
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "width": 6,
+        "height": 13,
+        "cornerRadius": 3,
+        "color": "#6666cc",
+        "stroke": 1,
+        "fill": true
+      },
+      "parent": "group-7"
+    },
+    {
+      "id": "shape-10",
+      "name": "Left thigh shape",
+      "type": "Shape",
+      "translate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {
+            "y": 0
+          },
+          {
+            "y": 18
+          }
+        ],
+        "color": "#ff9966",
+        "stroke": 8,
+        "fill": false,
+        "closed": true,
+        "visible": true
+      },
+      "parent": "group-9"
+    },
+    {
+      "id": "shape-11",
+      "name": "Shape 11",
+      "type": "Shape",
+      "translate": {
+        "x": 4,
+        "y": 0,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {
+            "y": 0
+          },
+          {
+            "y": 18
+          }
+        ],
+        "color": "#ffcc99",
+        "stroke": 0.5,
+        "fill": false,
+        "closed": true,
+        "visible": true
+      },
+      "parent": "group-9"
+    },
+    {
+      "id": "shape-12",
+      "name": "Left shin shape",
+      "type": "Shape",
+      "translate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {
+            "y": 0
+          },
+          {
+            "y": 22
+          }
+        ],
+        "color": "#ff9966",
+        "stroke": 8,
+        "fill": false,
+        "closed": true,
+        "visible": true
+      },
+      "parent": "group-10"
+    },
+    {
+      "id": "shape-13",
+      "name": "Shape 13",
+      "type": "Shape",
+      "translate": {
+        "x": 4,
+        "y": 0,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {
+            "y": 0
+          },
+          {
+            "y": 22
+          }
+        ],
+        "color": "#ffcc99",
+        "stroke": 0.5,
+        "fill": false,
+        "closed": true,
+        "visible": true
+      },
+      "parent": "group-10"
+    },
+    {
+      "id": "shape-14",
+      "name": "Left ankle shape",
+      "type": "Shape",
+      "translate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {
+            "y": 3
+          },
+          {
+            "y": 4
+          }
+        ],
+        "color": "#ff6666",
+        "stroke": 6,
+        "fill": false,
+        "closed": true,
+        "visible": true
+      },
+      "parent": "group-11"
+    },
+    {
+      "id": "rounded-rect-3",
+      "name": "Shoe shape",
+      "type": "RoundedRect",
+      "translate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "width": 2,
+        "height": 10,
+        "cornerRadius": 2,
+        "color": "#ffffdd",
+        "stroke": 6,
+        "fill": true
+      },
+      "parent": "group-12"
+    },
+    {
+      "id": "shape-15",
+      "name": "Shoe lace",
+      "type": "Shape",
+      "translate": {
+        "x": 0,
+        "y": -2,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {
+            "x": -2
+          },
+          {
+            "x": 2
+          }
+        ],
+        "color": "#6666cc",
+        "stroke": 1,
+        "fill": false,
+        "closed": true,
+        "visible": true
+      },
+      "parent": "group-13"
+    },
+    {
+      "id": "shape-16",
+      "name": "Shape 16",
+      "type": "Shape",
+      "translate": {
+        "x": 0,
+        "y": -4,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {
+            "x": -2
+          },
+          {
+            "x": 2
+          }
+        ],
+        "color": "#6666cc",
+        "stroke": 1,
+        "fill": false,
+        "closed": true,
+        "visible": true
+      },
+      "parent": "group-13"
+    },
+    {
+      "id": "shape-17",
+      "name": "Shape 17",
+      "type": "Shape",
+      "translate": {
+        "x": 0,
+        "y": 4,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {}
+        ],
+        "color": "#333333",
+        "stroke": 1,
+        "fill": false,
+        "closed": true,
+        "visible": false
+      },
+      "parent": "group-13"
+    },
+    {
+      "id": "rounded-rect-4",
+      "name": "Rounded rectangle 4",
+      "type": "RoundedRect",
+      "translate": {
+        "x": 0,
+        "y": 0,
+        "z": 3.5
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "width": 6,
+        "height": 13,
+        "cornerRadius": 3,
+        "color": "#6666cc",
+        "stroke": 1,
+        "fill": true
+      },
+      "parent": "group-12"
+    },
+    {
+      "id": "shape-18",
+      "name": "Torso shape",
+      "type": "Shape",
+      "translate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {
+            "x": -8.485281
+          },
+          {
+            "x": 8.485281
+          }
+        ],
+        "color": "#003366",
+        "stroke": 16,
+        "fill": false,
+        "closed": true,
+        "visible": true
+      },
+      "parent": "group-14"
+    },
+    {
+      "id": "shape-19",
+      "name": "Right shoulder shape",
+      "type": "Shape",
+      "translate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {
+            "y": 0
+          },
+          {
+            "y": 14
+          }
+        ],
+        "color": "#003366",
+        "stroke": 10,
+        "fill": false,
+        "closed": true,
+        "visible": true
+      },
+      "parent": "group-15"
+    },
+    {
+      "id": "shape-20",
+      "name": "Right arm shape",
+      "type": "Shape",
+      "translate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {
+            "y": 0
+          },
+          {
+            "y": 14
+          }
+        ],
+        "color": "#ff8888",
+        "stroke": 8,
+        "fill": false,
+        "closed": true,
+        "visible": true
+      },
+      "parent": "group-16"
+    },
+    {
+      "id": "shape-21",
+      "name": "Right hand",
+      "type": "Shape",
+      "translate": {
+        "x": -0.5,
+        "y": 14,
+        "z": 1
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {}
+        ],
+        "color": "#ff8888",
+        "stroke": 10,
+        "fill": false,
+        "closed": true,
+        "visible": true
+      },
+      "parent": "group-16"
+    },
+    {
+      "id": "shape-22",
+      "name": "Left shoulder shape",
+      "type": "Shape",
+      "translate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {
+            "y": 0
+          },
+          {
+            "y": 14
+          }
+        ],
+        "color": "#000033",
+        "stroke": 10,
+        "fill": false,
+        "closed": true,
+        "visible": true
+      },
+      "parent": "group-17"
+    },
+    {
+      "id": "shape-23",
+      "name": "Left arm shape",
+      "type": "Shape",
+      "translate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {
+            "y": 0
+          },
+          {
+            "y": 14
+          }
+        ],
+        "color": "#ff6666",
+        "stroke": 8,
+        "fill": false,
+        "closed": true,
+        "visible": true
+      },
+      "parent": "group-18"
+    },
+    {
+      "id": "shape-24",
+      "name": "Shape 24",
+      "type": "Shape",
+      "translate": {
+        "x": -0.5,
+        "y": 14,
+        "z": 1
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {}
+        ],
+        "color": "#ff6666",
+        "stroke": 10,
+        "fill": false,
+        "closed": true,
+        "visible": true
+      },
+      "parent": "group-18"
+    },
+    {
+      "id": "ellipse-1",
+      "name": "Circle 1",
+      "type": "Ellipse",
+      "translate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "rotate": {
+        "x": -11.25,
+        "y": 90,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "diameter": 16,
+        "quarters": 1,
+        "color": "#0099dd",
+        "stroke": 0.5,
+        "fill": false,
+        "closed": false
+      },
+      "parent": "group-14"
+    },
+    {
+      "id": "shape-25",
+      "name": "Neck shape",
+      "type": "Shape",
+      "translate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {
+            "y": -8
+          },
+          {
+            "y": -12
+          }
+        ],
+        "color": "#ff8888",
+        "stroke": 6,
+        "fill": false,
+        "closed": true,
+        "visible": true
+      },
+      "parent": "group-19"
+    },
+    {
+      "id": "shape-26",
+      "name": "Chin shape",
+      "type": "Shape",
+      "translate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {}
+        ],
+        "color": "#ff8888",
+        "stroke": 8,
+        "fill": false,
+        "closed": true,
+        "visible": true
+      },
+      "parent": "group-20"
+    },
+    {
+      "id": "ellipse-2",
+      "name": "Forehead shape",
+      "type": "Ellipse",
+      "translate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "diameter": 2,
+        "quarters": 4,
+        "color": "#ff8888",
+        "stroke": 4,
+        "fill": false,
+        "closed": false
+      },
+      "parent": "group-21"
+    },
+    {
+      "id": "ellipse-3",
+      "name": "Eye",
+      "type": "Ellipse",
+      "translate": {
+        "x": -1,
+        "y": 0.5,
+        "z": 2
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": -90
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "diameter": 1,
+        "quarters": 2,
+        "color": "#000033",
+        "stroke": 0.38,
+        "fill": false,
+        "closed": false
+      },
+      "parent": "group-21"
+    },
+    {
+      "id": "ellipse-4",
+      "name": "Circle 4",
+      "type": "Ellipse",
+      "translate": {
+        "x": 1,
+        "y": 0.5,
+        "z": 2
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": -90
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "diameter": 1,
+        "quarters": 2,
+        "color": "#000033",
+        "stroke": 0.38,
+        "fill": false,
+        "closed": false
+      },
+      "parent": "group-21"
+    },
+    {
+      "id": "ellipse-5",
+      "name": "Ear",
+      "type": "Ellipse",
+      "translate": {
+        "x": 3.5,
+        "y": 1,
+        "z": -1
+      },
+      "rotate": {
+        "x": 0,
+        "y": -45,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "diameter": 1.5,
+        "quarters": 4,
+        "color": "#ff8888",
+        "stroke": 1,
+        "fill": true,
+        "closed": false
+      },
+      "parent": "group-21"
+    },
+    {
+      "id": "ellipse-6",
+      "name": "Circle 6",
+      "type": "Ellipse",
+      "translate": {
+        "x": -3.5,
+        "y": 1,
+        "z": -1
+      },
+      "rotate": {
+        "x": 0,
+        "y": 45,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "diameter": 1.5,
+        "quarters": 4,
+        "color": "#ff8888",
+        "stroke": 1,
+        "fill": true,
+        "closed": false
+      },
+      "parent": "group-21"
+    },
+    {
+      "id": "shape-27",
+      "name": "Shape 27",
+      "type": "Shape",
+      "translate": {
+        "x": -2,
+        "y": -2,
+        "z": -3
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {
+            "y": -1
+          },
+          {
+            "y": -7
+          }
+        ],
+        "color": "#990033",
+        "stroke": 4,
+        "fill": false,
+        "closed": true,
+        "visible": true
+      },
+      "parent": "group-20"
+    },
+    {
+      "id": "shape-28",
+      "name": "Shape 28",
+      "type": "Shape",
+      "translate": {
+        "x": 1.25,
+        "y": -2,
+        "z": -3
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {
+            "y": 0
+          },
+          {
+            "y": -6
+          }
+        ],
+        "color": "#cc3333",
+        "stroke": 2.5,
+        "fill": false,
+        "closed": true,
+        "visible": true
+      },
+      "parent": "group-20"
+    },
+    {
+      "id": "ellipse-7",
+      "name": "Circle 7",
+      "type": "Ellipse",
+      "translate": {
+        "x": 0,
+        "y": -4,
+        "z": -4
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "diameter": 3,
+        "quarters": 4,
+        "color": "#990033",
+        "stroke": 4,
+        "fill": false,
+        "closed": false
+      },
+      "parent": "group-20"
+    },
+    {
+      "id": "ellipse-8",
+      "name": "Circle 8",
+      "type": "Ellipse",
+      "translate": {
+        "x": 0,
+        "y": -1.5,
+        "z": 3
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 90
+      },
+      "scale": 3,
+      "opacity": 1,
+      "props": {
+        "diameter": 1,
+        "quarters": 2,
+        "color": "#ffffff",
+        "stroke": 0.5,
+        "fill": true,
+        "closed": true
+      },
+      "parent": "group-20"
+    },
+    {
+      "id": "shape-29",
+      "name": "Hips shape",
+      "type": "Shape",
+      "translate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {}
+        ],
+        "color": "#003366",
+        "stroke": 15,
+        "fill": false,
+        "closed": true,
+        "visible": true
+      },
+      "parent": "group-23"
+    },
+    {
+      "id": "rect-1",
+      "name": "Torso shape",
+      "type": "Rect",
+      "translate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "width": 1,
+        "height": 5,
+        "color": "#ffcc99",
+        "stroke": 8,
+        "fill": false
+      },
+      "parent": "group-25"
+    },
+    {
+      "id": "shape-30",
+      "name": "Neck shape",
+      "type": "Shape",
+      "translate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {},
+          {
+            "y": -2
+          }
+        ],
+        "color": "#ffaaaa",
+        "stroke": 4,
+        "fill": false,
+        "closed": true,
+        "visible": true
+      },
+      "parent": "group-26"
+    },
+    {
+      "id": "rounded-rect-5",
+      "name": "Collar",
+      "type": "RoundedRect",
+      "translate": {
+        "x": 1,
+        "y": 2,
+        "z": 0
+      },
+      "rotate": {
+        "x": -90,
+        "y": 0,
+        "z": 45
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "width": 3,
+        "height": 5,
+        "cornerRadius": 1.5,
+        "color": "#ffffff",
+        "stroke": 1,
+        "fill": true
+      },
+      "parent": "group-26"
+    },
+    {
+      "id": "rounded-rect-6",
+      "name": "Rounded rectangle 6",
+      "type": "RoundedRect",
+      "translate": {
+        "x": -1,
+        "y": 2,
+        "z": 0
+      },
+      "rotate": {
+        "x": -90,
+        "y": 0,
+        "z": -45
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "width": 3,
+        "height": 5,
+        "cornerRadius": 1.5,
+        "color": "#ffffff",
+        "stroke": 1,
+        "fill": true
+      },
+      "parent": "group-26"
+    },
+    {
+      "id": "hemisphere-1",
+      "name": "Hemisphere 1",
+      "type": "Hemisphere",
+      "translate": {
+        "x": 0,
+        "y": -1,
+        "z": 0
+      },
+      "rotate": {
+        "x": 135,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "diameter": 11,
+        "color": "#000033",
+        "backface": "#000033",
+        "stroke": 1.5,
+        "fill": true
+      },
+      "parent": "group-27"
+    },
+    {
+      "id": "hemisphere-2",
+      "name": "Hemisphere 2",
+      "type": "Hemisphere",
+      "translate": {
+        "x": 0,
+        "y": -0.95,
+        "z": 0
+      },
+      "rotate": {
+        "x": 135,
+        "y": 180,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "diameter": 9,
+        "color": "#ffaaaa",
+        "backface": "#000033",
+        "stroke": 0.5,
+        "fill": true
+      },
+      "parent": "group-27"
+    },
+    {
+      "id": "ellipse-9",
+      "name": "Circle 9",
+      "type": "Ellipse",
+      "translate": {
+        "x": 0,
+        "y": 0.5,
+        "z": 4
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 135
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "diameter": 3,
+        "quarters": 1,
+        "color": "#ff6666",
+        "stroke": 0.5,
+        "fill": false,
+        "closed": false
+      },
+      "parent": "group-27"
+    },
+    {
+      "id": "rounded-rect-7",
+      "name": "Rounded rectangle 7",
+      "type": "RoundedRect",
+      "translate": {
+        "x": 4.5,
+        "y": 2,
+        "z": -2
+      },
+      "rotate": {
+        "x": 0,
+        "y": 90,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "width": 6,
+        "height": 10,
+        "cornerRadius": 3,
+        "color": "#000033",
+        "stroke": 2,
+        "fill": true
+      },
+      "parent": "group-27"
+    },
+    {
+      "id": "ellipse-10",
+      "name": "Lens",
+      "type": "Ellipse",
+      "translate": {
+        "x": -2.5,
+        "y": 0,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "diameter": 4,
+        "quarters": 4,
+        "color": "#660033",
+        "stroke": 0,
+        "fill": true,
+        "closed": false
+      },
+      "parent": "group-28"
+    },
+    {
+      "id": "ellipse-11",
+      "name": "Circle 11",
+      "type": "Ellipse",
+      "translate": {
+        "x": 2.5,
+        "y": 0,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "diameter": 4,
+        "quarters": 4,
+        "color": "#660033",
+        "stroke": 0,
+        "fill": true,
+        "closed": false
+      },
+      "parent": "group-28"
+    },
+    {
+      "id": "ellipse-12",
+      "name": "Glasses rim",
+      "type": "Ellipse",
+      "translate": {
+        "x": -2.5,
+        "y": 0,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "diameter": 4,
+        "quarters": 4,
+        "color": "#990033",
+        "stroke": 1,
+        "fill": false,
+        "closed": false
+      },
+      "parent": "group-28"
+    },
+    {
+      "id": "ellipse-13",
+      "name": "Circle 13",
+      "type": "Ellipse",
+      "translate": {
+        "x": 2.5,
+        "y": 0,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "diameter": 4,
+        "quarters": 4,
+        "color": "#990033",
+        "stroke": 1,
+        "fill": false,
+        "closed": false
+      },
+      "parent": "group-28"
+    },
+    {
+      "id": "shape-31",
+      "name": "Left arm shape",
+      "type": "Shape",
+      "translate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {
+            "z": 0,
+            "y": 0
+          },
+          {
+            "z": 12,
+            "y": -2
+          },
+          {
+            "z": 14,
+            "y": -14
+          },
+          {
+            "move": {
+              "x": 16,
+              "z": -16
+            }
+          }
+        ],
+        "color": "#ff8888",
+        "stroke": 4,
+        "fill": false,
+        "closed": false,
+        "visible": true
+      },
+      "parent": "group-29"
+    },
+    {
+      "id": "shape-32",
+      "name": "Left hand shape",
+      "type": "Shape",
+      "translate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {
+            "x": -1,
+            "z": -0.5
+          }
+        ],
+        "color": "#ff8888",
+        "stroke": 6,
+        "fill": false,
+        "closed": true,
+        "visible": true
+      },
+      "parent": "group-30"
+    },
+    {
+      "id": "rounded-rect-8",
+      "name": "Phone panel",
+      "type": "RoundedRect",
+      "translate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "width": 4,
+        "height": 8,
+        "cornerRadius": 1,
+        "color": "#ccccff",
+        "stroke": 0.5,
+        "fill": true
+      },
+      "parent": "group-32"
+    },
+    {
+      "id": "ellipse-14",
+      "name": "Circle 14",
+      "type": "Ellipse",
+      "translate": {
+        "x": 0,
+        "y": -1,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "diameter": 1.25,
+        "quarters": 4,
+        "color": "#0099dd",
+        "stroke": 0,
+        "fill": true,
+        "closed": false
+      },
+      "parent": "group-32"
+    },
+    {
+      "id": "shape-33",
+      "name": "Shape 33",
+      "type": "Shape",
+      "translate": {
+        "x": -1,
+        "y": -3,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {}
+        ],
+        "color": "#000033",
+        "stroke": 0.5,
+        "fill": false,
+        "closed": true,
+        "visible": true
+      },
+      "parent": "group-32"
+    },
+    {
+      "id": "shape-34",
+      "name": "Shape 34",
+      "type": "Shape",
+      "translate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {
+            "z": 16
+          }
+        ],
+        "color": "#333333",
+        "stroke": 1,
+        "fill": false,
+        "closed": true,
+        "visible": false
+      },
+      "parent": "group-32"
+    },
+    {
+      "id": "rounded-rect-9",
+      "name": "Rounded rectangle 9",
+      "type": "RoundedRect",
+      "translate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "width": 4,
+        "height": 8,
+        "cornerRadius": 1,
+        "color": "#000033",
+        "stroke": 0.5,
+        "fill": true
+      },
+      "parent": "group-33"
+    },
+    {
+      "id": "shape-35",
+      "name": "Right arm shape",
+      "type": "Shape",
+      "translate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {
+            "y": 0
+          },
+          {
+            "y": 24
+          }
+        ],
+        "color": "#ffaaaa",
+        "stroke": 4,
+        "fill": false,
+        "closed": false,
+        "visible": true
+      },
+      "parent": "group-34"
+    },
+    {
+      "id": "shape-36",
+      "name": "Right hand shape",
+      "type": "Shape",
+      "translate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {}
+        ],
+        "color": "#ffaaaa",
+        "stroke": 6,
+        "fill": false,
+        "closed": true,
+        "visible": true
+      },
+      "parent": "group-35"
+    },
+    {
+      "id": "rounded-rect-10",
+      "name": "Suit case front panel",
+      "type": "RoundedRect",
+      "translate": {
+        "x": 0,
+        "y": 0,
+        "z": 3
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "width": 24,
+        "height": 14,
+        "cornerRadius": 2,
+        "color": "#884488",
+        "stroke": 1,
+        "fill": true
+      },
+      "parent": "group-36"
+    },
+    {
+      "id": "rounded-rect-11",
+      "name": "Rounded rectangle 11",
+      "type": "RoundedRect",
+      "translate": {
+        "x": 0,
+        "y": 0,
+        "z": -3
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "width": 24,
+        "height": 14,
+        "cornerRadius": 2,
+        "color": "#660066",
+        "stroke": 1,
+        "fill": true
+      },
+      "parent": "group-36"
+    },
+    {
+      "id": "rect-2",
+      "name": "Suit case top panel",
+      "type": "Rect",
+      "translate": {
+        "x": 0,
+        "y": -7,
+        "z": 0
+      },
+      "rotate": {
+        "x": 90,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "width": 20,
+        "height": 5,
+        "color": "#660066",
+        "stroke": 0.5,
+        "fill": true
+      },
+      "parent": "group-36"
+    },
+    {
+      "id": "rect-3",
+      "name": "Rectangle 3",
+      "type": "Rect",
+      "translate": {
+        "x": 0,
+        "y": 7,
+        "z": 0
+      },
+      "rotate": {
+        "x": 90,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "width": 20,
+        "height": 5,
+        "color": "#660066",
+        "stroke": 0.5,
+        "fill": true
+      },
+      "parent": "group-36"
+    },
+    {
+      "id": "rect-4",
+      "name": "Suit case side panel",
+      "type": "Rect",
+      "translate": {
+        "x": 12,
+        "y": 0,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 90,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "width": 5,
+        "height": 10,
+        "color": "#660066",
+        "stroke": 0.5,
+        "fill": true
+      },
+      "parent": "group-36"
+    },
+    {
+      "id": "rect-5",
+      "name": "Rectangle 5",
+      "type": "Rect",
+      "translate": {
+        "x": -12,
+        "y": 0,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 90,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "width": 5,
+        "height": 10,
+        "color": "#660066",
+        "stroke": 0.5,
+        "fill": true
+      },
+      "parent": "group-36"
+    },
+    {
+      "id": "rect-6",
+      "name": "Rectangle 6",
+      "type": "Rect",
+      "translate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "width": 20,
+        "height": 10,
+        "color": "#660066",
+        "stroke": 4,
+        "fill": false
+      },
+      "parent": "group-36"
+    },
+    {
+      "id": "shape-37",
+      "name": "Suit case handle",
+      "type": "Shape",
+      "translate": {
+        "x": 3,
+        "y": -11,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {},
+          {
+            "arc": [
+              {
+                "x": 1,
+                "y": 0
+              },
+              {
+                "x": 1,
+                "y": 1
+              }
+            ]
+          },
+          {
+            "x": 1,
+            "y": 3
+          }
+        ],
+        "color": "#000033",
+        "stroke": 1.5,
+        "fill": false,
+        "closed": false,
+        "visible": true
+      },
+      "parent": "group-36"
+    },
+    {
+      "id": "shape-38",
+      "name": "Shape 38",
+      "type": "Shape",
+      "translate": {
+        "x": -3,
+        "y": -11,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {},
+          {
+            "arc": [
+              {
+                "x": -1,
+                "y": 0
+              },
+              {
+                "x": -1,
+                "y": 1
+              }
+            ]
+          },
+          {
+            "x": -1,
+            "y": 3
+          }
+        ],
+        "color": "#000033",
+        "stroke": 1.5,
+        "fill": false,
+        "closed": false,
+        "visible": true
+      },
+      "parent": "group-36"
+    },
+    {
+      "id": "shape-39",
+      "name": "Left leg shape",
+      "type": "Shape",
+      "translate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {
+            "y": 0
+          },
+          {
+            "y": 28
+          }
+        ],
+        "color": "#000033",
+        "stroke": 7,
+        "fill": false,
+        "closed": true,
+        "visible": true
+      },
+      "parent": "group-37"
+    },
+    {
+      "id": "shape-40",
+      "name": "Shape 40",
+      "type": "Shape",
+      "translate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {
+            "y": 2
+          },
+          {
+            "y": 8
+          }
+        ],
+        "color": "#ff8888",
+        "stroke": 4,
+        "fill": false,
+        "closed": true,
+        "visible": true
+      },
+      "parent": "group-38"
+    },
+    {
+      "id": "shape-41",
+      "name": "Shape 41",
+      "type": "Shape",
+      "translate": {
+        "x": 0,
+        "y": 5,
+        "z": -3
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {
+            "x": -1
+          },
+          {
+            "x": 1
+          }
+        ],
+        "color": "#ffcc99",
+        "stroke": 4,
+        "fill": false,
+        "closed": true,
+        "visible": true
+      },
+      "parent": "group-38"
+    },
+    {
+      "id": "shape-42",
+      "name": "Shape 42",
+      "type": "Shape",
+      "translate": {
+        "x": 0,
+        "y": 6,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {
+            "x": -2,
+            "z": -2
+          },
+          {
+            "arc": [
+              {
+                "x": -2,
+                "z": -2,
+                "y": 5
+              },
+              {
+                "x": 0,
+                "z": 2,
+                "y": 5
+              }
+            ]
+          }
+        ],
+        "color": "#ffcc99",
+        "stroke": 2,
+        "fill": false,
+        "closed": false,
+        "visible": true
+      },
+      "parent": "group-38"
+    },
+    {
+      "id": "shape-43",
+      "name": "Shape 43",
+      "type": "Shape",
+      "translate": {
+        "x": 0,
+        "y": 6,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {
+            "x": 2,
+            "z": -2
+          },
+          {
+            "arc": [
+              {
+                "x": 2,
+                "y": 5,
+                "z": -2
+              },
+              {
+                "x": 0,
+                "y": 5,
+                "z": 2
+              }
+            ]
+          }
+        ],
+        "color": "#ffcc99",
+        "stroke": 2,
+        "fill": false,
+        "closed": false,
+        "visible": true
+      },
+      "parent": "group-38"
+    },
+    {
+      "id": "shape-44",
+      "name": "Shape 44",
+      "type": "Shape",
+      "translate": {
+        "x": 0,
+        "y": 6,
+        "z": -4
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {},
+          {
+            "y": 5
+          }
+        ],
+        "color": "#ffcc99",
+        "stroke": 2,
+        "fill": false,
+        "closed": true,
+        "visible": true
+      },
+      "parent": "group-38"
+    },
+    {
+      "id": "shape-45",
+      "name": "Right thigh shape",
+      "type": "Shape",
+      "translate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {
+            "y": 0
+          },
+          {
+            "y": 16
+          }
+        ],
+        "color": "#003366",
+        "stroke": 7,
+        "fill": false,
+        "closed": true,
+        "visible": true
+      },
+      "parent": "group-39"
+    },
+    {
+      "id": "shape-46",
+      "name": "Right shin shape",
+      "type": "Shape",
+      "translate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {
+            "y": 0
+          },
+          {
+            "y": 10
+          }
+        ],
+        "color": "#003366",
+        "stroke": 7,
+        "fill": false,
+        "closed": true,
+        "visible": true
+      },
+      "parent": "group-40"
+    },
+    {
+      "id": "shape-47",
+      "name": "Right foot shape",
+      "type": "Shape",
+      "translate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {
+            "y": 2
+          },
+          {
+            "y": 8
+          }
+        ],
+        "color": "#ffaaaa",
+        "stroke": 4,
+        "fill": false,
+        "closed": true,
+        "visible": true
+      },
+      "parent": "group-41"
+    },
+    {
+      "id": "shape-48",
+      "name": "Shape 48",
+      "type": "Shape",
+      "translate": {
+        "x": 0,
+        "y": 5,
+        "z": -3
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {
+            "x": -1
+          },
+          {
+            "x": 1
+          }
+        ],
+        "color": "#ffcc99",
+        "stroke": 4,
+        "fill": false,
+        "closed": true,
+        "visible": true
+      },
+      "parent": "group-41"
+    },
+    {
+      "id": "shape-49",
+      "name": "Sole edge",
+      "type": "Shape",
+      "translate": {
+        "x": 0,
+        "y": 6,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {
+            "x": -2,
+            "z": -2
+          },
+          {
+            "arc": [
+              {
+                "x": -2,
+                "z": -2,
+                "y": 5
+              },
+              {
+                "x": 0,
+                "z": 2,
+                "y": 5
+              }
+            ]
+          }
+        ],
+        "color": "#ffcc99",
+        "stroke": 2,
+        "fill": false,
+        "closed": false,
+        "visible": true
+      },
+      "parent": "group-41"
+    },
+    {
+      "id": "shape-50",
+      "name": "Shape 50",
+      "type": "Shape",
+      "translate": {
+        "x": 0,
+        "y": 6,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {
+            "x": 2,
+            "z": -2
+          },
+          {
+            "arc": [
+              {
+                "x": 2,
+                "y": 5,
+                "z": -2
+              },
+              {
+                "x": 0,
+                "y": 5,
+                "z": 2
+              }
+            ]
+          }
+        ],
+        "color": "#ffcc99",
+        "stroke": 2,
+        "fill": false,
+        "closed": false,
+        "visible": true
+      },
+      "parent": "group-41"
+    },
+    {
+      "id": "shape-51",
+      "name": "Shape 51",
+      "type": "Shape",
+      "translate": {
+        "x": 0,
+        "y": 6,
+        "z": -4
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {},
+          {
+            "y": 5
+          }
+        ],
+        "color": "#ffcc99",
+        "stroke": 2,
+        "fill": false,
+        "closed": true,
+        "visible": true
+      },
+      "parent": "group-41"
+    },
+    {
+      "id": "shape-52",
+      "name": "Cloud shape",
+      "type": "Shape",
+      "translate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {}
+        ],
+        "color": "#ffffff",
+        "stroke": 16,
+        "fill": false,
+        "closed": true,
+        "visible": true
+      },
+      "parent": "group-42"
+    },
+    {
+      "id": "shape-53",
+      "name": "Small puff",
+      "type": "Shape",
+      "translate": {
+        "x": -9,
+        "y": 4,
+        "z": 4
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {}
+        ],
+        "color": "#ffffff",
+        "stroke": 8,
+        "fill": false,
+        "closed": true,
+        "visible": true
+      },
+      "parent": "group-42"
+    },
+    {
+      "id": "shape-54",
+      "name": "Shape 54",
+      "type": "Shape",
+      "translate": {
+        "x": 9,
+        "y": 5,
+        "z": 6
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {}
+        ],
+        "color": "#ffffff",
+        "stroke": 10,
+        "fill": false,
+        "closed": true,
+        "visible": true
+      },
+      "parent": "group-42"
+    },
+    {
+      "id": "rounded-rect-12",
+      "name": "Disk",
+      "type": "RoundedRect",
+      "translate": {
+        "x": -6,
+        "y": 7,
+        "z": 4
+      },
+      "rotate": {
+        "x": 90,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "width": 26,
+        "height": 12,
+        "cornerRadius": 6,
+        "color": "#ffffff",
+        "stroke": 3,
+        "fill": true
+      },
+      "parent": "group-42"
+    },
+    {
+      "id": "rounded-rect-13",
+      "name": "Rounded rectangle 13",
+      "type": "RoundedRect",
+      "translate": {
+        "x": 6,
+        "y": 9,
+        "z": 8
+      },
+      "rotate": {
+        "x": 90,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "width": 26,
+        "height": 12,
+        "cornerRadius": 6,
+        "color": "#ffffff",
+        "stroke": 3,
+        "fill": true
+      },
+      "parent": "group-42"
+    },
+    {
+      "id": "shape-55",
+      "name": "Shape 55",
+      "type": "Shape",
+      "translate": {
+        "x": -13,
+        "y": 0,
+        "z": -14
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "opacity": 1,
+      "props": {
+        "path": [
+          {}
+        ],
+        "color": "#ffcc99",
+        "stroke": 8,
+        "fill": false,
+        "closed": true,
+        "visible": true
+      },
+      "parent": "group-42"
+    }
+  ],
+  "groups": [
+    {
+      "id": "group-1",
+      "name": "Ground",
+      "type": "Group",
+      "translate": {
+        "x": 0,
+        "y": 56,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "drawTogether": false
+    },
+    {
+      "id": "group-2",
+      "name": "Dude",
+      "type": "Group",
+      "translate": {
+        "x": -24,
+        "y": 0,
+        "z": -12
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "drawTogether": false,
+      "parent": "group-1"
+    },
+    {
+      "id": "group-3",
+      "name": "Hips",
+      "type": "Group",
+      "translate": {
+        "x": 0,
+        "y": -49,
+        "z": 0
+      },
+      "rotate": {
+        "x": 22.5,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "drawTogether": false,
+      "parent": "group-2"
+    },
+    {
+      "id": "group-4",
+      "name": "Right thigh",
+      "type": "Group",
+      "translate": {
+        "x": -5.656854,
+        "y": 0,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "drawTogether": false,
+      "parent": "group-3"
+    },
+    {
+      "id": "group-5",
+      "name": "Right shin",
+      "type": "Group",
+      "translate": {
+        "x": 0,
+        "y": 18,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "drawTogether": false,
+      "parent": "group-4"
+    },
+    {
+      "id": "group-6",
+      "name": "Right ankle",
+      "type": "Group",
+      "translate": {
+        "x": 0,
+        "y": 22,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "drawTogether": false,
+      "parent": "group-5"
+    },
+    {
+      "id": "group-7",
+      "name": "Shoe",
+      "type": "Group",
+      "translate": {
+        "x": 0,
+        "y": 6,
+        "z": 4
+      },
+      "rotate": {
+        "x": -67.5,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "drawTogether": false,
+      "parent": "group-6"
+    },
+    {
+      "id": "group-8",
+      "name": "Laces group",
+      "type": "Group",
+      "translate": {
+        "x": 0,
+        "y": 0,
+        "z": -3
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "drawTogether": true,
+      "parent": "group-7"
+    },
+    {
+      "id": "group-9",
+      "name": "Left thigh",
+      "type": "Group",
+      "translate": {
+        "x": 5.656854,
+        "y": 0,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "drawTogether": false,
+      "parent": "group-3"
+    },
+    {
+      "id": "group-10",
+      "name": "Left shin",
+      "type": "Group",
+      "translate": {
+        "x": 0,
+        "y": 18,
+        "z": 0
+      },
+      "rotate": {
+        "x": -112.5,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "drawTogether": false,
+      "parent": "group-9"
+    },
+    {
+      "id": "group-11",
+      "name": "Left ankle",
+      "type": "Group",
+      "translate": {
+        "x": 0,
+        "y": 22,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "drawTogether": false,
+      "parent": "group-10"
+    },
+    {
+      "id": "group-12",
+      "name": "Shoe",
+      "type": "Group",
+      "translate": {
+        "x": 0,
+        "y": 6,
+        "z": 4
+      },
+      "rotate": {
+        "x": -67.5,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "drawTogether": false,
+      "parent": "group-11"
+    },
+    {
+      "id": "group-13",
+      "name": "Laces group",
+      "type": "Group",
+      "translate": {
+        "x": 0,
+        "y": 0,
+        "z": -3
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "drawTogether": true,
+      "parent": "group-12"
+    },
+    {
+      "id": "group-14",
+      "name": "Torso",
+      "type": "Group",
+      "translate": {
+        "x": 0,
+        "y": -59,
+        "z": -6
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "drawTogether": false,
+      "parent": "group-2"
+    },
+    {
+      "id": "group-15",
+      "name": "Right shoulder",
+      "type": "Group",
+      "translate": {
+        "x": -9.985281,
+        "y": -3,
+        "z": 0
+      },
+      "rotate": {
+        "x": -22.5,
+        "y": 0,
+        "z": 45
+      },
+      "scale": 1,
+      "drawTogether": false,
+      "parent": "group-14"
+    },
+    {
+      "id": "group-16",
+      "name": "Right arm",
+      "type": "Group",
+      "translate": {
+        "x": 0,
+        "y": 16,
+        "z": 0
+      },
+      "rotate": {
+        "x": 121.467053,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "drawTogether": false,
+      "parent": "group-15"
+    },
+    {
+      "id": "group-17",
+      "name": "Left shoulder",
+      "type": "Group",
+      "translate": {
+        "x": 9.985281,
+        "y": -3,
+        "z": 0
+      },
+      "rotate": {
+        "x": 67.5,
+        "y": 0,
+        "z": -11.25
+      },
+      "scale": 1,
+      "drawTogether": false,
+      "parent": "group-14"
+    },
+    {
+      "id": "group-18",
+      "name": "Left arm",
+      "type": "Group",
+      "translate": {
+        "x": 0,
+        "y": 16,
+        "z": 0
+      },
+      "rotate": {
+        "x": 90,
+        "y": 0,
+        "z": 45
+      },
+      "scale": 1,
+      "drawTogether": false,
+      "parent": "group-17"
+    },
+    {
+      "id": "group-19",
+      "name": "Neck",
+      "type": "Group",
+      "translate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "rotate": {
+        "x": 22.5,
+        "y": 67.5,
+        "z": 0
+      },
+      "scale": 1,
+      "drawTogether": false,
+      "parent": "group-14"
+    },
+    {
+      "id": "group-20",
+      "name": "Chin",
+      "type": "Group",
+      "translate": {
+        "x": 0,
+        "y": -13,
+        "z": 2
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "drawTogether": false,
+      "parent": "group-19"
+    },
+    {
+      "id": "group-21",
+      "name": "Forehead",
+      "type": "Group",
+      "translate": {
+        "x": 0,
+        "y": -4,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "drawTogether": false,
+      "parent": "group-20"
+    },
+    {
+      "id": "group-22",
+      "name": "Lady",
+      "type": "Group",
+      "translate": {
+        "x": 24,
+        "y": 0,
+        "z": 12
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "drawTogether": false,
+      "parent": "group-1"
+    },
+    {
+      "id": "group-23",
+      "name": "Hips",
+      "type": "Group",
+      "translate": {
+        "x": 0,
+        "y": -38,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "drawTogether": false,
+      "parent": "group-22"
+    },
+    {
+      "id": "group-24",
+      "name": "Torso anchor",
+      "type": "Group",
+      "translate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "rotate": {
+        "x": -45,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "drawTogether": false,
+      "parent": "group-23"
+    },
+    {
+      "id": "group-25",
+      "name": "Torso",
+      "type": "Group",
+      "translate": {
+        "x": 0,
+        "y": -9,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "drawTogether": false,
+      "parent": "group-24"
+    },
+    {
+      "id": "group-26",
+      "name": "Neck",
+      "type": "Group",
+      "translate": {
+        "x": 0,
+        "y": -7,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "drawTogether": false,
+      "parent": "group-25"
+    },
+    {
+      "id": "group-27",
+      "name": "Head",
+      "type": "Group",
+      "translate": {
+        "x": 0,
+        "y": -6,
+        "z": 0
+      },
+      "rotate": {
+        "x": 45,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "drawTogether": false,
+      "parent": "group-26"
+    },
+    {
+      "id": "group-28",
+      "name": "Glasses",
+      "type": "Group",
+      "translate": {
+        "x": 0,
+        "y": -1,
+        "z": 5
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "drawTogether": true,
+      "parent": "group-27"
+    },
+    {
+      "id": "group-29",
+      "name": "Left arm",
+      "type": "Group",
+      "translate": {
+        "x": 5,
+        "y": -3,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "drawTogether": false,
+      "parent": "group-25"
+    },
+    {
+      "id": "group-30",
+      "name": "Left hand",
+      "type": "Group",
+      "translate": {
+        "x": 0,
+        "y": -14,
+        "z": 14
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "drawTogether": false,
+      "parent": "group-29"
+    },
+    {
+      "id": "group-31",
+      "name": "Phone anchor",
+      "type": "Group",
+      "translate": {
+        "x": -2,
+        "y": 0,
+        "z": -4
+      },
+      "rotate": {
+        "x": 45,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "drawTogether": false,
+      "parent": "group-30"
+    },
+    {
+      "id": "group-32",
+      "name": "Phone back",
+      "type": "Group",
+      "translate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "drawTogether": true,
+      "parent": "group-31"
+    },
+    {
+      "id": "group-33",
+      "name": "Phone front",
+      "type": "Group",
+      "translate": {
+        "x": 0,
+        "y": 0,
+        "z": -0.5
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "drawTogether": true,
+      "parent": "group-31"
+    },
+    {
+      "id": "group-34",
+      "name": "Right arm",
+      "type": "Group",
+      "translate": {
+        "x": -4,
+        "y": -3,
+        "z": 0
+      },
+      "rotate": {
+        "x": 11.25,
+        "y": 0,
+        "z": 22.5
+      },
+      "scale": 1,
+      "drawTogether": false,
+      "parent": "group-25"
+    },
+    {
+      "id": "group-35",
+      "name": "Right hand",
+      "type": "Group",
+      "translate": {
+        "x": -0.5,
+        "y": 24,
+        "z": -1
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "drawTogether": false,
+      "parent": "group-34"
+    },
+    {
+      "id": "group-36",
+      "name": "Suit case",
+      "type": "Group",
+      "translate": {
+        "x": 0,
+        "y": 12,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 90,
+        "z": 0
+      },
+      "scale": 1,
+      "drawTogether": false,
+      "parent": "group-35"
+    },
+    {
+      "id": "group-37",
+      "name": "Left leg",
+      "type": "Group",
+      "translate": {
+        "x": 3.5,
+        "y": 4,
+        "z": 0
+      },
+      "rotate": {
+        "x": -45,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "drawTogether": false,
+      "parent": "group-23"
+    },
+    {
+      "id": "group-38",
+      "name": "Left foot",
+      "type": "Group",
+      "translate": {
+        "x": 0,
+        "y": 28,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "drawTogether": false,
+      "parent": "group-37"
+    },
+    {
+      "id": "group-39",
+      "name": "Right thigh",
+      "type": "Group",
+      "translate": {
+        "x": -3.5,
+        "y": 4,
+        "z": 0
+      },
+      "rotate": {
+        "x": 45,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "drawTogether": false,
+      "parent": "group-23"
+    },
+    {
+      "id": "group-40",
+      "name": "Right shin",
+      "type": "Group",
+      "translate": {
+        "x": 0,
+        "y": 16,
+        "z": 0
+      },
+      "rotate": {
+        "x": -45,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "drawTogether": false,
+      "parent": "group-39"
+    },
+    {
+      "id": "group-41",
+      "name": "Right foot",
+      "type": "Group",
+      "translate": {
+        "x": 0,
+        "y": 10,
+        "z": 0
+      },
+      "rotate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 1,
+      "drawTogether": false,
+      "parent": "group-40"
+    },
+    {
+      "id": "group-42",
+      "name": "Cloud",
+      "type": "Group",
+      "translate": {
+        "x": 34,
+        "y": -26,
+        "z": -20
+      },
+      "rotate": {
+        "x": 0,
+        "y": 45,
+        "z": 0
+      },
+      "scale": 1,
+      "drawTogether": false
+    }
+  ],
+  "cameras": [
+    {
+      "id": "camera-1",
+      "name": "Turntable",
+      "type": "Camera",
+      "rotate": {
+        "x": 0,
+        "y": -45,
+        "z": 0
+      },
+      "target": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "viewSpan": 128,
+      "width": 512,
+      "height": 512,
+      "tracks": {
+        "rotate.y": [
+          {
+            "frame": 0,
+            "value": -45,
+            "easing": "easeInOut"
+          },
+          {
+            "frame": 120,
+            "value": -405,
+            "easing": "easeInOut"
+          }
+        ]
+      }
+    }
+  ]
+}

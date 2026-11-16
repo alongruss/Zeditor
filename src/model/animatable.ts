@@ -57,7 +57,7 @@ export function propertiesOf(type: ObjectType): readonly PropertySpec[] {
       const path = `props.${field.key}`;
       switch (field.kind) {
         case 'number':
-          return { path, label: field.label, kind: 'number', min: field.min, integer: field.integer };
+          return { path, label: field.label, kind: 'number', min: field.min, max: field.max, integer: field.integer };
         case 'color':
           return { path, label: field.label, kind: 'color' };
         case 'face':
