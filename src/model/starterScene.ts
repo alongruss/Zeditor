@@ -37,9 +37,11 @@ export function starterScene(): Scene {
       }),
       shape('ellipse-1', 'Circle 1', 'Ellipse', { x: 4, y: 4, z: 4 }, {
         diameter: 4,
+        quarters: 4,
         color: '#cc2255',
         stroke: 1,
         fill: false,
+        closed: false,
       }),
       shape('polygon-1', 'Triangle', 'Polygon', { x: 4, y: -4, z: -4 }, {
         sides: 3,
@@ -58,6 +60,8 @@ export function starterScene(): Scene {
           color: '#FFEEDD',
           stroke: 1,
           fill: false,
+          closed: true,
+          visible: true,
         },
         1.25,
       ),

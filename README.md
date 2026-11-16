@@ -53,6 +53,13 @@ slower Linux machines.
 - [Vite](https://vite.dev) and TypeScript.
 - GitHub Actions runs every check on each pull request, and deploys `main` to GitHub Pages.
 
+## Examples
+
+File ▾ › Example: Nippu is Robin Davey's illustration "Nippu", made with Zdog by Dave DeSandro
+([CodePen](https://codepen.io/desandro/pen/RerqWW), MIT). Its script is kept unchanged in
+`examples-src/nippu.js`; `scripts/import-zdog.mjs` turns it into the scene file
+`src/examples/nippu.zeditor.json`.
+
 ## License
 
 MIT

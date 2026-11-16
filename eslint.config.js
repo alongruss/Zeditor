@@ -4,7 +4,8 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 export default defineConfig(
-  globalIgnores(['dist', 'playwright-report', 'test-results']),
+  // examples-src holds demo scripts kept exactly as their authors wrote them.
+  globalIgnores(['dist', 'playwright-report', 'test-results', 'examples-src']),
   js.configs.recommended,
   tseslint.configs.recommended,
   {

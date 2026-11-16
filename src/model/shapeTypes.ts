@@ -12,6 +12,7 @@ interface FieldBase {
 export interface NumberField extends FieldBase {
   readonly kind: 'number';
   readonly min: number;
+  readonly max?: number;
   /** Arrow-key step in the Inspector. */
   readonly step: number;
   /** Whole numbers only (e.g. polygon sides). */
@@ -68,6 +69,21 @@ const stroke: NumberField = {
   step: UNIT_STEP,
 };
 const fill: BooleanField = { key: 'fill', label: 'Fill', group: 'appearance', kind: 'boolean' };
+/** Draw the outline back to its start (a closed path), or leave it open. */
+const closed: BooleanField = { key: 'closed', label: 'Closed', group: 'appearance', kind: 'boolean' };
+/** Hidden shapes still count when a group is drawn together (zdog demos use them to steer draw order). */
+const visible: BooleanField = { key: 'visible', label: 'Visible', group: 'appearance', kind: 'boolean' };
+const quarters: NumberField = {
+  key: 'quarters',
+  label: 'Quarters',
+  group: 'size',
+  kind: 'number',
+  min: 1,
+  max: 4,
+  step: 1,
+  integer: true,
+};
+
 const backface: ColorField = {
   key: 'backface',
   label: 'Back color',
@@ -112,8 +128,8 @@ const defs: readonly ShapeTypeDef[] = [
     type: 'Ellipse',
     label: 'Circle',
     idPrefix: 'ellipse',
-    fields: [size('diameter', 'Diameter'), color, stroke, fill],
-    defaults: { diameter: 4, color: '#cc2255', stroke: 1, fill: false },
+    fields: [size('diameter', 'Diameter'), quarters, color, stroke, fill, closed],
+    defaults: { diameter: 4, quarters: 4, color: '#cc2255', stroke: 1, fill: false, closed: false },
   },
   {
     type: 'Polygon',
@@ -134,8 +150,8 @@ const defs: readonly ShapeTypeDef[] = [
     addLabel: 'Dot',
     idPrefix: 'shape',
     // The path itself isn't editable in v1; a new Shape is a single point (a round dot).
-    fields: [color, stroke, fill],
-    defaults: { path: DOT_PATH, color: '#663366', stroke: 2, fill: false },
+    fields: [color, stroke, fill, closed, visible],
+    defaults: { path: DOT_PATH, color: '#663366', stroke: 2, fill: false, closed: true, visible: true },
   },
   {
     type: 'Hemisphere',
