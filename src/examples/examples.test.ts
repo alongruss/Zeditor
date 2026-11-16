@@ -57,8 +57,16 @@ describe('examples', () => {
 
     it('is the Nippu scene with the couple’s limbs keyed, and loops', () => {
       const still = exampleScene(EXAMPLES.find((e) => e.id === 'nippu')!);
-      expect(scene.shapes).toEqual(still.shapes);
-      expect(scene.groups.filter((g) => g.tracks).length).toBeGreaterThanOrEqual(12);
+      // The same shapes, but the lady's straight left leg is cut at a knee (16 + 10, like her right).
+      const leg = (at: Scene) => at.shapes.find((s) => s.parent === groupAt(at, 'Ground/Lady/Hips/Left leg'))!;
+      const shin = (at: Scene) => at.shapes.find((s) => s.parent === groupAt(at, 'Ground/Lady/Hips/Left leg/Left shin'))!;
+      expect(scene.shapes).toHaveLength(still.shapes.length + 1);
+      expect(leg(scene).props.path).toEqual([{ y: 0 }, { y: 16 }]);
+      expect(shin(scene).props.path).toEqual([{ y: 0 }, { y: 10 }]);
+      const others = (at: Scene) => at.shapes.filter((s) => s.id !== leg(at).id && s.id !== shin(scene).id);
+      expect(others(scene)).toEqual(others(still));
+
+      expect(scene.groups.filter((g) => g.tracks).length).toBeGreaterThanOrEqual(16);
       expect(poseOf(scene.settings.duration)).toEqual(poseOf(0));
       // One step cycle, repeated: frame 7 looks like frame 37.
       expect(poseOf(7 + CYCLE)).toEqual(poseOf(7));
@@ -66,24 +74,49 @@ describe('examples', () => {
       expect(poseOf(CYCLE / 2)).not.toEqual(poseOf(0));
     });
 
-    it('keeps the planted foot on the ground (on every key)', () => {
-      const dude = ['Right', 'Left'].map((side) => `Ground/Dude/Hips/${side} thigh/${side} shin/${side} ankle/Shoe`);
-      const lady = ['Ground/Lady/Hips/Left leg/Left foot', 'Ground/Lady/Hips/Right thigh/Right shin/Right foot'];
-      const soleOfShoe = { x: 0, y: 0, z: 0 };
-      const toeOfFoot = { x: 0, y: 11, z: 0 }; // her shoes reach 11 down the foot
-      const ground = (frame: number) => ({
-        dude: Math.max(...dude.map((path) => lowY(frame, path, soleOfShoe))),
-        lady: Math.max(...lady.map((path) => lowY(frame, path, toeOfFoot))),
-      });
-      const start = ground(0);
-      for (let frame = 0; frame <= CYCLE; frame += 3) {
-        expect(ground(frame).dude, `dude, frame ${frame}`).toBeCloseTo(start.dude, 2);
-        expect(ground(frame).lady, `lady, frame ${frame}`).toBeCloseTo(start.lady, 2);
-      }
-      // Where the drawing has them standing.
+    // The lowest points of a shoe: his soles' ends; her toe and heel tip.
+    const DUDE_SOLE = [
+      { x: 0, y: -7, z: 4 },
+      { x: 0, y: 7, z: 4 },
+    ];
+    const LADY_SOLE = [
+      { x: 0, y: 11, z: 2 },
+      { x: 0, y: 11, z: -4 },
+    ];
+    const DUDE_FEET = ['Right', 'Left'].map((side) => `Ground/Dude/Hips/${side} thigh/${side} shin/${side} ankle/Shoe`);
+    const LADY_FEET = ['Ground/Lady/Hips/Left leg/Left shin/Left foot', 'Ground/Lady/Hips/Right thigh/Right shin/Right foot'];
+    const floorAt = (frame: number, feet: string[], sole: typeof DUDE_SOLE) =>
+      Math.max(...feet.flatMap((path) => sole.map((point) => lowY(frame, path, point))));
+
+    it('keeps a foot on the floor, where the drawing has them standing (on every key)', () => {
       const still = exampleScene(EXAMPLES.find((e) => e.id === 'nippu')!);
-      const drawn = applyTransform(worldTransform(still, findGroup(still, groupAt(still, dude[0]))!), soleOfShoe).y;
-      expect(start.dude).toBeCloseTo(drawn, 2);
+      const drawn = (path: string, sole: typeof DUDE_SOLE) =>
+        Math.max(...sole.map((point) => applyTransform(worldTransform(still, findGroup(still, groupAt(still, path))!), point).y));
+      const dudeFloor = drawn(DUDE_FEET[0], DUDE_SOLE);
+      const ladyFloor = Math.max(drawn('Ground/Lady/Hips/Left leg/Left foot', LADY_SOLE), drawn(LADY_FEET[1], LADY_SOLE));
+      for (let frame = 0; frame <= CYCLE; frame += 3) {
+        expect(floorAt(frame, DUDE_FEET, DUDE_SOLE), `dude, frame ${frame}`).toBeCloseTo(dudeFloor, 2);
+        expect(floorAt(frame, LADY_FEET, LADY_SOLE), `lady, frame ${frame}`).toBeCloseTo(ladyFloor, 2);
+      }
+    });
+
+    it('stands his planted shoe flat, and her feet level, as the body passes over them', () => {
+      // Mid-stance: the right leg's foot is down and level (phase 0.5 = frame 15).
+      const flat = (frame: number, path: string, sole: typeof DUDE_SOLE) => sole.map((point) => lowY(frame, path, point));
+      const [heel, toe] = flat(15, DUDE_FEET[0], DUDE_SOLE);
+      expect(heel).toBeCloseTo(toe, 1);
+      // Hers, half a step later: her left foot at frame 15, her right at frame 0.
+      const [ladyToe, ladyHeel] = flat(15, LADY_FEET[0], LADY_SOLE);
+      expect(ladyToe).toBeCloseTo(ladyHeel, 1);
+    });
+
+    it('bobs the same on both legs (no limp)', () => {
+      const height = (path: string, frame: number) => sceneAtFrame(scene, frame).groups.find((g) => g.id === groupAt(scene, path))!.translate.y;
+      for (const body of ['Ground/Dude', 'Ground/Lady/Hips']) {
+        for (let frame = 0; frame < CYCLE / 2; frame += 3) {
+          expect(height(body, frame + CYCLE / 2), `${body}, frame ${frame}`).toBeCloseTo(height(body, frame), 2);
+        }
+      }
     });
   });
 });
