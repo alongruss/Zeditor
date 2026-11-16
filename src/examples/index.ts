@@ -1,6 +1,7 @@
 import { parseSceneFile } from '../model/sceneFile';
 import type { Scene } from '../model/types';
 import type { FreeView } from '../viewport/freeView';
+import nippuWalking from './nippu-walking.zeditor.json?raw';
 import nippu from './nippu.zeditor.json?raw';
 
 /**
@@ -26,6 +27,14 @@ export const EXAMPLES: readonly Example[] = [
       '"Nippu": illustration by Robin Davey, made with Zdog by Dave DeSandro. Look through the Turntable camera to see it spin.',
     text: nippu,
     // The demo's own starting angle, zoomed out to fit the couple (128 units across).
+    freeView: { rotate: { x: 0, y: -Math.PI / 4 }, zoom: 0.25 },
+  },
+  {
+    id: 'nippu-walking',
+    title: 'Example: Nippu, walking',
+    credit:
+      '"Nippu": illustration by Robin Davey, made with Zdog by Dave DeSandro; walk added in Zeditor. Press Play, or look through the Turntable camera.',
+    text: nippuWalking,
     freeView: { rotate: { x: 0, y: -Math.PI / 4 }, zoom: 0.25 },
   },
 ];

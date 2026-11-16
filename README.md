@@ -58,7 +58,8 @@ slower Linux machines.
 File ▾ › Example: Nippu is Robin Davey's illustration "Nippu", made with Zdog by Dave DeSandro
 ([CodePen](https://codepen.io/desandro/pen/RerqWW), MIT). Its script is kept unchanged in
 `examples-src/nippu.js`; `scripts/import-zdog.mjs` turns it into the scene file
-`src/examples/nippu.zeditor.json`.
+`src/examples/nippu.zeditor.json`. File ▾ › Example: Nippu, walking is the same scene with the
+couple walking in place; `scripts/make-walk.mjs` adds the walk.
 
 ## License
 

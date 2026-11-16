@@ -81,10 +81,16 @@ export function openEditorForEachTest(test: TestType): void {
   });
 }
 
-/** Opens the toolbar's File menu and picks `item`. */
+/**
+ * Opens the toolbar's File menu and picks `item`: the item named exactly
+ * that, perhaps followed by its shortcut ("Save" is "Save Ctrl+S", but
+ * "Example: Nippu" isn't "Example: Nippu, walking").
+ */
 export async function fileMenu(page: Page, item: string): Promise<void> {
+  const escaped = item.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const name = new RegExp(`^${escaped}(\\s|$)`);
   await page.getByRole('button', { name: 'File ▾' }).click();
-  await page.getByRole('menu', { name: 'File' }).getByRole('menuitem', { name: item }).click();
+  await page.getByRole('menu', { name: 'File' }).getByRole('menuitem', { name }).click();
 }
 
 // ----- gizmo -----
