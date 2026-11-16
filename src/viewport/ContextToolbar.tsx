@@ -1,10 +1,10 @@
 import { useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { groupKeyState } from '../model/animation';
-import type { PropertyPath, SceneObject, Vec3 } from '../model/types';
-import { deleteObject, duplicate, select, toggleKey } from '../state/commands';
+import type { CameraData, PropertyPath, SceneObject, Vec3 } from '../model/types';
+import { deleteObjects, duplicateObjects, select, toggleKey } from '../state/commands';
 import { groupSelection, ungroupSelection } from '../state/groupActions';
 import { usePointerDrag } from '../state/pointerDrag';
-import { dispatch } from '../state/store';
+import { dispatch, editor } from '../state/store';
 import { pause } from '../state/timeline';
 import { cameraCorners } from './CameraFrames';
 import { GIZMO_REACH_PX, project, type ViewTransform } from './gizmoMath';
@@ -22,9 +22,11 @@ const CAMERA_KEY_PATHS: readonly PropertyPath[] = [
 ];
 
 interface ContextToolbarProps {
-  /** The selected shape, group or camera, as posed on `frame`. */
+  /** The selected shape, group or camera (the one picked last), as posed on `frame`. */
   readonly object: SceneObject;
-  /** A shape's or group's position in the world (its own is in its group's space). */
+  /** How many objects are selected. With more than one, the actions act on them all. */
+  readonly count: number;
+  /** Where the gizmo sits: the selected shapes' and groups' middle, in the world. */
   readonly origin?: Vec3;
   readonly view: ViewTransform;
   readonly frame: number;
@@ -39,18 +41,18 @@ interface ContextToolbarProps {
 
 /** The part of the viewport the toolbar must not cover, and the gizmo's square alone. */
 function keepOutAreas(
-  object: SceneObject,
-  origin: Vec3 | undefined,
+  camera: CameraData | null,
+  origin: Vec3,
   view: ViewTransform,
   outline: HTMLDivElement | null,
 ): [Rect, Rect | null] {
-  if (object.type === 'Camera') {
-    const corners = cameraCorners(object).map((corner) => project(corner, view));
+  if (camera) {
+    const corners = cameraCorners(camera).map((corner) => project(corner, view));
     const xs = corners.map((p) => p.x);
     const ys = corners.map((p) => p.y);
     return [{ left: Math.min(...xs), top: Math.min(...ys), right: Math.max(...xs), bottom: Math.max(...ys) }, null];
   }
-  const center = project(origin ?? object.translate, view);
+  const center = project(origin, view);
   const gizmo = squareAround(center.x, center.y, GIZMO_REACH_PX);
   const parent = outline?.offsetParent;
   if (!outline || outline.hidden || !(parent instanceof HTMLElement)) return [gizmo, gizmo];
@@ -66,13 +68,15 @@ function keepOutAreas(
  * covers the selection or a gizmo handle, fades out while you drag, and
  * hides during playback. One Tab stop; the arrow keys move inside it.
  */
-export function ContextToolbar({ object, origin, view, frame, pinned, playing, outline, scene }: ContextToolbarProps) {
+export function ContextToolbar({ object, count, origin, view, frame, pinned, playing, outline, scene }: ContextToolbarProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(0);
   const dragging = usePointerDrag();
-  const isCamera = object.type === 'Camera';
-  const isGroup = object.type === 'Group';
-  const parentId = object.type !== 'Camera' ? object.parent : undefined;
+  const several = count > 1;
+  // With several selected, the camera's frame isn't the selection: place it like shapes.
+  const isCamera = object.type === 'Camera' && !several;
+  const isGroup = object.type === 'Group' && !several;
+  const parentId = object.type !== 'Camera' && !several ? object.parent : undefined;
   // Roving focus: one Tab stop, the arrow keys move between the buttons.
   const keyIndex = (isCamera ? 2 : 3) + (parentId !== undefined ? 1 : 0);
   const stop = (index: number) => ({ tabIndex: active === index ? 0 : -1, onFocus: () => setActive(index) });
@@ -80,8 +84,7 @@ export function ContextToolbar({ object, origin, view, frame, pinned, playing, o
   const keyed = groupKeyState(object, keyPaths, frame) === 'key';
   const keyLabel = isCamera ? 'Key view' : 'Key transform';
 
-  // Placed after every render, once the selection outline has been drawn.
-  useLayoutEffect(() => {
+  const place = () => {
     const bar = ref.current;
     if (!bar) return;
     const size = { width: bar.offsetWidth, height: bar.offsetHeight };
@@ -90,14 +93,31 @@ export function ContextToolbar({ object, origin, view, frame, pinned, playing, o
     if (pinned) {
       position = { x: Math.max(8, (area.width - size.width) / 2), y: 8 };
     } else {
-      const [keepOut, fallback] = keepOutAreas(object, origin, view, outline);
-      const anchor = isCamera ? (keepOut.left + keepOut.right) / 2 : project(origin ?? object.translate, view).x;
+      // A camera alone: around its frame. Shapes and groups (or a mix): around them and the gizmo.
+      const camera = object.type === 'Camera' && (isCamera || !origin) ? object : null;
+      const at = origin ?? (object.type === 'Camera' ? object.target : object.translate);
+      const [keepOut, fallback] = keepOutAreas(camera, at, view, outline);
+      const anchor = camera ? (keepOut.left + keepOut.right) / 2 : project(at, view).x;
       position = toolbarPlacement(keepOut, fallback, anchor, size, area);
     }
     bar.style.left = `${Math.round(position.x)}px`;
     bar.style.top = `${Math.round(position.y)}px`;
     bar.style.visibility = 'visible';
-  });
+  };
+  const placeRef = useRef(place);
+  placeRef.current = place;
+
+  // Placed after every render, and again whenever the scene redraws the
+  // selection outline (a frame later): otherwise the toolbar would only move
+  // on its next render, e.g. when a press on one of its buttons focuses it,
+  // and the release would miss the button.
+  useLayoutEffect(place);
+  useLayoutEffect(() => {
+    if (!outline) return;
+    const observer = new MutationObserver(() => placeRef.current());
+    observer.observe(outline, { attributes: true, attributeFilter: ['style', 'hidden'] });
+    return () => observer.disconnect();
+  }, [outline]);
 
   // Playback hides the toolbar; focus inside it moves to the scene first.
   useLayoutEffect(() => {
@@ -129,7 +149,7 @@ export function ContextToolbar({ object, origin, view, frame, pinned, playing, o
     // before it, else the Add button.
     const rows = () => [...document.querySelectorAll<HTMLElement>('.scene-tree .tree-item')];
     const index = rows().findIndex((row) => row.getAttribute('aria-pressed') === 'true');
-    dispatch(deleteObject(object.id));
+    dispatch(deleteObjects(editor.get().selectedIds));
     requestAnimationFrame(() => {
       const after = rows();
       const target = after[Math.min(Math.max(index, 0), after.length - 1)] ?? document.querySelector<HTMLElement>('.add-menu > button');
@@ -143,21 +163,27 @@ export function ContextToolbar({ object, origin, view, frame, pinned, playing, o
       ref={ref}
       class={dragging ? 'context-toolbar is-dragging' : 'context-toolbar'}
       role="toolbar"
-      aria-label="Selection actions"
+      aria-label={several ? `Actions for ${count} selected` : 'Selection actions'}
       style={{ visibility: 'hidden' }}
       onKeyDown={onKeyDown}
     >
-      <button type="button" {...stop(0)} onClick={() => dispatch(duplicate(object.id))}>
+      <button type="button" {...stop(0)} onClick={() => dispatch(duplicateObjects(editor.get().selectedIds))}>
         Duplicate
       </button>
       <button type="button" {...stop(1)} onClick={onDelete}>
         Delete
       </button>
-      {!isCamera && (
+      {(several || !isCamera) && (
         <button
           type="button"
           {...stop(2)}
-          title={isGroup ? 'Take everything out of this group (Ctrl+Shift+G)' : 'Put this in a new group (Ctrl+G)'}
+          title={
+            isGroup
+              ? 'Take everything out of this group (Ctrl+Shift+G)'
+              : several
+                ? 'Put these in one new group (Ctrl+G)'
+                : 'Put this in a new group (Ctrl+G)'
+          }
           onClick={isGroup ? ungroupSelection : groupSelection}
         >
           {isGroup ? 'Ungroup' : 'Group'}
@@ -168,6 +194,7 @@ export function ContextToolbar({ object, origin, view, frame, pinned, playing, o
           Select group
         </button>
       )}
+      {!several && (
       <button
         type="button"
         class={keyed ? 'key-all is-keyed' : 'key-all'}
@@ -184,6 +211,7 @@ export function ContextToolbar({ object, origin, view, frame, pinned, playing, o
           <rect x="4" y="4" width="8" height="8" transform="rotate(45 8 8)" />
         </svg>
       </button>
+      )}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { setKey } from './animation';
-import { groupObject, setParent, ungroup } from './groups';
-import { childrenOf, findGroup, subtreeIds, worldTransform } from './hierarchy';
+import { groupObject, groupObjects, setParent, ungroup } from './groups';
+import { childrenOf, findGroup, subtreeIds, topmost, worldTransform } from './hierarchy';
 import { addShape, createGroup, createShape, duplicateObject, emptyScene, findShape, removeObject } from './scene';
 import { parseSceneFile, serializeScene } from './sceneFile';
 import { applyTransform } from './transform';
@@ -72,6 +72,60 @@ describe('groups', () => {
     const result = setParent(scene, 'cone-1', 'group-1');
     expect(result.kept).toBe(true);
     expect(findShape(result.scene, 'cone-1')!.translate).toEqual(animated.translate);
+  });
+
+  it('groups several objects from different groups into one, each keeping its place', () => {
+    const scene = sample(); // group-1 › box-1, and cone-1 at the top
+    const before = ['box-1', 'cone-1'].map((id) => worldPoints(scene, findShape(scene, id)!));
+    const result = groupObjects(scene, ['box-1', 'cone-1']);
+    expect(result.kept).toBe(false);
+    const group = findGroup(result.scene, result.id!)!;
+    // The nearest group holding both is the top level.
+    expect(group.parent).toBeUndefined();
+    expect(childrenOf(result.scene, group.id).map((o) => o.id).sort()).toEqual(['box-1', 'cone-1']);
+    ['box-1', 'cone-1'].forEach((id, i) => expectSamePlace(worldPoints(result.scene, findShape(result.scene, id)!), before[i]));
+    // The group sits at their middle, so it turns and scales around them.
+    const box = worldTransform(scene, findShape(scene, 'box-1')!).translate;
+    expect(group.translate.x).toBeCloseTo((box.x + -3) / 2, 3);
+    expect(group.translate.z).toBeCloseTo((box.z + 2) / 2, 3);
+  });
+
+  it('groups siblings inside their own group, and takes a chosen group’s insides along with it', () => {
+    let scene = sample();
+    const cone: ShapeData = { ...createShape(scene, 'Cone'), translate: { x: 2, y: 0, z: 0 }, parent: 'group-1' };
+    scene = addShape(scene, cone); // group-1 › box-1, cone-2
+    const inner = groupObjects(scene, ['box-1', 'cone-2']);
+    expect(findGroup(inner.scene, inner.id!)!.parent).toBe('group-1');
+
+    // Choosing a group and something inside it: the group goes, and its insides with it.
+    expect(topmost(scene, ['box-1', 'group-1', 'cone-1'])).toEqual(['group-1', 'cone-1']);
+    const outer = groupObjects(scene, ['box-1', 'group-1', 'cone-1']);
+    expect(findGroup(outer.scene, 'group-1')!.parent).toBe(outer.id);
+    expect(findShape(outer.scene, 'box-1')!.parent).toBe('group-1');
+  });
+
+  it('groups several animated objects at their parent’s origin, so they stay put', () => {
+    let scene = sample();
+    const animated = setKey(findShape(scene, 'cone-1')!, 'translate.x', 0, -3);
+    scene = { ...scene, shapes: scene.shapes.map((s) => (s.id === 'cone-1' ? animated : s)) };
+    const box: ShapeData = { ...createShape(scene, 'Box'), translate: { x: 4, y: 4, z: 4 } };
+    scene = addShape(scene, box);
+    const result = groupObjects(scene, ['cone-1', 'box-2']);
+    expect(result.kept).toBe(false); // same parent: its keys still mean the same place
+    expect(findGroup(result.scene, result.id!)!.translate).toEqual({ x: 0, y: 0, z: 0 });
+    expect(findShape(result.scene, 'cone-1')!.translate).toEqual(animated.translate);
+    expect(findShape(result.scene, 'box-2')!.translate).toEqual({ x: 4, y: 4, z: 4 });
+    // Animated, and taken out of its group: it keeps its own values, and says so.
+    const animatedBox = setKey(findShape(scene, 'box-1')!, 'rotate.y', 0, 45);
+    scene = { ...scene, shapes: scene.shapes.map((s) => (s.id === 'box-1' ? animatedBox : s)) };
+    expect(groupObjects(scene, ['box-1', 'box-2']).kept).toBe(true);
+  });
+
+  it('refuses to group nothing, and groups one object as before', () => {
+    const scene = sample();
+    expect(groupObjects(scene, []).scene).toBe(scene);
+    expect(groupObjects(scene, ['nope']).scene).toBe(scene);
+    expect(groupObjects(scene, ['cone-1'])).toEqual(groupObject(scene, 'cone-1'));
   });
 
   it('delete and duplicate take a group with everything inside it', () => {

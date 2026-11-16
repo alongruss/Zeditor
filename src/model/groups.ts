@@ -1,4 +1,4 @@
-import { ancestorsOf, childrenOf, depthOf, findGroup, MAX_DEPTH, subtreeIds, worldTransform } from './hierarchy';
+import { ancestorsOf, childrenOf, commonParent, depthOf, findGroup, MAX_DEPTH, subtreeIds, topmost, worldTransform } from './hierarchy';
 import { createGroup, findShape, replaceObjects } from './scene';
 import { compose, IDENTITY, relativeTo, type Transform } from './transform';
 import type { GroupData, Placeable, Scene, SceneObject } from './types';
@@ -66,6 +66,52 @@ export function groupObject(scene: Scene, id: string): GroupResult {
   groups.splice(at, 0, group);
   const next = replaceObjects({ ...scene, groups }, new Map([[object.id, moved]]));
   return { scene: next, id: group.id, kept: false };
+}
+
+/**
+ * Wraps several shapes and groups in one new group, each keeping its place
+ * in the world. The group goes in the nearest group that holds them all,
+ * at their middle (so it turns and scales around them), or at that group's
+ * origin if any of them is animated. Objects inside another chosen group go
+ * with that group. One object: see groupObject. Refused (scene unchanged)
+ * if nothing can be grouped or it would nest too deep.
+ */
+export function groupObjects(scene: Scene, ids: readonly string[]): GroupResult {
+  const objects = topmost(scene, ids)
+    .map((id) => placeable(scene, id))
+    .filter((object): object is Placeable => object !== undefined);
+  if (objects.length === 0) return { scene, id: null, kept: false };
+  if (objects.length === 1) return groupObject(scene, objects[0].id);
+
+  const parent = commonParent(scene, objects);
+  const parentDepth = parent ? depthOf(scene, parent) + 1 : 0;
+  const deepest = Math.max(...objects.map((o) => (o.type === 'Group' ? maxDepthBelow(scene, o.id) : 0)));
+  if (parentDepth + 1 + deepest >= MAX_DEPTH) return { scene, id: null, kept: false };
+
+  const parentWorld = parent ? worldTransform(scene, parent) : IDENTITY;
+  const animated = objects.some(hasAnimatedTransform);
+  let center = { x: 0, y: 0, z: 0 };
+  if (!animated) {
+    const local = objects.map((o) => relativeTo(parentWorld, worldTransform(scene, o)).translate);
+    const mean = (axis: 'x' | 'y' | 'z') => Math.round((local.reduce((sum, t) => sum + t[axis], 0) / local.length) * 1000) / 1000;
+    center = { x: mean('x'), y: mean('y'), z: mean('z') };
+  }
+  const group = createGroup(scene, { translate: center, ...(parent ? { parent: parent.id } : {}) });
+  const groupWorld = compose(parentWorld, { translate: center, rotate: { x: 0, y: 0, z: 0 }, scale: 1 });
+
+  let kept = false;
+  const changed = new Map<string, SceneObject>();
+  for (const object of objects) {
+    let moved = withParent(object, group.id);
+    if (!hasAnimatedTransform(object)) moved = withTransform(moved, relativeTo(groupWorld, worldTransform(scene, object)));
+    else if ((object.parent ?? undefined) !== parent?.id) kept = true; // its keys are in its old group's space
+    changed.set(object.id, moved);
+  }
+  // The new group goes where the first chosen group was among the groups (or last).
+  const groups = [...scene.groups];
+  const firstGroup = groups.findIndex((g) => changed.has(g.id));
+  groups.splice(firstGroup === -1 ? groups.length : firstGroup, 0, group);
+  return { scene: replaceObjects({ ...scene, groups }, changed), id: group.id, kept };
 }
 
 /**

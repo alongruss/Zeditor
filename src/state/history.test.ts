@@ -15,7 +15,7 @@ import {
   type History,
 } from './history';
 
-const start = (): History => startHistory({ scene: starterScene(), selectedId: null });
+const start = (): History => startHistory({ scene: starterScene(), selectedId: null, selectedIds: [] });
 const xOf = (state: EditorState, id: string) => findShape(state.scene, id)!.translate.x;
 const moveX = (id: string, x: number) => update(id, { translate: { x } });
 

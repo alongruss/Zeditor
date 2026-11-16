@@ -1,7 +1,7 @@
 import { useRef } from 'preact/hooks';
-import { applyTransform, type Transform } from '../model/transform';
+import { applyTransform, directionInto, type Transform } from '../model/transform';
 import type { Placeable, Vec3 } from '../model/types';
-import { edit } from '../state/commands';
+import { edit, editMany } from '../state/commands';
 import { newGroup } from '../state/history';
 import { setPointerDrag } from '../state/pointerDrag';
 import { dispatch } from '../state/store';
@@ -30,7 +30,8 @@ type Drag =
       readonly axis: Axis;
       readonly pointerId: number;
       readonly start: ScreenPoint;
-      readonly translate: Vec3;
+      /** Each target's id, position and group transform when the drag began. */
+      readonly targets: readonly { readonly id: string; readonly translate: Vec3; readonly parent?: Transform }[];
       readonly group: string;
     }
   | {
@@ -60,11 +61,32 @@ function arrowHead(from: ScreenPoint, to: ScreenPoint): ScreenPoint[] {
   ];
 }
 
-interface GizmoProps {
-  /** The selected shape or group, as posed on `frame`. */
+/** A selected shape or group, as posed on the gizmo's frame. */
+export interface GizmoTarget {
   readonly shape: Placeable;
   /** Its group's transform as seen from the world, if it's inside one. */
   readonly parent?: Transform;
+}
+
+const ZERO: Vec3 = { x: 0, y: 0, z: 0 };
+const round3 = (n: number) => Math.round(n * 1000) / 1000;
+
+/** Where a target sits in the world (its own position is in its group's space). */
+const worldOrigin = ({ shape, parent }: GizmoTarget): Vec3 => (parent ? applyTransform(parent, shape.translate) : shape.translate);
+
+/** The middle of the targets' world positions: where the gizmo sits. */
+export function gizmoOrigin(targets: readonly GizmoTarget[]): Vec3 {
+  const points = targets.map(worldOrigin);
+  const mean = (axis: keyof Vec3) => points.reduce((sum, p) => sum + p[axis], 0) / Math.max(1, points.length);
+  return { x: mean('x'), y: mean('y'), z: mean('z') };
+}
+
+interface GizmoProps {
+  /**
+   * The selected shapes and groups (none inside another). One gets arrows
+   * and rings; several get arrows only, at their middle, moving them all.
+   */
+  readonly targets: readonly GizmoTarget[];
   readonly view: ViewTransform;
   /** The playhead's frame: animated values are keyed there. */
   readonly frame: number;
@@ -79,11 +101,12 @@ interface GizmoProps {
  * rotation value shown in the Inspector. Hold Shift to snap moves to whole
  * units and rotation to 15°. Each drag is one undo step.
  */
-export function Gizmo({ shape, parent, view, frame }: GizmoProps) {
+export function Gizmo({ targets, view, frame }: GizmoProps) {
   const drag = useRef<Drag | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
-  // Where the object sits in the world (its own position is in its group's space).
-  const origin = parent ? applyTransform(parent, shape.translate) : shape.translate;
+  const [{ shape, parent }] = targets;
+  const single = targets.length === 1;
+  const origin = gizmoOrigin(targets);
   const center = project(origin, view);
 
   /** Converts a point on this SVG to the page coordinates pointer events use. */
@@ -107,8 +130,20 @@ export function Gizmo({ shape, parent, view, frame }: GizmoProps) {
     const point = { x: event.clientX, y: event.clientY };
     if (current.kind === 'move') {
       const moved = { x: point.x - current.start.x, y: point.y - current.start.y };
-      const translate = moveAlongAxis(current.translate, current.axis, moved, view, event.shiftKey, parent);
-      dispatch(edit(shape.id, { translate }, frame), { group: current.group });
+      if (current.targets.length === 1) {
+        const [target] = current.targets;
+        const translate = moveAlongAxis(target.translate, current.axis, moved, view, event.shiftKey, target.parent);
+        dispatch(edit(target.id, { translate }, frame), { group: current.group });
+      } else {
+        // The same move in the world for each (snapped as a whole), written in each one's group space.
+        const delta = moveAlongAxis(ZERO, current.axis, moved, view, event.shiftKey);
+        const edits = current.targets.map((target) => {
+          const local = target.parent ? directionInto(target.parent, delta) : delta;
+          const t = target.translate;
+          return { id: target.id, patch: { translate: { x: round3(t.x + local.x), y: round3(t.y + local.y), z: round3(t.z + local.z) } } };
+        });
+        dispatch(editMany(edits, frame), { group: current.group });
+      }
     } else {
       const angle = screenAngle(current.center, point);
       current.swept += angleBetween(current.lastAngle, angle);
@@ -124,7 +159,8 @@ export function Gizmo({ shape, parent, view, frame }: GizmoProps) {
     setPointerDrag(false);
   };
 
-  const rings = AXES.map((axis) => {
+  // Several objects turn about their own origins, so turning them together needs a group (Ctrl+G).
+  const rings = !single ? [] : AXES.map((axis) => {
     const direction = ringDirection(axis, shape.rotate, view, parent);
     const enabled = direction !== 0;
     const points = toPoints(ringPoints(origin, axis, shape.rotate, view, parent));
@@ -173,7 +209,7 @@ export function Gizmo({ shape, parent, view, frame }: GizmoProps) {
             axis,
             pointerId: event.pointerId,
             start: { x: event.clientX, y: event.clientY },
-            translate: shape.translate,
+            targets: targets.map((t) => ({ id: t.shape.id, translate: t.shape.translate, parent: t.parent })),
             group: newGroup(),
           });
         }}

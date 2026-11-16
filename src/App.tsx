@@ -38,7 +38,7 @@ function useKeyboardShortcuts() {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented) return;
       const keysSelected = timeline.get().selectedKeys.length > 0;
-      const shortcut = shortcutFor(event, editor.get().selectedId, keysSelected);
+      const shortcut = shortcutFor(event, editor.get().selectedIds, keysSelected);
       if (!shortcut || !shortcutAllowedIn(event.target, shortcut)) return;
       event.preventDefault();
       if (shortcut === 'undo') undo();

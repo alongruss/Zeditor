@@ -1,14 +1,13 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { objectAtFrame, sceneAtFrame } from '../model/evaluate';
-import { parentTransform } from '../model/hierarchy';
-import { applyTransform } from '../model/transform';
+import { parentTransform, topmost } from '../model/hierarchy';
 import { SHAPE_TYPE_DEFS } from '../model/shapeTypes';
 import { SHAPE_TYPES } from '../model/types';
 import type { CameraData } from '../model/types';
 import { ContextMenu, type MenuPosition } from '../panels/ContextMenu';
 import { NoticeBar } from '../panels/NoticeBar';
 import { cameraFrame } from '../render/view';
-import { addShapeOfType, edit, select } from '../state/commands';
+import { addShapeOfType, edit, select, toggleSelect } from '../state/commands';
 import { currentViewSpec, lookedThroughCamera } from '../state/currentView';
 import { newGroup } from '../state/history';
 import { setPointerDrag } from '../state/pointerDrag';
@@ -30,7 +29,7 @@ import { ContextToolbar } from './ContextToolbar';
 import { EmptyStage } from './EmptyStage';
 import { ExportDone } from '../panels/ExportDone';
 import { orbit, wheelZoomFactor, zoomByWheel, type FreeView } from './freeView';
-import { Gizmo } from './Gizmo';
+import { Gizmo, gizmoOrigin, type GizmoTarget } from './Gizmo';
 import { unproject, type ViewTransform } from './gizmoMath';
 import { SceneView } from './SceneView';
 import { ZoomControls } from './ZoomControls';
@@ -78,7 +77,7 @@ interface Press {
  * frame if it is animated), and its picture is shown letterboxed.
  */
 export function Viewport() {
-  const { scene, selectedId } = useEditorState();
+  const { scene, selectedId, selectedIds } = useEditorState();
   useFreeView(); // re-render the overlays when the free view turns
   const lookingThrough = useLookThrough();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -105,12 +104,12 @@ export function Viewport() {
     // The scene as posed on the playhead's frame, through the current view.
     // Playback only moves the playhead; it never goes through the undo history.
     const show = () => {
-      const { scene, selectedId } = editor.get();
+      const { scene, selectedIds } = editor.get();
       view.setPlaying(timeline.get().playing);
       const spec = currentViewSpec(area.width, area.height);
       if (spec) view.setView(spec);
       view.setScene(sceneAtFrame(scene, currentFrame()));
-      view.setSelected(selectedId);
+      view.setSelected(selectedIds);
     };
     show();
     const unsubscribers = [
@@ -178,8 +177,17 @@ export function Viewport() {
       if (!press || event.pointerId !== press.pointerId) return;
       const { orbiting, target } = press;
       press = null;
-      if (orbiting) setPointerDrag(false);
-      else dispatch(select(view.pick(target)));
+      if (orbiting) {
+        setPointerDrag(false);
+        return;
+      }
+      const id = view.pick(target);
+      // Ctrl (Cmd) or Shift adds to the selection, or takes out what's already in it.
+      if (event.ctrlKey || event.metaKey || event.shiftKey) {
+        if (id !== null) dispatch(toggleSelect(id));
+      } else {
+        dispatch(select(id));
+      }
     };
     const onPointerCancel = () => {
       if (press?.orbiting) setPointerDrag(false);
@@ -196,7 +204,8 @@ export function Viewport() {
         return;
       }
       setAddMenu(null);
-      dispatch(select(id));
+      // Right-clicking part of the selection acts on all of it.
+      if (!editor.get().selectedIds.includes(id)) dispatch(select(id));
       setMenu(at);
     };
     let wheelGroup: string | null = null;
@@ -249,9 +258,14 @@ export function Viewport() {
   const { frame, playing } = useTimeline();
   // The scene as posed on this frame: a group's pose moves what's inside it.
   const posed = sceneAtFrame(scene, frame);
-  const selected = posed.shapes.find((s) => s.id === selectedId) ?? posed.groups.find((g) => g.id === selectedId);
-  const selectedParent = selected && selected.parent !== undefined ? parentTransform(posed, selected) : undefined;
-  const selectedOrigin = selected && (selectedParent ? applyTransform(selectedParent, selected.translate) : selected.translate);
+  const placeable = (id: string) => posed.shapes.find((s) => s.id === id) ?? posed.groups.find((g) => g.id === id);
+  const selected = selectedId === null ? undefined : placeable(selectedId);
+  // The gizmo moves every selected shape and group (a group's insides go with it).
+  const gizmoTargets: GizmoTarget[] = topmost(posed, selectedIds).flatMap((id) => {
+    const shape = placeable(id);
+    return shape ? [{ shape, parent: shape.parent !== undefined ? parentTransform(posed, shape) : undefined }] : [];
+  });
+  const selectedOrigin = gizmoTargets.length > 0 ? gizmoOrigin(gizmoTargets) : undefined;
   const posedCameras = scene.cameras.map((camera) => objectAtFrame(camera, frame));
   const throughCamera = posedCameras.find((camera) => camera.id === lookingThrough) ?? null;
   const spec = size && currentViewSpec(size.width, size.height);
@@ -281,8 +295,8 @@ export function Viewport() {
         <CameraFrames
           cameras={posedCameras}
           view={transform}
-          selectedId={selectedId}
-          onSelect={(id) => dispatch(select(id))}
+          selectedIds={selectedIds}
+          onSelect={(id, add) => dispatch(add ? toggleSelect(id) : select(id))}
         />
       )}
       {frameRect && throughCamera && (
@@ -302,10 +316,11 @@ export function Viewport() {
           </span>
         </div>
       )}
-      {selected && transform && <Gizmo shape={selected} parent={selectedParent} frame={frame} view={transform} />}
+      {gizmoTargets.length > 0 && transform && <Gizmo targets={gizmoTargets} frame={frame} view={transform} />}
       {selectedObject && transform && (
         <ContextToolbar
           object={selectedObject}
+          count={selectedIds.length}
           origin={selectedOrigin}
           view={transform}
           frame={frame}

@@ -339,6 +339,12 @@ gains groups:
   with a Turntable camera. A browser test runs the original script with zdog and compares it with
   the editor's export of the imported scene, from three angles. Big trees start open two levels
   deep.
+- **S1, selecting several:** Ctrl-click (Cmd-click) adds to the selection in the tree, the scene
+  and camera frames; Shift-click selects a range of tree rows; Ctrl+A selects everything. Group
+  puts the whole selection in one group (in the nearest group holding them all, at their middle),
+  each keeping its place. Delete, Duplicate and Ungroup act on all of it, and the gizmo's arrows
+  move it all as one undo step (turning several together needs a group). The Inspector lists
+  what's selected. Asked for by the user after G2: without it, nothing could be grouped by hand.
 - **G3:** the walking version.
 
 ## Later

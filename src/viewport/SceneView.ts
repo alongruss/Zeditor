@@ -47,7 +47,7 @@ function svgElementsOf(root: ZdogTypes.Anchor): SVGElement[] {
 export class SceneView {
   private readonly illo: ZdogTypes.Illustration;
   private readonly entries = new Map<string, Entry>();
-  private selectedId: string | null = null;
+  private selectedIds: readonly string[] = [];
   private playing = false;
   /** Shapes built since the last render, whose SVG elements still need their id tag. */
   private readonly untagged = new Set<string>();
@@ -126,9 +126,10 @@ export class SceneView {
     this.requestRender();
   }
 
-  setSelected(id: string | null): void {
-    if (id === this.selectedId) return;
-    this.selectedId = id;
+  /** The outline goes around everything selected. */
+  setSelected(ids: readonly string[]): void {
+    if (ids.length === this.selectedIds.length && ids.every((id, i) => id === this.selectedIds[i])) return;
+    this.selectedIds = ids;
     this.requestRender();
   }
 
@@ -201,13 +202,12 @@ export class SceneView {
       outline.hidden = true;
       return;
     }
-    const entry = this.selectedId === null ? undefined : this.entries.get(this.selectedId);
-    const rects = entry
-      ? svgElementsOf(entry.object)
-          .filter((element) => element.isConnected)
-          .map((element) => element.getBoundingClientRect())
-          .filter((rect) => rect.width > 0 || rect.height > 0)
-      : [];
+    const rects = this.selectedIds
+      .map((id) => this.entries.get(id))
+      .flatMap((entry) => (entry ? svgElementsOf(entry.object) : []))
+      .filter((element) => element.isConnected)
+      .map((element) => element.getBoundingClientRect())
+      .filter((rect) => rect.width > 0 || rect.height > 0);
 
     if (rects.length === 0) {
       outline.hidden = true;
