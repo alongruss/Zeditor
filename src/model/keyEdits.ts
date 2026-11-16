@@ -155,6 +155,7 @@ export function retime(scene: Scene, fps: number): Scene {
     ...scene,
     settings: { ...scene.settings, fps, duration: Math.max(1, scale(duration)) },
     shapes: scene.shapes.map(rescaled),
+    groups: scene.groups.map(rescaled),
     cameras: scene.cameras.map(rescaled),
   };
 }

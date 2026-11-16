@@ -12,6 +12,7 @@ import {
   type ShapePatch,
 } from '../model/scene';
 import { editAtFrame, toggleKeys, type ObjectPatch } from '../model/animation';
+import { groupObject, setParent, ungroup, type GroupResult } from '../model/groups';
 import { deleteKeys, moveKeysInScene, retime, setKeysEasing, type KeyRef } from '../model/keyEdits';
 import type { Easing, PropertyPath, Scene, SceneObject, ShapeType, Vec3 } from '../model/types';
 
@@ -74,6 +75,30 @@ function withObject(state: EditorState, id: string, change: (object: SceneObject
   if (after === before) return state;
   return { ...state, scene: replaceObjects(state.scene, new Map([[id, after]])) };
 }
+
+/** Applies a grouping change and selects what it says (unchanged if it was refused). */
+function fromGroupResult(state: EditorState, result: GroupResult): EditorState {
+  if (result.scene === state.scene) return state;
+  return { scene: result.scene, selectedId: result.id ?? state.selectedId };
+}
+
+/** Wraps a shape or group in a new group, in its place, and selects the new group. */
+export const groupCommand =
+  (id: string): Command =>
+  (state) =>
+    fromGroupResult(state, groupObject(state.scene, id));
+
+/** Takes a group's insides out into its parent and removes it; selects its first child. */
+export const ungroupCommand =
+  (id: string): Command =>
+  (state) =>
+    fromGroupResult(state, ungroup(state.scene, id));
+
+/** Moves a shape or group into another group (null: the top level), keeping its place. */
+export const setParentCommand =
+  (id: string, parentId: string | null): Command =>
+  (state) =>
+    fromGroupResult(state, setParent(state.scene, id, parentId));
 
 /** Adds a camera (see createCamera) and selects it. */
 export const addCameraCommand =

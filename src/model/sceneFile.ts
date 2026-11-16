@@ -1,4 +1,5 @@
 import { propertySpec, type PropertySpec } from './animatable';
+import { MAX_DEPTH } from './hierarchy';
 import { DEFAULT_BACKGROUND } from './scene';
 import { getShapeTypeDef, type FieldDef } from './shapeTypes';
 import {
@@ -9,6 +10,7 @@ import {
   SHAPE_TYPES,
   type CameraData,
   type Easing,
+  type GroupData,
   type Keyframe,
   type ObjectType,
   type PathData,
@@ -212,6 +214,58 @@ function readCamera(raw: unknown, index: number): CameraData {
   return tracks ? { ...camera, tracks } : camera;
 }
 
+const MAX_GROUPS = 5000;
+
+/** An object's `parent` (a group id), read now and checked once every group is known. */
+function readParent(raw: Record<string, unknown>, where: string): string | undefined {
+  const parent = raw.parent;
+  if (parent === undefined) return undefined;
+  if (typeof parent !== 'string' || !/^[A-Za-z][\w-]{0,63}$/.test(parent)) return fail(`${where} has an invalid group.`);
+  return parent;
+}
+
+function readGroup(raw: unknown, index: number): GroupData {
+  const where = `Group ${index + 1}`;
+  if (!isRecord(raw)) return fail(`${where} isn't a group.`);
+  const id = raw.id;
+  if (typeof id !== 'string' || !/^[A-Za-z][\w-]{0,63}$/.test(id)) return fail(`${where} has no valid id.`);
+  const name = typeof raw.name === 'string' && raw.name.trim() !== '' ? raw.name.trim().slice(0, MAX_NAME_LENGTH) : id;
+  const scale = raw.scale ?? 1;
+  if (!isFiniteNumber(scale) || scale < 0) return fail(`${where}: scale isn't a number of 0 or more.`);
+  const parent = readParent(raw, where);
+  const group: GroupData = {
+    id,
+    name,
+    type: 'Group',
+    translate: readVec3(raw.translate, `${where} translate`),
+    rotate: readVec3(raw.rotate, `${where} rotate`),
+    scale,
+    drawTogether: raw.drawTogether === true,
+    ...(parent ? { parent } : {}),
+  };
+  const tracks = readTracks(raw.tracks, 'Group', where);
+  return tracks ? { ...group, tracks } : group;
+}
+
+/** Every `parent` names a group, and no group is inside itself (directly or not). */
+function checkHierarchy(shapes: readonly ShapeData[], groups: readonly GroupData[]): void {
+  const byId = new Map(groups.map((group) => [group.id, group]));
+  for (const object of [...groups, ...shapes]) {
+    if (object.parent !== undefined && !byId.has(object.parent)) {
+      fail(`"${object.name}" is in a group that isn't in the scene (${object.parent}).`);
+    }
+  }
+  for (const group of groups) {
+    let depth = 0;
+    let parent = group.parent === undefined ? undefined : byId.get(group.parent);
+    while (parent) {
+      if (parent.id === group.id) fail(`The group "${group.name}" is inside itself.`);
+      if (++depth > MAX_DEPTH) fail(`Groups are nested more than ${MAX_DEPTH} deep.`);
+      parent = parent.parent === undefined ? undefined : byId.get(parent.parent);
+    }
+  }
+}
+
 function readShape(raw: unknown, index: number, version: number): ShapeData {
   const where = `Shape ${index + 1}`;
   if (!isRecord(raw)) return fail(`${where} isn't a shape.`);
@@ -250,6 +304,9 @@ function readShape(raw: unknown, index: number, version: number): ShapeData {
     opacity: Math.min(1, Math.max(0, opacity)),
     props,
   };
+  // Version 4 added groups.
+  const parent = version >= 4 ? readParent(raw, where) : undefined;
+  if (parent) Object.assign(shape, { parent });
   // Version 1 had no animation.
   const tracks = version >= 2 ? readTracks(raw.tracks, def.type, where) : undefined;
   return tracks ? { ...shape, tracks } : shape;
@@ -267,7 +324,7 @@ export function parseSceneFile(text: string): SceneFileResult {
     if (!isRecord(data) || !Array.isArray(data.shapes)) return fail(NOT_A_SCENE);
 
     const version = data.version;
-    if (version !== SCENE_VERSION && version !== 1 && version !== 2) {
+    if (version !== SCENE_VERSION && version !== 1 && version !== 2 && version !== 3) {
       if (isFiniteNumber(version) && version > SCENE_VERSION) {
         return fail(
           `This scene was saved by a newer version of Zeditor (file version ${version}). ` +
@@ -290,13 +347,22 @@ export function parseSceneFile(text: string): SceneFileResult {
     if (!Array.isArray(rawCameras)) return fail(`The scene's cameras aren't a list.`);
     if (rawCameras.length > MAX_CAMERAS) return fail(`This scene has more than ${MAX_CAMERAS} cameras.`);
     const cameras = rawCameras.map(readCamera);
+    // Version 4 added groups.
+    const rawGroups = version >= 4 && data.groups !== undefined ? data.groups : [];
+    if (!Array.isArray(rawGroups)) return fail(`The scene's groups aren't a list.`);
+    if (rawGroups.length > MAX_GROUPS) return fail(`This scene has more than ${MAX_GROUPS} groups.`);
+    const groups = rawGroups.map(readGroup);
     const ids = new Set<string>();
-    for (const shape of [...shapes, ...cameras]) {
-      if (ids.has(shape.id)) return fail(`Two shapes or cameras have the same id: ${shape.id}.`);
-      ids.add(shape.id);
+    for (const object of [...shapes, ...groups, ...cameras]) {
+      if (ids.has(object.id)) return fail(`Two objects have the same id: ${object.id}.`);
+      ids.add(object.id);
     }
+    checkHierarchy(shapes, groups);
 
-    return { ok: true, scene: { version: SCENE_VERSION, settings: { background, fps, duration }, shapes, cameras } };
+    return {
+      ok: true,
+      scene: { version: SCENE_VERSION, settings: { background, fps, duration }, shapes, groups, cameras },
+    };
   } catch (error) {
     if (error instanceof SceneFileError) return { ok: false, error: error.message };
     throw error;

@@ -62,6 +62,31 @@ export interface ShapeData {
    * shape isn't animated.
    */
   readonly tracks?: Tracks;
+  /** The group this shape is inside (its transform is relative to the group's), if any. */
+  readonly parent?: string;
+}
+
+/**
+ * A group: a transform that its children (shapes and groups) are placed
+ * in, so they move, turn and scale together, as zdog's Anchor and Group do.
+ */
+export interface GroupData {
+  /** Permanent, readable id, e.g. `group-1`. */
+  readonly id: string;
+  readonly name: string;
+  readonly type: 'Group';
+  readonly translate: Vec3;
+  /** Rotation in degrees. */
+  readonly rotate: Vec3;
+  /** Uniform scale. */
+  readonly scale: number;
+  /**
+   * Draw the children together as one unit, in their own order (zdog's
+   * Group), instead of sorting each into the scene by depth (zdog's Anchor).
+   */
+  readonly drawTogether: boolean;
+  readonly parent?: string;
+  readonly tracks?: Tracks;
 }
 
 /**
@@ -87,9 +112,12 @@ export interface CameraData {
 }
 
 /** Anything in the scene that can be selected and animated. */
-export type SceneObject = ShapeData | CameraData;
+export type SceneObject = ShapeData | GroupData | CameraData;
 
-/** A shape type, or 'Camera'. */
+/** Shapes and groups: what can be placed inside a group. */
+export type Placeable = ShapeData | GroupData;
+
+/** A shape type, 'Group' or 'Camera'. */
 export type ObjectType = SceneObject['type'];
 
 /** How a keyframe eases into the next one. "Ease in" starts slowly, as in CSS. */
@@ -124,13 +152,19 @@ export interface SceneSettings {
 export const DEFAULT_FPS = 30;
 export const DEFAULT_DURATION = 90;
 
-/** Version 2 added animation (tracks, fps, duration); version 3 added cameras. */
-export const SCENE_VERSION = 3;
+/** Version 2 added animation (tracks, fps, duration); version 3 cameras; version 4 groups. */
+export const SCENE_VERSION = 4;
 
 export interface Scene {
   readonly version: typeof SCENE_VERSION;
   readonly settings: SceneSettings;
-  /** Flat list of top-level shapes, in draw order. */
+  /** Every shape, in draw order; a shape's `parent` says which group it is in. */
   readonly shapes: readonly ShapeData[];
+  /**
+   * Every group. A parent's children are its groups (in this order), then
+   * its shapes (in theirs); the order matters only inside a group that
+   * draws its children together.
+   */
+  readonly groups: readonly GroupData[];
   readonly cameras: readonly CameraData[];
 }

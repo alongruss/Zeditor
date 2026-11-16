@@ -11,6 +11,7 @@ import {
 import { SceneTree } from './panels/SceneTree';
 import { chooseSceneFile, saveScene } from './files/sceneFiles';
 import { deleteKeysCommand } from './state/commands';
+import { groupSelection, ungroupSelection } from './state/groupActions';
 import { shortcutAllowedIn, shortcutFor } from './state/shortcuts';
 import {
   clearKeySelection,
@@ -46,6 +47,8 @@ function useKeyboardShortcuts() {
       else if (shortcut === 'open') chooseSceneFile();
       else if (shortcut === 'togglePlay') togglePlayback();
       else if (shortcut === 'firstFrame') setFrame(0);
+      else if (shortcut === 'group') groupSelection();
+      else if (shortcut === 'ungroup') ungroupSelection();
       else if (shortcut === 'lastFrame') setFrame(lastFrame());
       else if (shortcut === 'deleteKeys') {
         dispatch(deleteKeysCommand(timeline.get().selectedKeys));

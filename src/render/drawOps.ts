@@ -1,7 +1,7 @@
 import type * as ZdogTypes from 'zdog';
 import type { Scene } from '../model/types';
-import { createZdogShape } from '../viewport/toZdog';
 import { Zdog } from '../zdog';
+import { buildZdogGraph } from './zdogGraph';
 import { rootTranslate, type ViewSpec } from './view';
 
 /**
@@ -227,7 +227,7 @@ function mapSegment(segment: Segment, map: (p: Point) => Point): Segment {
 export function recordFrame(scene: Scene, view: ViewSpec): DrawOp[] {
   // The root turns the world; moving it by the turned target puts the target at the center.
   const root: ZdogTypes.Anchor = new Zdog.Anchor({ rotate: view.rotate, translate: rootTranslate(view) });
-  for (const shape of scene.shapes) root.addChild(createZdogShape(shape));
+  buildZdogGraph(scene, root);
   root.updateGraph();
 
   const recorder = createRecorder();

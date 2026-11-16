@@ -325,6 +325,19 @@ timeline with keyframes and tweening, cameras, and a Lottie export of the viewpo
   tokens and type, R2 docked layout, R3 picker, selection toolbar, scene focus and right-click add,
   R4 welcome, export card, first-key tip and toasts, R5 dark theme.
 
+## Groups, and the "Nippu" example
+
+The user asked for Dave DeSandro's Zdog demo of Robin Davey's "Nippu" illustration as an example,
+plus a version where the couple walks. The demo is a tree of about 90 shapes, so the editor first
+gains groups:
+- **G1, groups:** file version 4. Shapes and groups can sit in a group (zdog's Anchor, or its
+  Group when "Draw together" is on). Grouping, ungrouping and moving into a group keep things
+  where they are in the world. The gizmo works in a group's turned and scaled space. The tree
+  nests, and the Inspector has a Group picker.
+- **G2:** the zdog options the example needs, an importer for zdog scripts, and the example itself,
+  with a turntable camera.
+- **G3:** the walking version.
+
 ## Later
 
 **Lottie export.** Now planned and under way: see "Animation, cameras and Lottie" above.

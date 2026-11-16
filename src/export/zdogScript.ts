@@ -1,4 +1,4 @@
-import type { CameraData, PropValue, Scene, ShapeData, Vec3 } from '../model/types';
+import type { CameraData, GroupData, PropValue, Scene, ShapeData, Vec3 } from '../model/types';
 import type { FreeView } from '../viewport/freeView';
 import { VIEW_SPAN } from '../viewport/fitZoom';
 import { fadedProps } from '../viewport/toZdog';
@@ -59,7 +59,7 @@ const RESERVED = new Set(
  * becomes `roundedRectangle1`. Letters from any language are kept. Falls
  * back to the shape's id, and adds a number if the name is already used.
  */
-export function constName(shape: ShapeData, used: Set<string>): string {
+export function constName(shape: Pick<ShapeData, 'name' | 'id'>, used: Set<string>): string {
   const camel = (text: string) =>
     text
       .split(/[^\p{L}\p{N}]+/u)
@@ -112,6 +112,16 @@ function shapeSource(shape: ShapeData, name: string, parent: string): string {
   return `// ${title}\nconst ${name} = new Zdog.${shape.type}({\n${lines.join('\n')}\n});`;
 }
 
+/** A group as an Anchor (or, if it draws its children together, a Group) named `name`. */
+function groupSource(group: GroupData, name: string, addTo: string): string {
+  const lines = [`  addTo: ${addTo},`];
+  if (!isZero(group.translate)) lines.push(`  translate: ${vector(group.translate)},`);
+  if (!isZero(group.rotate)) lines.push(`  rotate: ${angles(group.rotate)},`);
+  if (group.scale !== 1) lines.push(`  scale: ${num(group.scale)},`);
+  const title = group.name.replace(LINE_BREAKS, ' ');
+  return `// ${title}\nconst ${name} = new Zdog.${group.drawTogether ? 'Group' : 'Anchor'}({\n${lines.join('\n')}\n});`;
+}
+
 /**
  * A complete script that draws the scene with Zdog, as seen from `view`: an
  * Illustration you can drag to turn, one named `const` per shape (so you can
@@ -123,7 +133,21 @@ function shapeSource(shape: ShapeData, name: string, parent: string): string {
 export function exportZdogScript(scene: Scene, view: ScriptView): string {
   const used = new Set<string>();
   const parent = isZero(view.target) ? 'illo' : 'world';
-  const shapes = scene.shapes.map((shape) => shapeSource(shape, constName(shape, used), parent));
+  // Groups first, each after the group it's in, so every `addTo` names a const already made.
+  const groupNames = new Map<string, string>();
+  const groupSources: string[] = [];
+  const pending = [...scene.groups];
+  while (pending.length > 0) {
+    const index = pending.findIndex((group) => group.parent === undefined || groupNames.has(group.parent) || !scene.groups.some((g) => g.id === group.parent));
+    const [group] = pending.splice(index === -1 ? 0 : index, 1);
+    const name = constName(group, used);
+    groupNames.set(group.id, name);
+    groupSources.push(groupSource(group, name, (group.parent && groupNames.get(group.parent)) || parent));
+  }
+  const shapes = scene.shapes.map((shape) =>
+    shapeSource(shape, constName(shape, used), (shape.parent && groupNames.get(shape.parent)) || parent),
+  );
+  shapes.unshift(...groupSources);
   const span = num(view.viewSpan, 3);
   const width = Math.round(view.width ?? EXPORT_CANVAS_SIZE);
   const height = Math.round(view.height ?? EXPORT_CANVAS_SIZE);

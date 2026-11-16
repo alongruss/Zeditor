@@ -46,7 +46,8 @@ test('Save downloads the scene, and Open brings it back (undoably)', async ({ pa
   const saved = await downloaded(page, () => fileMenu(page, 'Save'));
   expect(saved.name).toBe('scene.zeditor.json');
   const data = JSON.parse(saved.text);
-  expect(data.version).toBe(3);
+  expect(data.version).toBe(4);
+  expect(data.groups).toEqual([]);
   expect(data.cameras).toEqual([]);
   expect(data.settings).toMatchObject({ fps: 30, duration: 90 });
   expect(data.shapes).toHaveLength(9);

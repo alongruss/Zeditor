@@ -4,10 +4,11 @@ import { expect, test } from './fixtures';
 import { lottieAnimation, lottieStill } from '../src/export/lottie/exportScene';
 import { setKey } from '../src/model/animation';
 import { objectAtFrame, sceneAtFrame } from '../src/model/evaluate';
-import { addShape, createCamera, createShape, emptyScene } from '../src/model/scene';
+import { addShape, createCamera, createGroup, createShape, emptyScene } from '../src/model/scene';
 import { SHAPE_TYPES, type CameraData, type Scene, type ShapeData } from '../src/model/types';
 import { rootTranslate, viewFromCamera, type ViewSpec } from '../src/render/view';
-import { zdogOptions } from '../src/viewport/toZdog';
+import { ancestorsOf } from '../src/model/hierarchy';
+import { zdogOptions, zdogTransform } from '../src/viewport/toZdog';
 import { fileMenu, openEditorForEachTest } from './helpers';
 
 const ZDOG = 'node_modules/zdog/dist/zdog.dist.min.js';
@@ -64,14 +65,18 @@ async function compare(page: Page, scene: Scene, view: ViewSpec): Promise<Compar
 
 /** Like `compare`, for frame `frame` of an already baked animation; `scene` is posed on that frame. */
 async function compareFrame(page: Page, scene: Scene, view: ViewSpec, lottie: object, frame: number): Promise<Comparison> {
-  const shapes = scene.shapes.map((shape) => ({ type: shape.type, options: zdogOptions(shape) }));
+  const shapes = scene.shapes.map((shape) => ({ type: shape.type, options: zdogOptions(shape), parent: shape.parent }));
+  // Groups, each after the group it's in, so the reference is built as zdog would nest it.
+  const groups = [...scene.groups]
+    .sort((a, b) => ancestorsOf(scene, a).length - ancestorsOf(scene, b).length)
+    .map((group) => ({ id: group.id, parent: group.parent, drawTogether: group.drawTogether, options: zdogTransform(group) }));
   const translate = rootTranslate(view);
 
   await page.setContent('<!doctype html><html><body style="margin:0"></body></html>');
   await page.addScriptTag({ path: ZDOG });
   await page.addScriptTag({ path: LOTTIE });
   return page.evaluate(
-    async ({ lottie, shapes, view, translate, frame }) => {
+    async ({ lottie, shapes, groups, view, translate, frame }) => {
       const { width, height } = view;
       const w = window as unknown as {
         Zdog: Record<string, new (options: object) => { updateRenderGraph(): void }>;
@@ -95,7 +100,15 @@ async function compareFrame(page: Page, scene: Scene, view: ViewSpec, lottie: ob
         translate,
         resize: false,
       });
-      for (const shape of shapes) new w.Zdog[shape.type]({ ...shape.options, addTo: illo });
+      // Groups first (outermost first), then shapes, each added to its group.
+      const nodes = new Map<string, object>();
+      for (const group of groups) {
+        const parent = (group.parent && nodes.get(group.parent)) || illo;
+        nodes.set(group.id, new w.Zdog[group.drawTogether ? 'Group' : 'Anchor']({ ...group.options, addTo: parent }));
+      }
+      for (const shape of shapes) {
+        new w.Zdog[shape.type]({ ...shape.options, addTo: (shape.parent && nodes.get(shape.parent)) || illo });
+      }
       illo.updateRenderGraph();
 
       const box = document.createElement('div');
@@ -131,7 +144,7 @@ async function compareFrame(page: Page, scene: Scene, view: ViewSpec, lottie: ob
       }
       return { ink, mismatched };
     },
-    { lottie, shapes, view, translate, frame },
+    { lottie, shapes, groups, view, translate, frame },
   );
 }
 
@@ -156,6 +169,52 @@ test.describe('Lottie export fidelity', () => {
       expect(result.mismatched / result.ink).toBeLessThan(0.01);
     });
   }
+});
+
+test.describe('Lottie export fidelity, with groups', () => {
+  test('nested, turned and scaled groups, one drawing its shapes together', async ({ page }) => {
+    let scene = fidelityScene();
+    const outer = { ...createGroup(scene), translate: { x: 2, y: -1, z: 1 }, rotate: { x: 15, y: 30, z: -10 }, scale: 1.2 };
+    const inner = {
+      ...createGroup({ ...scene, groups: [outer] }),
+      parent: outer.id,
+      drawTogether: true,
+      translate: { x: -3, y: 2, z: 0 },
+      rotate: { x: 0, y: -45, z: 0 },
+    };
+    scene = {
+      ...scene,
+      groups: [outer, inner],
+      // Half the shapes in the drawn-together group, the rest in the outer one.
+      shapes: scene.shapes.map((shape, i) => ({ ...shape, parent: i % 2 === 0 ? inner.id : outer.id })),
+    };
+    for (const angles of [[0, 0], [-0.35, 0.6]] as const) {
+      const result = await compare(page, scene, view(angles[0], angles[1]));
+      expect(result.ink, 'something was drawn').toBeGreaterThan(15000);
+      expect(result.mismatched / result.ink).toBeLessThan(0.01);
+    }
+  });
+});
+
+test.describe('Lottie export fidelity, a group drawn together', () => {
+  test('draws its shapes in their own order, not by depth', async ({ page }) => {
+    // The front disc comes first, so inside a Group the back one is drawn over it;
+    // sorted by depth (an Anchor), the front one would be on top.
+    let scene = emptyScene();
+    const group = { ...createGroup(scene), drawTogether: true };
+    scene = { ...scene, groups: [group] };
+    const disc = (z: number, color: string, x: number): ShapeData => ({
+      ...createShape(scene, 'Ellipse'),
+      translate: { x, y: 0, z },
+      parent: group.id,
+      props: { diameter: 14, color, stroke: 1, fill: true },
+    });
+    scene = addShape(scene, disc(6, '#cc2255', -3));
+    scene = addShape(scene, { ...disc(-6, '#3355cc', 3), id: 'ellipse-2' });
+    const result = await compare(page, scene, view(0, 0));
+    expect(result.ink).toBeGreaterThan(20000);
+    expect(result.mismatched / result.ink).toBeLessThan(0.01);
+  });
 });
 
 test.describe('Lottie export fidelity, through a camera', () => {

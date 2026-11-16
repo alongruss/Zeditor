@@ -1,4 +1,6 @@
+import { findGroup } from '../model/hierarchy';
 import { deleteObject, duplicate, type Command } from '../state/commands';
+import { groupSelection, ungroupSelection } from '../state/groupActions';
 import { dispatch, editor } from '../state/store';
 import { PopupMenu, type MenuPosition } from './PopupMenu';
 
@@ -18,6 +20,9 @@ export function ContextMenu({ position, onClose }: { position: MenuPosition; onC
       items={[
         { label: 'Duplicate', shortcut: 'Ctrl+D', onSelect: () => run(duplicate) },
         { label: 'Delete', shortcut: 'Del', onSelect: () => run(deleteObject) },
+        findGroup(editor.get().scene, editor.get().selectedId)
+          ? { label: 'Ungroup', shortcut: 'Ctrl+Shift+G', onSelect: ungroupSelection }
+          : { label: 'Group', shortcut: 'Ctrl+G', onSelect: groupSelection },
       ]}
     />
   );

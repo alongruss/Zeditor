@@ -22,6 +22,8 @@ export type Shortcut =
   | 'deleteKeys'
   | 'firstFrame'
   | 'lastFrame'
+  | 'group'
+  | 'ungroup'
   | { readonly stepFrames: number };
 
 /** Timeline shortcuts, which act on the playhead or selected keys rather than the page's focus. */
@@ -47,6 +49,8 @@ function letterOf(press: KeyPress): string {
  * What a key press does, or null if it isn't a shortcut.
  *   Delete / Backspace              delete the selected shape
  *   Ctrl+D (Cmd+D)                  duplicate the selected shape
+ *   Ctrl+G (Cmd+G)                  put the selection in a new group
+ *   Ctrl+Shift+G (Cmd too)          ungroup the selected group
  *   Escape                          clear the selection
  *   Ctrl+Z (Cmd+Z)                  undo
  *   Ctrl+Shift+Z, Ctrl+Y (Cmd too)  redo
@@ -81,6 +85,8 @@ export function shortcutFor(press: KeyPress, selectedId: string | null, keysSele
   if (letter === 'y' && !press.shiftKey) return 'redo';
   if (letter === 's' && !press.shiftKey) return 'save';
   if (letter === 'o' && !press.shiftKey) return 'open';
+  // Ctrl+G is the browser's "find next": always claimed, even with nothing to group.
+  if (letter === 'g') return press.shiftKey ? 'ungroup' : 'group';
   if (letter === 'd' && !press.shiftKey) {
     // Ctrl+D would otherwise bookmark the page, so claim it even with nothing selected.
     return selectedId === null ? nothing : duplicate(selectedId);

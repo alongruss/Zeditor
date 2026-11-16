@@ -37,14 +37,18 @@ export const shapeAtFrame = (shape: ShapeData, frame: number): ShapeData => obje
 
 export function sceneAtFrame(scene: Scene, frame: number): Scene {
   const shapes = scene.shapes.map((shape) => objectAtFrame(shape, frame));
+  const groups = scene.groups.map((group) => objectAtFrame(group, frame));
   const cameras = scene.cameras.map((camera) => objectAtFrame(camera, frame));
-  const same = shapes.every((s, i) => s === scene.shapes[i]) && cameras.every((c, i) => c === scene.cameras[i]);
-  return same ? scene : { ...scene, shapes, cameras };
+  const same =
+    shapes.every((s, i) => s === scene.shapes[i]) &&
+    groups.every((g, i) => g === scene.groups[i]) &&
+    cameras.every((c, i) => c === scene.cameras[i]);
+  return same ? scene : { ...scene, shapes, groups, cameras };
 }
 
 /** True if anything in the scene is animated. */
 export function isAnimated(scene: Scene): boolean {
-  return [...scene.shapes, ...scene.cameras].some(
+  return [...scene.shapes, ...scene.groups, ...scene.cameras].some(
     (object) => object.tracks !== undefined && Object.keys(object.tracks).length > 0,
   );
 }

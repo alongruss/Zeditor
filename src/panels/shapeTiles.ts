@@ -19,6 +19,7 @@ export const STICKER: Readonly<Record<ObjectType, string>> = {
   Cylinder: 'var(--sticker-grape)',
   Cone: 'var(--sticker-bubblegum)',
   Box: 'var(--sticker-tangerine)',
+  Group: 'var(--group-bg)',
   Camera: 'var(--group-bg)',
 };
 
