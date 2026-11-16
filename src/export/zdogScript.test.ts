@@ -1,6 +1,8 @@
 import * as Zdog from 'zdog';
 import { describe, expect, it } from 'vitest';
-import { addShape, createCamera, createShape, emptyScene, updateShape } from '../model/scene';
+import { worldTransform } from '../model/hierarchy';
+import { addShape, createCamera, createGroup, createShape, emptyScene, updateShape } from '../model/scene';
+import { applyTransform } from '../model/transform';
 import { starterScene } from '../model/starterScene';
 import type { Scene, ShapeData } from '../model/types';
 import { turn } from '../render/view';
@@ -178,5 +180,28 @@ describe('constName', () => {
       'shape3DThing',
       'box1',
     ]);
+  });
+});
+
+describe('exportZdogScript with groups', () => {
+  it('nests shapes in Anchors and Groups, and zdog puts them where the editor does', () => {
+    let scene: Scene = emptyScene();
+    const outer = { ...createGroup(scene), translate: { x: 4, y: -2, z: 1 }, rotate: { x: 20, y: -30, z: 10 }, scale: 1.5 };
+    const inner = { ...createGroup({ ...scene, groups: [outer] }), parent: outer.id, drawTogether: true, translate: { x: 0, y: 3, z: 0 } };
+    scene = { ...scene, groups: [outer, inner] };
+    const box: ShapeData = { ...createShape(scene, 'Box'), translate: { x: 1, y: 1, z: -2 }, parent: inner.id };
+    scene = addShape(scene, box);
+
+    const ran = run(exportZdogScript(scene, FREE));
+    const outerNode = childrenOf(ran.illo)[0];
+    expect(outerNode).toBeInstanceOf(Zdog.Anchor);
+    const innerNode = childrenOf(outerNode)[0];
+    expect(innerNode).toBeInstanceOf(Zdog.Group);
+    const boxNode = childrenOf(innerNode)[0] as unknown as { renderOrigin: Zdog.Vector };
+
+    ran.illo.updateGraph();
+    const expected = applyTransform(worldTransform(scene, box), { x: 0, y: 0, z: 0 });
+    // The free view's rotation is the identity, so the render origin is the world position.
+    for (const axis of ['x', 'y', 'z'] as const) expect(boxNode.renderOrigin[axis]).toBeCloseTo(expected[axis], 4);
   });
 });

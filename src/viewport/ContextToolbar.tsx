@@ -1,7 +1,8 @@
 import { useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { groupKeyState } from '../model/animation';
-import type { PropertyPath, SceneObject } from '../model/types';
-import { deleteObject, duplicate, toggleKey } from '../state/commands';
+import type { PropertyPath, SceneObject, Vec3 } from '../model/types';
+import { deleteObject, duplicate, select, toggleKey } from '../state/commands';
+import { groupSelection, ungroupSelection } from '../state/groupActions';
 import { usePointerDrag } from '../state/pointerDrag';
 import { dispatch } from '../state/store';
 import { pause } from '../state/timeline';
@@ -21,8 +22,10 @@ const CAMERA_KEY_PATHS: readonly PropertyPath[] = [
 ];
 
 interface ContextToolbarProps {
-  /** The selected shape or camera, as posed on `frame`. */
+  /** The selected shape, group or camera, as posed on `frame`. */
   readonly object: SceneObject;
+  /** A shape's or group's position in the world (its own is in its group's space). */
+  readonly origin?: Vec3;
   readonly view: ViewTransform;
   readonly frame: number;
   /** Looking through this camera: the toolbar sits at the top center. */
@@ -35,14 +38,19 @@ interface ContextToolbarProps {
 }
 
 /** The part of the viewport the toolbar must not cover, and the gizmo's square alone. */
-function keepOutAreas(object: SceneObject, view: ViewTransform, outline: HTMLDivElement | null): [Rect, Rect | null] {
+function keepOutAreas(
+  object: SceneObject,
+  origin: Vec3 | undefined,
+  view: ViewTransform,
+  outline: HTMLDivElement | null,
+): [Rect, Rect | null] {
   if (object.type === 'Camera') {
     const corners = cameraCorners(object).map((corner) => project(corner, view));
     const xs = corners.map((p) => p.x);
     const ys = corners.map((p) => p.y);
     return [{ left: Math.min(...xs), top: Math.min(...ys), right: Math.max(...xs), bottom: Math.max(...ys) }, null];
   }
-  const center = project(object.translate, view);
+  const center = project(origin ?? object.translate, view);
   const gizmo = squareAround(center.x, center.y, GIZMO_REACH_PX);
   const parent = outline?.offsetParent;
   if (!outline || outline.hidden || !(parent instanceof HTMLElement)) return [gizmo, gizmo];
@@ -58,11 +66,16 @@ function keepOutAreas(object: SceneObject, view: ViewTransform, outline: HTMLDiv
  * covers the selection or a gizmo handle, fades out while you drag, and
  * hides during playback. One Tab stop; the arrow keys move inside it.
  */
-export function ContextToolbar({ object, view, frame, pinned, playing, outline, scene }: ContextToolbarProps) {
+export function ContextToolbar({ object, origin, view, frame, pinned, playing, outline, scene }: ContextToolbarProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(0);
   const dragging = usePointerDrag();
   const isCamera = object.type === 'Camera';
+  const isGroup = object.type === 'Group';
+  const parentId = object.type !== 'Camera' ? object.parent : undefined;
+  // Roving focus: one Tab stop, the arrow keys move between the buttons.
+  const keyIndex = (isCamera ? 2 : 3) + (parentId !== undefined ? 1 : 0);
+  const stop = (index: number) => ({ tabIndex: active === index ? 0 : -1, onFocus: () => setActive(index) });
   const keyPaths = isCamera ? CAMERA_KEY_PATHS : SHAPE_KEY_PATHS;
   const keyed = groupKeyState(object, keyPaths, frame) === 'key';
   const keyLabel = isCamera ? 'Key view' : 'Key transform';
@@ -77,8 +90,8 @@ export function ContextToolbar({ object, view, frame, pinned, playing, outline, 
     if (pinned) {
       position = { x: Math.max(8, (area.width - size.width) / 2), y: 8 };
     } else {
-      const [keepOut, fallback] = keepOutAreas(object, view, outline);
-      const anchor = isCamera ? (keepOut.left + keepOut.right) / 2 : project(object.translate, view).x;
+      const [keepOut, fallback] = keepOutAreas(object, origin, view, outline);
+      const anchor = isCamera ? (keepOut.left + keepOut.right) / 2 : project(origin ?? object.translate, view).x;
       position = toolbarPlacement(keepOut, fallback, anchor, size, area);
     }
     bar.style.left = `${Math.round(position.x)}px`;
@@ -134,20 +147,34 @@ export function ContextToolbar({ object, view, frame, pinned, playing, outline, 
       style={{ visibility: 'hidden' }}
       onKeyDown={onKeyDown}
     >
-      <button type="button" tabIndex={active === 0 ? 0 : -1} onFocus={() => setActive(0)} onClick={() => dispatch(duplicate(object.id))}>
+      <button type="button" {...stop(0)} onClick={() => dispatch(duplicate(object.id))}>
         Duplicate
       </button>
-      <button type="button" tabIndex={active === 1 ? 0 : -1} onFocus={() => setActive(1)} onClick={onDelete}>
+      <button type="button" {...stop(1)} onClick={onDelete}>
         Delete
       </button>
+      {!isCamera && (
+        <button
+          type="button"
+          {...stop(2)}
+          title={isGroup ? 'Take everything out of this group (Ctrl+Shift+G)' : 'Put this in a new group (Ctrl+G)'}
+          onClick={isGroup ? ungroupSelection : groupSelection}
+        >
+          {isGroup ? 'Ungroup' : 'Group'}
+        </button>
+      )}
+      {parentId !== undefined && (
+        <button type="button" {...stop(isCamera ? 2 : 3)} title="Select the group this is in" onClick={() => dispatch(select(parentId))}>
+          Select group
+        </button>
+      )}
       <button
         type="button"
         class={keyed ? 'key-all is-keyed' : 'key-all'}
-        tabIndex={active === 2 ? 0 : -1}
+        {...stop(keyIndex)}
         aria-label={keyLabel}
         aria-pressed={keyed}
         title={`${keyLabel} on frame ${frame}`}
-        onFocus={() => setActive(2)}
         onClick={() => {
           pause();
           dispatch(toggleKey(object.id, keyPaths, frame));

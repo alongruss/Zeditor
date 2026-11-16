@@ -3,8 +3,10 @@ import { groupKeyState, keyState } from '../model/animation';
 import { objectAtFrame, shapeAtFrame } from '../model/evaluate';
 import type { ObjectPatch } from '../model/animation';
 import { findObject } from '../model/scene';
+import { findGroup, subtreeIds } from '../model/hierarchy';
 import { getShapeTypeDef, type FieldDef, type FieldGroup } from '../model/shapeTypes';
-import type { CameraData, FaceValue, PropValue, PropertyPath, SceneObject, ShapeData, Vec3 } from '../model/types';
+import type { CameraData, FaceValue, GroupData, Placeable, PropValue, PropertyPath, SceneObject, ShapeData, Vec3 } from '../model/types';
+import { moveToGroup, ungroupSelection } from '../state/groupActions';
 import { edit, toggleKey } from '../state/commands';
 import { dispatch, setLookThrough, useEditorState, useLookThrough } from '../state/store';
 import { pause, useTimeline } from '../state/timeline';
@@ -20,14 +22,106 @@ const SPAN_STEP = 1;
 const MAX_PICTURE_SIZE = 8192;
 const AXES = ['x', 'y', 'z'] as const;
 
-/** Edits the selected shape (built from its type's field list) or camera. */
+/** Edits the selected shape (built from its type's field list), group or camera. */
 export function Inspector() {
   const { scene, selectedId } = useEditorState();
   const object = findObject(scene, selectedId);
   if (!object) return <p class="panel-empty">Select a shape or camera to edit it.</p>;
   // Keyed by id so half-typed text never carries over to another object.
   if (object.type === 'Camera') return <CameraInspector key={object.id} camera={object} />;
+  if (object.type === 'Group') return <GroupInspector key={object.id} group={object} />;
   return <ShapeInspector key={object.id} shape={object} />;
+}
+
+/**
+ * Which group a shape or group is in. Moving it keeps it where it is in the
+ * world. A group can't go into itself or anything inside it, so those
+ * aren't offered.
+ */
+function GroupPicker({ object }: { object: Placeable }) {
+  const { scene } = useEditorState();
+  const blocked = object.type === 'Group' ? subtreeIds(scene, object.id) : new Set<string>();
+  const choices = scene.groups.filter((group) => !blocked.has(group.id));
+  const current = findGroup(scene, object.parent)?.id ?? '';
+  return (
+    <label class="field group-picker">
+      <span class="field-label">Group</span>
+      <select value={current} onChange={(event) => moveToGroup(object.id, event.currentTarget.value || null)}>
+        <option value="">None (top level)</option>
+        {choices.map((group) => (
+          <option key={group.id} value={group.id}>
+            {group.name}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+/**
+ * A group: where it is, how it's turned and scaled (everything inside moves
+ * with it; each can be animated), and whether its insides are drawn together.
+ */
+function GroupInspector({ group }: { group: GroupData }) {
+  const { frame } = useTimeline();
+  const posed = objectAtFrame(group, frame);
+  const { set, keys } = editorsFor(group, frame);
+
+  return (
+    <div class="inspector">
+      <div class="inspector-heading">
+        <span class="inspector-name">{group.name}</span>
+        <span class="inspector-type">Group</span>
+      </div>
+      <GroupPicker object={group} />
+
+      <VectorGroup
+        legend="Position"
+        property="translate"
+        value={posed.translate}
+        step={UNIT_STEP}
+        keys={keys}
+        onCommit={(translate, g) => set({ translate }, g)}
+      />
+      <VectorGroup
+        legend="Rotation"
+        property="rotate"
+        value={posed.rotate}
+        step={ANGLE_STEP}
+        shiftStep={ANGLE_SHIFT_STEP}
+        suffix="°"
+        keys={keys}
+        onCommit={(rotate, g) => set({ rotate }, g)}
+      />
+      <fieldset class="group">
+        <legend>Scale</legend>
+        <KeyedRow label="Scale" paths={['scale']} keys={keys}>
+          <NumberInput
+            label="Scale"
+            shortLabel="Uniform"
+            value={posed.scale}
+            step={SCALE_STEP}
+            min={0}
+            onCommit={(scale, g) => set({ scale }, g)}
+          />
+        </KeyedRow>
+      </fieldset>
+      <fieldset class="group">
+        <legend>Drawing</legend>
+        <CheckboxInput
+          label="Draw together"
+          checked={group.drawTogether}
+          onCommit={(drawTogether) => set({ drawTogether })}
+        />
+        <p class="field-note">
+          Draws everything inside as one piece, in its own order, instead of sorting each part by depth.
+        </p>
+      </fieldset>
+      <button type="button" onClick={ungroupSelection}>
+        Ungroup
+      </button>
+    </div>
+  );
 }
 
 type SetPatch = (patch: ObjectPatch, group?: string) => void;
@@ -65,6 +159,7 @@ function ShapeInspector({ shape }: { shape: ShapeData }) {
         <span class="inspector-name">{shape.name}</span>
         <span class="inspector-type">{def.label}</span>
       </div>
+      <GroupPicker object={shape} />
 
       <VectorGroup
         legend="Position"

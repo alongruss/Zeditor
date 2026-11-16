@@ -48,13 +48,18 @@ export function startHistory(present: EditorState): History {
  */
 function sameScene(a: Scene, b: Scene): boolean {
   if (a === b) return true;
-  if (a.shapes.length !== b.shapes.length || a.cameras.length !== b.cameras.length || a.version !== b.version) {
+  if (
+    a.shapes.length !== b.shapes.length ||
+    a.groups.length !== b.groups.length ||
+    a.cameras.length !== b.cameras.length ||
+    a.version !== b.version
+  ) {
     return false;
   }
   if (a.settings !== b.settings && JSON.stringify(a.settings) !== JSON.stringify(b.settings)) return false;
   const same = <T>(x: readonly T[], y: readonly T[]) =>
     x.every((item, i) => item === y[i] || JSON.stringify(item) === JSON.stringify(y[i]));
-  return same(a.shapes, b.shapes) && same(a.cameras, b.cameras);
+  return same(a.shapes, b.shapes) && same(a.groups, b.groups) && same(a.cameras, b.cameras);
 }
 
 /**

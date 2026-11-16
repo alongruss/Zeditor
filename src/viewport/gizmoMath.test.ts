@@ -1,5 +1,6 @@
 import * as Zdog from 'zdog';
 import { describe, expect, it } from 'vitest';
+import { applyTransform } from '../model/transform';
 import type { Vec3 } from '../model/types';
 import {
   AXES,
@@ -184,5 +185,37 @@ describe('rotation rings', () => {
   it('measure sweeps across the ±180° seam', () => {
     expect(angleBetween(Math.PI - 0.1, -Math.PI + 0.1)).toBeCloseTo(0.2);
     expect(angleBetween(-Math.PI + 0.1, Math.PI - 0.1)).toBeCloseTo(-0.2);
+  });
+});
+
+describe('inside a turned, scaled group', () => {
+  const parent = { translate: { x: 3, y: -2, z: 1 }, rotate: { x: 25, y: -40, z: 15 }, scale: 2 };
+
+  it('dragging an arrow moves the object along the world axis', () => {
+    for (const view of CAMERAS) {
+      for (const axis of AXES) {
+        if (!arrowEnabled(axis, view)) continue;
+        const start = { x: 1, y: -1, z: 2 };
+        const [from, to] = arrowPoints(applyTransform(parent, start), axis, view);
+        const moved = moveAlongAxis(start, axis, { x: to.x - from.x, y: to.y - from.y }, view, false, parent);
+        // In the world, it moved by the arrow's length along `axis`, and not along the others.
+        const before = applyTransform(parent, start);
+        const after = applyTransform(parent, moved);
+        const length = ARROW_LENGTH_PX / view.zoom;
+        for (const other of AXES) {
+          expect(after[other] - before[other], `${axis} drag, ${other} change`).toBeCloseTo(other === axis ? length : 0, 1);
+        }
+      }
+    }
+  });
+
+  it('a ring is drawn turned by the group', () => {
+    const rotate = { x: 0, y: 0, z: 0 };
+    const plain = ringPoints(origin, 'y', rotate, front);
+    const turned = ringPoints(origin, 'y', rotate, front, parent);
+    // The group turns the ring, so it isn't drawn the same.
+    expect(turned.some((p, i) => Math.abs(p.x - plain[i].x) > 1 || Math.abs(p.y - plain[i].y) > 1)).toBe(true);
+    // With no group (or the identity), nothing changes.
+    expect(ringPoints(origin, 'y', rotate, front, { translate: origin, rotate, scale: 1 })).toEqual(plain);
   });
 });

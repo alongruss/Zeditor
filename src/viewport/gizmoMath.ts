@@ -1,5 +1,19 @@
 import { Zdog } from '../zdog';
+import { applyMatrix, directionInto, rotationMatrix, type Transform } from '../model/transform';
 import type { Vec3 } from '../model/types';
+
+/**
+ * Inside a group, an object's own values are in its group's space: the
+ * gizmo still drags along the world axes and shows rings where they turn
+ * the object, then turns the change into the group's space. `parent` is the
+ * group's transform as seen from the world (none, or identity, at the top).
+ */
+const isIdentity = (t: Transform | undefined): boolean =>
+  !t ||
+  (t.scale === 1 &&
+    t.rotate.x === 0 &&
+    t.rotate.y === 0 &&
+    t.rotate.z === 0);
 
 /**
  * Gizmo math: where its handles appear on screen, and what a drag on them
@@ -132,12 +146,18 @@ export function moveAlongAxis(
   drag: ScreenPoint,
   view: ViewTransform,
   snap: boolean,
+  parent?: Transform,
 ): Vec3 {
   if (!arrowEnabled(axis, view)) return start;
   const a = onScreen(UNIT[axis], view);
   const units = (drag.x * a.x + drag.y * a.y) / (a.x * a.x + a.y * a.y);
-  const raw = start[axis] + units;
-  return { ...start, [axis]: snap ? Math.round(raw) : roundTo(raw, 3) };
+  if (isIdentity(parent)) {
+    const raw = start[axis] + units;
+    return { ...start, [axis]: snap ? Math.round(raw) : roundTo(raw, 3) };
+  }
+  // In a turned or scaled group: move along the world axis, written in the group's space.
+  const local = directionInto(parent!, times(UNIT[axis], snap ? Math.round(units) : units));
+  return { x: roundTo(start.x + local.x, 3), y: roundTo(start.y + local.y, 3), z: roundTo(start.z + local.z, 3) };
 }
 
 // ----- rotation rings -----
@@ -156,17 +176,21 @@ function ringFrame(axis: Axis, rotateDeg: Vec3): Partial<Vec3> {
   return { x: rotateDeg.x * DEG, y: rotateDeg.y * DEG };
 }
 
-/** Two radius vectors of a ring, a quarter turn apart in the direction a positive rotation goes. */
-function ringBasis(axis: Axis, rotateDeg: Vec3): [Vec3, Vec3] {
+/**
+ * Two radius vectors of a ring, a quarter turn apart in the direction a
+ * positive rotation goes, in the world (turned by the group, if any).
+ */
+function ringBasis(axis: Axis, rotateDeg: Vec3, parent?: Transform): [Vec3, Vec3] {
   const first = axis === 'x' ? UNIT.y : UNIT.x;
   const second = turn(first, { [axis]: Math.PI / 2 });
   const frame = ringFrame(axis, rotateDeg);
-  return [turn(first, frame), turn(second, frame)];
+  const inGroup = (v: Vec3) => (isIdentity(parent) ? v : applyMatrix(rotationMatrix(parent!.rotate), v));
+  return [inGroup(turn(first, frame)), inGroup(turn(second, frame))];
 }
 
-/** Screen outline of a rotation ring around `origin`, as a closed list of points. */
-export function ringPoints(origin: Vec3, axis: Axis, rotateDeg: Vec3, view: ViewTransform): ScreenPoint[] {
-  const [a, b] = ringBasis(axis, rotateDeg);
+/** Screen outline of a rotation ring around `origin` (a world point), as a closed list of points. */
+export function ringPoints(origin: Vec3, axis: Axis, rotateDeg: Vec3, view: ViewTransform, parent?: Transform): ScreenPoint[] {
+  const [a, b] = ringBasis(axis, rotateDeg, parent);
   const radius = RING_RADIUS_PX / view.zoom;
   const points: ScreenPoint[] = [];
   for (let i = 0; i <= RING_SEGMENTS; i++) {
@@ -182,8 +206,8 @@ export function ringPoints(origin: Vec3, axis: Axis, rotateDeg: Vec3, view: View
  * it goes the way `screenAngle` increases (clockwise on screen), -1 the other
  * way, and 0 when the ring is seen (almost) edge-on and is switched off.
  */
-export function ringDirection(axis: Axis, rotateDeg: Vec3, view: ViewTransform): -1 | 0 | 1 {
-  const [a, b] = ringBasis(axis, rotateDeg);
+export function ringDirection(axis: Axis, rotateDeg: Vec3, view: ViewTransform, parent?: Transform): -1 | 0 | 1 {
+  const [a, b] = ringBasis(axis, rotateDeg, parent);
   const sa = onScreen(a, view);
   const sb = onScreen(b, view);
   // For unit vectors this is how squarely the ring faces the camera, from -1 to 1.

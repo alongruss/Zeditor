@@ -1,7 +1,8 @@
 import type * as ZdogTypes from 'zdog';
 import { Zdog } from '../zdog';
-import type { Scene, ShapeData } from '../model/types';
+import type { Placeable, Scene, ShapeData } from '../model/types';
 import { rootTranslate, type ViewSpec } from '../render/view';
+import { attachAll, createZdogGroup } from '../render/zdogGraph';
 import { createZdogShape, zdogTransform } from './toZdog';
 
 /** Attribute that ties every SVG element back to the top-level shape that drew it. */
@@ -11,7 +12,7 @@ export const SHAPE_ID_ATTRIBUTE = 'data-shape-id';
 const SELECTION_PADDING = 4;
 
 interface Entry {
-  readonly data: ShapeData;
+  readonly data: Placeable;
   readonly object: ZdogTypes.Anchor;
 }
 
@@ -66,46 +67,56 @@ export class SceneView {
     });
   }
 
-  /** Brings the zdog objects in line with `scene`. Unchanged shapes are left alone. */
+  /**
+   * Brings the zdog objects in line with `scene`. Unchanged shapes and groups
+   * are left alone; ones that only moved are moved in place.
+   */
   setScene(scene: Scene): void {
-    const ordered: ZdogTypes.Anchor[] = [];
     const present = new Set<string>();
+
+    for (const group of scene.groups) {
+      present.add(group.id);
+      const entry = this.entries.get(group.id);
+      if (entry?.data === group) continue;
+      if (entry && entry.data.type === 'Group' && entry.data.drawTogether === group.drawTogether) {
+        this.moveInPlace(entry.object, group);
+        this.entries.set(group.id, { data: group, object: entry.object });
+      } else {
+        // New, or switched between Anchor and Group: a new node (its children are re-attached below).
+        this.entries.set(group.id, { data: group, object: createZdogGroup(group) });
+      }
+    }
 
     for (const shape of scene.shapes) {
       present.add(shape.id);
-      let entry = this.entries.get(shape.id);
+      const entry = this.entries.get(shape.id);
       // Scene data is immutable, so a different object means the shape changed.
-      if (entry && entry.data !== shape && onlyMoved(entry.data, shape)) {
-        // Position, rotation or scale only (most animation frames): move the zdog object.
-        const { translate, rotate, scale } = zdogTransform(shape);
-        entry.object.translate.set(translate);
-        entry.object.rotate.set(rotate);
-        entry.object.scale.set({ x: scale, y: scale, z: scale });
-        entry = { data: shape, object: entry.object };
-        this.entries.set(shape.id, entry);
-      } else if (!entry || entry.data !== shape) {
+      if (entry?.data === shape) continue;
+      if (entry && entry.data.type !== 'Group' && onlyMoved(entry.data, shape)) {
+        // Position, rotation, scale or group only (most animation frames): move the zdog object.
+        this.moveInPlace(entry.object, shape);
+        this.entries.set(shape.id, { data: shape, object: entry.object });
+      } else {
         // Anything else: rebuild it (several zdog shapes can't change size in place).
-        if (entry) this.illo.removeChild(entry.object);
-        entry = { data: shape, object: createZdogShape(shape) };
-        this.entries.set(shape.id, entry);
-        this.illo.addChild(entry.object);
+        this.entries.set(shape.id, { data: shape, object: createZdogShape(shape) });
         this.untagged.add(shape.id);
       }
-      ordered.push(entry.object);
     }
 
-    for (const [id, entry] of this.entries) {
-      if (!present.has(id)) {
-        this.illo.removeChild(entry.object);
-        this.entries.delete(id);
-      }
-    }
+    for (const id of [...this.entries.keys()]) if (!present.has(id)) this.entries.delete(id);
 
-    // Keep zdog's child order the same as the scene's.
-    const children = childrenOf(this.illo);
-    if (children) children.splice(0, children.length, ...ordered);
+    // Every node under its group (or the illustration), in the scene's order.
+    const nodes = new Map([...this.entries].map(([id, entry]) => [id, entry.object]));
+    attachAll(scene, this.illo, nodes);
 
     this.requestRender();
+  }
+
+  private moveInPlace(object: ZdogTypes.Anchor, data: Placeable): void {
+    const { translate, rotate, scale } = zdogTransform(data);
+    object.translate.set(translate);
+    object.rotate.set(rotate);
+    object.scale.set({ x: scale, y: scale, z: scale });
   }
 
   /** While playing, the selection outline is hidden (measuring it every frame is slow). */
@@ -174,7 +185,8 @@ export class SceneView {
     const ids = count !== this.taggedCount ? [...this.entries.keys()] : [...this.untagged];
     for (const id of ids) {
       const entry = this.entries.get(id);
-      if (!entry) continue;
+      // Only shapes: a group's elements are its shapes', which carry their own ids.
+      if (!entry || entry.data.type === 'Group') continue;
       for (const element of svgElementsOf(entry.object)) {
         if (element.getAttribute(SHAPE_ID_ATTRIBUTE) !== id) element.setAttribute(SHAPE_ID_ATTRIBUTE, id);
       }

@@ -11,6 +11,8 @@ export interface ObjectPatch extends ShapePatch {
   /** A camera's picture size: not animatable, so it changes for the whole animation. */
   readonly width?: number;
   readonly height?: number;
+  /** A group's "draw together" (not animatable). */
+  readonly drawTogether?: boolean;
 }
 
 /**
@@ -179,6 +181,9 @@ export function editAtFrame<T extends SceneObject>(shape: T, patch: ObjectPatch,
   if (shape.type === 'Camera') {
     const size = { width: patch.width ?? shape.width, height: patch.height ?? shape.height };
     if (size.width !== shape.width || size.height !== shape.height) next = { ...next, ...size };
+  }
+  if (shape.type === 'Group' && patch.drawTogether !== undefined && patch.drawTogether !== shape.drawTogether) {
+    next = { ...next, drawTogether: patch.drawTogether };
   }
   for (const [path, value] of flatten(patch)) {
     const spec = propertySpec(shape.type, path);

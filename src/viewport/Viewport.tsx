@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { objectAtFrame, sceneAtFrame } from '../model/evaluate';
-import { findShape } from '../model/scene';
+import { parentTransform } from '../model/hierarchy';
+import { applyTransform } from '../model/transform';
 import { SHAPE_TYPE_DEFS } from '../model/shapeTypes';
 import { SHAPE_TYPES } from '../model/types';
 import type { CameraData } from '../model/types';
@@ -246,8 +247,11 @@ export function Viewport() {
   }, []);
 
   const { frame, playing } = useTimeline();
-  const found = findShape(scene, selectedId);
-  const selected = found && objectAtFrame(found, frame);
+  // The scene as posed on this frame: a group's pose moves what's inside it.
+  const posed = sceneAtFrame(scene, frame);
+  const selected = posed.shapes.find((s) => s.id === selectedId) ?? posed.groups.find((g) => g.id === selectedId);
+  const selectedParent = selected && selected.parent !== undefined ? parentTransform(posed, selected) : undefined;
+  const selectedOrigin = selected && (selectedParent ? applyTransform(selectedParent, selected.translate) : selected.translate);
   const posedCameras = scene.cameras.map((camera) => objectAtFrame(camera, frame));
   const throughCamera = posedCameras.find((camera) => camera.id === lookingThrough) ?? null;
   const spec = size && currentViewSpec(size.width, size.height);
@@ -298,10 +302,11 @@ export function Viewport() {
           </span>
         </div>
       )}
-      {selected && transform && <Gizmo shape={selected} frame={frame} view={transform} />}
+      {selected && transform && <Gizmo shape={selected} parent={selectedParent} frame={frame} view={transform} />}
       {selectedObject && transform && (
         <ContextToolbar
           object={selectedObject}
+          origin={selectedOrigin}
           view={transform}
           frame={frame}
           pinned={throughCamera?.id === selectedObject.id}

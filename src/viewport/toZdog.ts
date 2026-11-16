@@ -38,7 +38,7 @@ export function fadedProps(shape: ShapeData): Props {
 }
 
 /** A shape's position, rotation (in radians) and scale, as zdog takes them. */
-export function zdogTransform(shape: ShapeData): {
+export function zdogTransform(shape: Pick<ShapeData, 'translate' | 'rotate' | 'scale'>): {
   translate: { x: number; y: number; z: number };
   rotate: { x: number; y: number; z: number };
   scale: number;

@@ -42,11 +42,15 @@ const CAMERA: readonly PropertySpec[] = [
   { path: 'viewSpan', label: 'View span', kind: 'number', min: 0.01 },
 ];
 
+/** A group moves, turns and scales what is inside it (opacity and colors belong to the shapes). */
+const GROUP: readonly PropertySpec[] = TRANSFORM.filter((spec) => spec.path !== 'opacity');
+
 const byType = new Map<ShapeType, readonly PropertySpec[]>();
 
 /** Every animatable property of a shape type (or of a camera), in Inspector order. */
 export function propertiesOf(type: ObjectType): readonly PropertySpec[] {
   if (type === 'Camera') return CAMERA;
+  if (type === 'Group') return GROUP;
   let list = byType.get(type);
   if (!list) {
     const fields = getShapeTypeDef(type).fields.map((field): PropertySpec => {
@@ -93,7 +97,7 @@ export function readBase(object: SceneObject, path: PropertyPath): TrackValue {
   } else if (isNumberKey(path)) {
     const value = record[path];
     if (typeof value === 'number') return value;
-  } else if (path.startsWith('props.') && object.type !== 'Camera') {
+  } else if (path.startsWith('props.') && object.type !== 'Camera' && object.type !== 'Group') {
     const key = path.slice('props.'.length);
     const value = object.props[key] ?? getShapeTypeDef(object.type).defaults[key];
     if (typeof value === 'number' || typeof value === 'string' || typeof value === 'boolean') return value;
@@ -119,7 +123,7 @@ export function writeBase<T extends SceneObject>(object: T, path: PropertyPath, 
   if (isNumberKey(path) && path in record) {
     return record[path] === value ? object : { ...object, [path]: value as number };
   }
-  if (path.startsWith('props.') && object.type !== 'Camera') {
+  if (path.startsWith('props.') && object.type !== 'Camera' && object.type !== 'Group') {
     const key = path.slice('props.'.length);
     if (object.props[key] === value) return object;
     return { ...object, props: { ...object.props, [key]: value as PropValue } };

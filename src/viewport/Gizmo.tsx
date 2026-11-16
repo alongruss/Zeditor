@@ -1,5 +1,6 @@
 import { useRef } from 'preact/hooks';
-import type { ShapeData, Vec3 } from '../model/types';
+import { applyTransform, type Transform } from '../model/transform';
+import type { Placeable, Vec3 } from '../model/types';
 import { edit } from '../state/commands';
 import { newGroup } from '../state/history';
 import { setPointerDrag } from '../state/pointerDrag';
@@ -60,8 +61,10 @@ function arrowHead(from: ScreenPoint, to: ScreenPoint): ScreenPoint[] {
 }
 
 interface GizmoProps {
-  /** The selected shape, as posed on `frame`. */
-  readonly shape: ShapeData;
+  /** The selected shape or group, as posed on `frame`. */
+  readonly shape: Placeable;
+  /** Its group's transform as seen from the world, if it's inside one. */
+  readonly parent?: Transform;
   readonly view: ViewTransform;
   /** The playhead's frame: animated values are keyed there. */
   readonly frame: number;
@@ -76,10 +79,12 @@ interface GizmoProps {
  * rotation value shown in the Inspector. Hold Shift to snap moves to whole
  * units and rotation to 15°. Each drag is one undo step.
  */
-export function Gizmo({ shape, view, frame }: GizmoProps) {
+export function Gizmo({ shape, parent, view, frame }: GizmoProps) {
   const drag = useRef<Drag | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
-  const center = project(shape.translate, view);
+  // Where the object sits in the world (its own position is in its group's space).
+  const origin = parent ? applyTransform(parent, shape.translate) : shape.translate;
+  const center = project(origin, view);
 
   /** Converts a point on this SVG to the page coordinates pointer events use. */
   const toPage = (p: ScreenPoint): ScreenPoint => {
@@ -102,7 +107,7 @@ export function Gizmo({ shape, view, frame }: GizmoProps) {
     const point = { x: event.clientX, y: event.clientY };
     if (current.kind === 'move') {
       const moved = { x: point.x - current.start.x, y: point.y - current.start.y };
-      const translate = moveAlongAxis(current.translate, current.axis, moved, view, event.shiftKey);
+      const translate = moveAlongAxis(current.translate, current.axis, moved, view, event.shiftKey, parent);
       dispatch(edit(shape.id, { translate }, frame), { group: current.group });
     } else {
       const angle = screenAngle(current.center, point);
@@ -120,9 +125,9 @@ export function Gizmo({ shape, view, frame }: GizmoProps) {
   };
 
   const rings = AXES.map((axis) => {
-    const direction = ringDirection(axis, shape.rotate, view);
+    const direction = ringDirection(axis, shape.rotate, view, parent);
     const enabled = direction !== 0;
-    const points = toPoints(ringPoints(shape.translate, axis, shape.rotate, view));
+    const points = toPoints(ringPoints(origin, axis, shape.rotate, view, parent));
     return (
       <g
         key={`rotate-${axis}`}
@@ -155,7 +160,7 @@ export function Gizmo({ shape, view, frame }: GizmoProps) {
 
   const arrows = AXES.map((axis) => {
     const enabled = arrowEnabled(axis, view);
-    const [from, to] = arrowPoints(shape.translate, axis, view);
+    const [from, to] = arrowPoints(origin, axis, view);
     return (
       <g
         key={`move-${axis}`}

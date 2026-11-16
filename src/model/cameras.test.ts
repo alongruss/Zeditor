@@ -168,7 +168,7 @@ describe('camera files (version 3)', () => {
     expect(errorOf(fileWith({ tracks: { 'props.color': [{ frame: 0, value: '#000000', easing: 'linear' }] } }))).not.toBeNull();
     expect(
       errorOf(fileWith({ id: 'box-1' }, [{ id: 'box-1', name: 'Box 1', type: 'Box' }])),
-    ).toMatch(/Two shapes or cameras have the same id: box-1/);
+    ).toMatch(/Two objects have the same id: box-1/);
     expect(errorOf(JSON.stringify({ version: SCENE_VERSION, settings: {}, shapes: [], cameras: {} }))).toMatch(
       /cameras aren't a list/,
     );
