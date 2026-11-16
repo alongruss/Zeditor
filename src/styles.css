@@ -1473,7 +1473,7 @@ kbd {
 }
 
 /* Selected: a violet wash and bold name (coral is for the scene itself). */
-.is-selected > .tree-item {
+.tree-item[aria-pressed='true'] {
   font-weight: 700;
   background: var(--hover-bg);
 }
@@ -1619,6 +1619,27 @@ kbd {
 .field-note {
   margin: 0;
   font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Several selected: their names. */
+.selection-names {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+}
+
+.selection-names li {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.selection-more {
   color: var(--text-muted);
 }
 

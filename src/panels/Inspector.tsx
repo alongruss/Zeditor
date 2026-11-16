@@ -6,8 +6,8 @@ import { findObject } from '../model/scene';
 import { findGroup, subtreeIds } from '../model/hierarchy';
 import { getShapeTypeDef, type FieldDef, type FieldGroup } from '../model/shapeTypes';
 import type { CameraData, FaceValue, GroupData, Placeable, PropValue, PropertyPath, SceneObject, ShapeData, Vec3 } from '../model/types';
-import { moveToGroup, ungroupSelection } from '../state/groupActions';
-import { edit, toggleKey } from '../state/commands';
+import { groupSelection, moveToGroup, ungroupSelection } from '../state/groupActions';
+import { edit, selectionOf, toggleKey } from '../state/commands';
 import { dispatch, setLookThrough, useEditorState, useLookThrough } from '../state/store';
 import { pause, useTimeline } from '../state/timeline';
 import { CheckboxInput, ColorInput, FaceInput, NumberInput } from './fields';
@@ -24,13 +24,49 @@ const AXES = ['x', 'y', 'z'] as const;
 
 /** Edits the selected shape (built from its type's field list), group or camera. */
 export function Inspector() {
-  const { scene, selectedId } = useEditorState();
+  const state = useEditorState();
+  const { scene, selectedId } = state;
   const object = findObject(scene, selectedId);
   if (!object) return <p class="panel-empty">Select a shape or camera to edit it.</p>;
+  const selection = selectionOf(state);
+  if (selection.length > 1) return <SelectionSummary ids={selection} />;
   // Keyed by id so half-typed text never carries over to another object.
   if (object.type === 'Camera') return <CameraInspector key={object.id} camera={object} />;
   if (object.type === 'Group') return <GroupInspector key={object.id} group={object} />;
   return <ShapeInspector key={object.id} shape={object} />;
+}
+
+/** How many shown by name when several are selected; the rest are counted. */
+const NAMES_SHOWN = 6;
+
+/** Several objects selected: what they are, and grouping them so they can be edited as one. */
+function SelectionSummary({ ids }: { ids: readonly string[] }) {
+  const { scene } = useEditorState();
+  const objects = ids.map((id) => findObject(scene, id)).filter((o): o is SceneObject => o !== undefined);
+  const groupable = objects.some((o) => o.type !== 'Camera');
+  const rest = objects.length - NAMES_SHOWN;
+  return (
+    <div class="inspector">
+      <div class="inspector-heading">
+        <span class="inspector-name">{objects.length} selected</span>
+      </div>
+      <ul class="selection-names" aria-label="Selected">
+        {objects.slice(0, NAMES_SHOWN).map((o) => (
+          <li key={o.id}>{o.name}</li>
+        ))}
+        {rest > 0 && <li class="selection-more">and {rest} more</li>}
+      </ul>
+      <p class="field-note">
+        The gizmo moves them together. To turn or scale them as one, or animate them together, put them in a group.
+        Ctrl-click (Cmd-click) one to leave it out.
+      </p>
+      {groupable && (
+        <button type="button" title="Put these in one new group (Ctrl+G)" onClick={groupSelection}>
+          Group them
+        </button>
+      )}
+    </div>
+  );
 }
 
 /**

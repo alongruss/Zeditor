@@ -3,7 +3,7 @@ import { ancestorsOf, childrenOf, findGroup } from '../model/hierarchy';
 import { findShape } from '../model/scene';
 import { SHAPE_TYPE_DEFS } from '../model/shapeTypes';
 import type { Placeable, Scene, SceneObject } from '../model/types';
-import { rename, select } from '../state/commands';
+import { rename, select, selectMany, toggleSelect } from '../state/commands';
 import { dispatch, useEditorState } from '../state/store';
 import { STICKER } from './shapeTiles';
 
@@ -26,7 +26,19 @@ function openForSelection(scene: Scene, selectedId: string | null): Set<string> 
  * then its cameras. Click selects; double-click renames; ▸ opens a group.
  */
 export function SceneTree() {
-  const { scene, selectedId } = useEditorState();
+  const { scene, selectedId, selectedIds } = useEditorState();
+  // The rows in the order they're shown, for Shift-click ranges.
+  const order: string[] = [];
+  /** Click selects; Ctrl (Cmd) adds or takes out; Shift selects the rows from the last one picked. */
+  const pick = (id: string, event: MouseEvent) => {
+    if (event.ctrlKey || event.metaKey) dispatch(toggleSelect(id));
+    else if (event.shiftKey && selectedId !== null && order.includes(selectedId)) {
+      const from = order.indexOf(selectedId);
+      const to = order.indexOf(id);
+      const range = from <= to ? order.slice(from, to + 1) : order.slice(to, from + 1).reverse();
+      dispatch(selectMany(range));
+    } else dispatch(select(id));
+  };
   const [renamingId, setRenamingId] = useState<string | null>(null);
   // Groups you opened or closed yourself; the rest follow OPEN_DEPTH.
   const [toggled, setToggled] = useState<ReadonlyMap<string, boolean>>(new Map());
@@ -37,7 +49,8 @@ export function SceneTree() {
     setToggled((current) => new Map(current).set(id, !isOpen(id, depth)));
 
   const item = (object: SceneObject, depth: number) => {
-    const selected = object.id === selectedId;
+    const selected = selectedIds.includes(object.id);
+    order.push(object.id);
     const isCamera = object.type === 'Camera';
     const isGroup = object.type === 'Group';
     const open = isGroup && isOpen(object.id, depth);
@@ -72,8 +85,8 @@ export function SceneTree() {
               type="button"
               class="tree-item"
               aria-pressed={selected}
-              title="Double-click to rename"
-              onClick={() => dispatch(select(object.id))}
+              title="Double-click to rename. Ctrl-click (Cmd-click) to select more than one."
+              onClick={(event) => pick(object.id, event)}
               onDblClick={() => setRenamingId(object.id)}
             >
               {isGroup ? (

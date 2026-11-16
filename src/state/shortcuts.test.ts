@@ -12,11 +12,11 @@ const press = (key: string, modifiers: Partial<KeyPress> = {}): KeyPress => ({
   ...modifiers,
 });
 
-const state: EditorState = { scene: starterScene(), selectedId: 'box-1' };
-const run = (keyPress: KeyPress, selectedId: string | null = 'box-1') => {
-  const shortcut = shortcutFor(keyPress, selectedId);
+const state: EditorState = { scene: starterScene(), selectedId: 'box-1', selectedIds: ['box-1'] };
+const run = (keyPress: KeyPress, selectedIds: readonly string[] = ['box-1']) => {
+  const shortcut = shortcutFor(keyPress, selectedIds);
   if (typeof shortcut !== 'function') throw new Error(`expected a command, got ${String(shortcut)}`);
-  return shortcut({ ...state, selectedId });
+  return shortcut({ ...state, selectedId: selectedIds[selectedIds.length - 1] ?? null, selectedIds });
 };
 
 describe('shortcutFor', () => {
@@ -25,13 +25,25 @@ describe('shortcutFor', () => {
     expect(run(press('Backspace')).scene.shapes).toHaveLength(8);
   });
 
+  it('deletes and duplicates everything selected', () => {
+    expect(run(press('Delete'), ['box-1', 'cone-1']).scene.shapes).toHaveLength(7);
+    const copied = run(press('d', { ctrlKey: true }), ['box-1', 'cone-1']);
+    expect(copied.scene.shapes).toHaveLength(11);
+    expect(copied.selectedIds).toEqual(['box-2', 'cone-2']);
+  });
+
+  it('selects everything with Ctrl+A', () => {
+    const all = run(press('a', { ctrlKey: true }), []);
+    expect(all.selectedIds).toHaveLength(9 + state.scene.cameras.length);
+  });
+
   it('duplicates with Ctrl+D or Cmd+D', () => {
     expect(run(press('d', { ctrlKey: true })).selectedId).toBe('box-2');
     expect(run(press('D', { metaKey: true })).selectedId).toBe('box-2');
   });
 
   it('claims Ctrl+D without a selection, so the browser does not bookmark the page', () => {
-    const empty = { ...state, selectedId: null };
+    const empty = { ...state, selectedId: null, selectedIds: [] };
     const shortcut = shortcutFor(press('d', { ctrlKey: true }), null);
     expect(typeof shortcut).toBe('function');
     expect((shortcut as (s: EditorState) => EditorState)(empty)).toBe(empty);
@@ -92,6 +104,6 @@ describe('shortcutFor', () => {
     expect(shortcutFor(press('z', { ctrlKey: true, altKey: true }), 'box-1')).toBeNull();
     expect(shortcutFor(press('y', { ctrlKey: true, shiftKey: true }), 'box-1')).toBeNull();
     expect(shortcutFor(press('Delete', { ctrlKey: true }), 'box-1')).toBeNull();
-    expect(shortcutFor(press('a', { ctrlKey: true }), 'box-1')).toBeNull();
+    expect(shortcutFor(press('b', { ctrlKey: true }), 'box-1')).toBeNull();
   });
 });

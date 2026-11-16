@@ -69,3 +69,23 @@ export function parentTransform(scene: Scene, object: Placeable): Transform {
 export function worldTransform(scene: Scene, object: Placeable): Transform {
   return compose(parentTransform(scene, object), transformOf(object));
 }
+
+/**
+ * The given objects without those inside another one of them (a group's
+ * insides go wherever the group goes), in the order given. Unknown ids and
+ * cameras are kept as they are.
+ */
+export function topmost(scene: Scene, ids: readonly string[]): string[] {
+  const chosen = new Set(ids);
+  return [...new Set(ids)].filter((id) => {
+    const object = scene.shapes.find((s) => s.id === id) ?? findGroup(scene, id);
+    return !object || !ancestorsOf(scene, object).some((group) => chosen.has(group.id));
+  });
+}
+
+/** The nearest group that holds all of these objects (undefined: the top level). */
+export function commonParent(scene: Scene, objects: readonly Placeable[]): GroupData | undefined {
+  if (objects.length === 0) return undefined;
+  const chains = objects.map((object) => ancestorsOf(scene, object));
+  return chains[0].find((group) => chains.every((chain) => chain.some((g) => g.id === group.id)));
+}

@@ -12,15 +12,44 @@ import {
   type ShapePatch,
 } from '../model/scene';
 import { editAtFrame, toggleKeys, type ObjectPatch } from '../model/animation';
-import { groupObject, setParent, ungroup, type GroupResult } from '../model/groups';
+import { groupObjects, setParent, ungroup, type GroupResult } from '../model/groups';
+import { childrenOf, topmost } from '../model/hierarchy';
 import { deleteKeys, moveKeysInScene, retime, setKeysEasing, type KeyRef } from '../model/keyEdits';
 import type { Easing, PropertyPath, Scene, SceneObject, ShapeType, Vec3 } from '../model/types';
 
 /** Everything the editor knows. The UI and the 3D view are drawn from this alone. */
 export interface EditorState {
   readonly scene: Scene;
-  /** The one selected shape, or null. */
+  /**
+   * The object the Inspector, gizmo and timeline show: the one picked last.
+   * Always one of `selectedIds` (null when nothing is selected).
+   */
   readonly selectedId: string | null;
+  /** Everything selected, in the order it was picked. */
+  readonly selectedIds: readonly string[];
+}
+
+type Selection = Pick<EditorState, 'selectedId' | 'selectedIds'>;
+
+/** A selection of just this object (or of nothing). */
+export function only(id: string | null): Selection {
+  return { selectedId: id, selectedIds: id === null ? [] : [id] };
+}
+
+/** A selection of these objects, the last one shown in the Inspector. */
+function many(ids: readonly string[]): Selection {
+  const unique = [...new Set(ids)];
+  return { selectedId: unique[unique.length - 1] ?? null, selectedIds: unique };
+}
+
+const sameSelection = (state: EditorState, next: Selection) =>
+  state.selectedId === next.selectedId &&
+  state.selectedIds.length === next.selectedIds.length &&
+  state.selectedIds.every((id, i) => id === next.selectedIds[i]);
+
+/** The selected objects that still exist, in the order they were picked. */
+export function selectionOf(state: EditorState): string[] {
+  return state.selectedIds.filter((id) => findObject(state.scene, id));
 }
 
 /**
@@ -32,32 +61,66 @@ export type Command = (state: EditorState) => EditorState;
 export const select =
   (id: string | null): Command =>
   (state) => {
-    const nextId = id !== null && findObject(state.scene, id) ? id : null;
-    return nextId === state.selectedId ? state : { ...state, selectedId: nextId };
+    const next = only(id !== null && findObject(state.scene, id) ? id : null);
+    return sameSelection(state, next) ? state : { ...state, ...next };
   };
+
+/** Ctrl-click: adds an object to the selection, or takes it out if it's already in. */
+export const toggleSelect =
+  (id: string): Command =>
+  (state) => {
+    if (!findObject(state.scene, id)) return state;
+    const ids = selectionOf(state);
+    return { ...state, ...many(ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]) };
+  };
+
+/** Selects these objects (those that exist), the last one shown in the Inspector. */
+export const selectMany =
+  (ids: readonly string[]): Command =>
+  (state) => {
+    const next = many(ids.filter((id) => findObject(state.scene, id)));
+    return sameSelection(state, next) ? state : { ...state, ...next };
+  };
+
+/** Ctrl+A: everything at the top level (groups bring their insides) and every camera. */
+export const selectAll: Command = (state) =>
+  selectMany([...childrenOf(state.scene, null).map((o) => o.id), ...state.scene.cameras.map((c) => c.id)])(state);
 
 /** Adds a shape (at the origin, or at `at`) and selects it. */
 export const addShapeOfType =
   (type: ShapeType, at?: Vec3): Command =>
   (state) => {
     const shape = createShape(state.scene, type, at);
-    return { scene: addShape(state.scene, shape), selectedId: shape.id };
+    return { scene: addShape(state.scene, shape), ...only(shape.id) };
   };
 
-/** Deletes a shape or a camera. */
-export const deleteObject =
-  (id: string): Command =>
+/** Deletes a shape, group (with its insides) or camera. */
+export const deleteObject = (id: string): Command => deleteObjects([id]);
+
+/** Deletes these objects (groups with their insides); what's left of the selection stays selected. */
+export const deleteObjects =
+  (ids: readonly string[]): Command =>
   (state) => {
-    const scene = removeObject(state.scene, id);
+    const scene = ids.reduce(removeObject, state.scene);
     if (scene === state.scene) return state;
-    return { scene, selectedId: state.selectedId === id ? null : state.selectedId };
+    return { scene, ...many(state.selectedIds.filter((id) => findObject(scene, id))) };
   };
 
-export const duplicate =
-  (id: string): Command =>
+export const duplicate = (id: string): Command => duplicateObjects([id]);
+
+/** Copies these objects (a group with its insides), each in place, and selects the copies. */
+export const duplicateObjects =
+  (ids: readonly string[]): Command =>
   (state) => {
-    const result = duplicateObject(state.scene, id);
-    return result.id === null ? state : { scene: result.scene, selectedId: result.id };
+    let scene = state.scene;
+    const copies: string[] = [];
+    for (const id of topmost(scene, ids)) {
+      const result = duplicateObject(scene, id);
+      if (result.id === null) continue;
+      scene = result.scene;
+      copies.push(result.id);
+    }
+    return copies.length === 0 ? state : { scene, ...many(copies) };
   };
 
 export const update =
@@ -79,20 +142,32 @@ function withObject(state: EditorState, id: string, change: (object: SceneObject
 /** Applies a grouping change and selects what it says (unchanged if it was refused). */
 function fromGroupResult(state: EditorState, result: GroupResult): EditorState {
   if (result.scene === state.scene) return state;
-  return { scene: result.scene, selectedId: result.id ?? state.selectedId };
+  return result.id === null ? { ...state, scene: result.scene } : { scene: result.scene, ...only(result.id) };
 }
 
-/** Wraps a shape or group in a new group, in its place, and selects the new group. */
-export const groupCommand =
-  (id: string): Command =>
-  (state) =>
-    fromGroupResult(state, groupObject(state.scene, id));
+const idList = (ids: string | readonly string[]): readonly string[] => (typeof ids === 'string' ? [ids] : ids);
 
-/** Takes a group's insides out into its parent and removes it; selects its first child. */
-export const ungroupCommand =
-  (id: string): Command =>
+/** Wraps shapes and groups in one new group, each in its place, and selects the new group. */
+export const groupCommand =
+  (ids: string | readonly string[]): Command =>
   (state) =>
-    fromGroupResult(state, ungroup(state.scene, id));
+    fromGroupResult(state, groupObjects(state.scene, idList(ids)));
+
+/** Takes groups' insides out into their parents and removes the groups; selects what was inside. */
+export const ungroupCommand =
+  (ids: string | readonly string[]): Command =>
+  (state) => {
+    let scene = state.scene;
+    const freed: string[] = [];
+    for (const id of idList(ids)) {
+      const inside = childrenOf(scene, id).map((o) => o.id);
+      const result = ungroup(scene, id);
+      if (result.scene === scene) continue;
+      scene = result.scene;
+      freed.push(...inside);
+    }
+    return scene === state.scene ? state : { scene, ...many(freed) };
+  };
 
 /** Moves a shape or group into another group (null: the top level), keeping its place. */
 export const setParentCommand =
@@ -105,7 +180,7 @@ export const addCameraCommand =
   (view: Parameters<typeof createCamera>[1]): Command =>
   (state) => {
     const camera = createCamera(state.scene, view);
-    return { scene: addCamera(state.scene, camera), selectedId: camera.id };
+    return { scene: addCamera(state.scene, camera), ...only(camera.id) };
   };
 
 /**
@@ -119,6 +194,20 @@ export const edit =
     withObject(state, id, (object) => editAtFrame(object, patch, frame));
 
 /** The keyframe button: keys these properties at `frame`, or removes their keys there. */
+/** One gizmo drag moving several objects: each edit as `edit` would make it, as one change. */
+export const editMany =
+  (edits: readonly { readonly id: string; readonly patch: ObjectPatch }[], frame: number): Command =>
+  (state) => {
+    const changed = new Map<string, SceneObject>();
+    for (const { id, patch } of edits) {
+      const before = changed.get(id) ?? findObject(state.scene, id);
+      if (!before) continue;
+      const after = editAtFrame(before, patch, frame);
+      if (after !== before) changed.set(id, after);
+    }
+    return changed.size === 0 ? state : { ...state, scene: replaceObjects(state.scene, changed) };
+  };
+
 export const toggleKey =
   (id: string, paths: readonly PropertyPath[], frame: number): Command =>
   (state) =>
@@ -172,9 +261,9 @@ export const rename =
     return withObject(state, id, (o) => ({ ...o, name: trimmed }));
   };
 
-export const newScene: Command = () => ({ scene: emptyScene(), selectedId: null });
+export const newScene: Command = () => ({ scene: emptyScene(), ...only(null) });
 
 /** Replaces the whole scene, e.g. with one opened from a file. Can be undone like any change. */
 export const loadScene =
   (scene: Scene): Command =>
-  () => ({ scene, selectedId: null });
+  () => ({ scene, ...only(null) });

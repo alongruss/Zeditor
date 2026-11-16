@@ -26,8 +26,9 @@ interface CameraFramesProps {
   /** The cameras, as posed on the current frame. */
   readonly cameras: readonly CameraData[];
   readonly view: ViewTransform;
-  readonly selectedId: string | null;
-  readonly onSelect: (id: string) => void;
+  readonly selectedIds: readonly string[];
+  /** `add`: Ctrl (Cmd) or Shift was held, to add it to the selection (or take it out). */
+  readonly onSelect: (id: string, add: boolean) => void;
 }
 
 /**
@@ -35,7 +36,7 @@ interface CameraFramesProps {
  * sits in the world, with a notch on the side that is up in its picture.
  * Clicking a frame selects its camera.
  */
-export function CameraFrames({ cameras, view, selectedId, onSelect }: CameraFramesProps) {
+export function CameraFrames({ cameras, view, selectedIds, onSelect }: CameraFramesProps) {
   if (cameras.length === 0) return null;
   return (
     <svg class="camera-frames" width={view.width} height={view.height} aria-hidden="true">
@@ -61,12 +62,12 @@ export function CameraFrames({ cameras, view, selectedId, onSelect }: CameraFram
         return (
           <g
             key={camera.id}
-            class={camera.id === selectedId ? 'camera-frame is-selected' : 'camera-frame'}
+            class={selectedIds.includes(camera.id) ? 'camera-frame is-selected' : 'camera-frame'}
             data-camera-id={camera.id}
             onPointerDown={(event) => {
               if (event.button !== 0) return;
               event.stopPropagation();
-              onSelect(camera.id);
+              onSelect(camera.id, event.ctrlKey || event.metaKey || event.shiftKey);
             }}
           >
             <polyline class="camera-frame-hit" points={points} />

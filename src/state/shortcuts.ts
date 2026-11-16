@@ -1,4 +1,4 @@
-import { deleteObject, duplicate, select, type Command } from './commands';
+import { deleteObjects, duplicateObjects, select, selectAll, type Command } from './commands';
 
 /** The parts of a KeyboardEvent the shortcuts look at. */
 export interface KeyPress {
@@ -47,10 +47,11 @@ function letterOf(press: KeyPress): string {
 
 /**
  * What a key press does, or null if it isn't a shortcut.
- *   Delete / Backspace              delete the selected shape
- *   Ctrl+D (Cmd+D)                  duplicate the selected shape
+ *   Delete / Backspace              delete the selection
+ *   Ctrl+D (Cmd+D)                  duplicate the selection
+ *   Ctrl+A (Cmd+A)                  select everything
  *   Ctrl+G (Cmd+G)                  put the selection in a new group
- *   Ctrl+Shift+G (Cmd too)          ungroup the selected group
+ *   Ctrl+Shift+G (Cmd too)          ungroup the selected groups
  *   Escape                          clear the selection
  *   Ctrl+Z (Cmd+Z)                  undo
  *   Ctrl+Shift+Z, Ctrl+Y (Cmd too)  redo
@@ -62,11 +63,16 @@ function letterOf(press: KeyPress): string {
  * With keys selected in the timeline, Delete / Backspace delete those keys
  * instead of the shape.
  */
-export function shortcutFor(press: KeyPress, selectedId: string | null, keysSelected = false): Shortcut | null {
+export function shortcutFor(
+  press: KeyPress,
+  selected: string | null | readonly string[],
+  keysSelected = false,
+): Shortcut | null {
+  const selection = selected === null ? [] : typeof selected === 'string' ? [selected] : selected;
   const modifier = press.ctrlKey || press.metaKey;
   if (!modifier && !press.altKey && (press.key === 'Delete' || press.key === 'Backspace')) {
     if (keysSelected) return 'deleteKeys';
-    return selectedId === null ? null : deleteObject(selectedId);
+    return selection.length === 0 ? null : deleteObjects(selection);
   }
   if (!modifier && !press.altKey) {
     if (press.key === ' ' && !press.shiftKey) return 'togglePlay';
@@ -76,7 +82,7 @@ export function shortcutFor(press: KeyPress, selectedId: string | null, keysSele
     if (press.key === 'End' && !press.shiftKey) return 'lastFrame';
   }
   if (press.key === 'Escape' && !modifier) {
-    return selectedId === null ? null : select(null);
+    return selection.length === 0 ? null : select(null);
   }
   if (!modifier || press.altKey) return null;
 
@@ -89,8 +95,9 @@ export function shortcutFor(press: KeyPress, selectedId: string | null, keysSele
   if (letter === 'g') return press.shiftKey ? 'ungroup' : 'group';
   if (letter === 'd' && !press.shiftKey) {
     // Ctrl+D would otherwise bookmark the page, so claim it even with nothing selected.
-    return selectedId === null ? nothing : duplicate(selectedId);
+    return selection.length === 0 ? nothing : duplicateObjects(selection);
   }
+  if (letter === 'a' && !press.shiftKey) return selectAll;
   return null;
 }
 

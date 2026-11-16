@@ -83,7 +83,7 @@ describe('animated cameras', () => {
 });
 
 describe('camera commands', () => {
-  const start = (): EditorState => ({ scene: starterScene(), selectedId: null });
+  const start = (): EditorState => ({ scene: starterScene(), selectedId: null, selectedIds: [] });
 
   it('adds a camera from a view and selects it; Delete and Duplicate work on it', () => {
     const added = addCameraCommand(VIEW)(start());
@@ -108,7 +108,7 @@ describe('camera commands', () => {
 
   it('a change to a camera is one undo step; no change is none', () => {
     const scene = withCamera();
-    let history = startHistory({ scene, selectedId: null });
+    let history = startHistory({ scene, selectedId: null, selectedIds: [] });
     history = applyCommand(history, edit('camera-1', { viewSpan: 32 }, 0)); // the same value
     expect(canUndo(history)).toBe(false);
     history = applyCommand(history, edit('camera-1', { viewSpan: 10 }, 0));

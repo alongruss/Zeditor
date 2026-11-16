@@ -76,7 +76,7 @@ export function applyCommand(history: History, command: Command, group?: string)
   if (next === present) return history;
 
   if (sameScene(next.scene, present.scene)) {
-    if (next.selectedId === present.selectedId) return history;
+    if (next.selectedId === present.selectedId && next.selectedIds === present.selectedIds) return history;
     // Keep the old scene object, so the view knows nothing needs redrawing.
     return { ...history, present: { ...next, scene: present.scene }, openGroup: null };
   }

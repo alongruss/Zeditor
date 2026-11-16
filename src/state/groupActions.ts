@@ -1,7 +1,6 @@
 import { findGroup } from '../model/hierarchy';
-import { groupObject, setParent, ungroup, type GroupResult } from '../model/groups';
-import { findShape } from '../model/scene';
-import { groupCommand, setParentCommand, ungroupCommand } from './commands';
+import { groupObjects, setParent, ungroup, type GroupResult } from '../model/groups';
+import { groupCommand, selectionOf, setParentCommand, ungroupCommand } from './commands';
 import { showNotice } from './notice';
 import { dispatch, editor } from './store';
 
@@ -19,18 +18,29 @@ function run(result: GroupResult, command: Parameters<typeof dispatch>[0]): void
   if (result.kept) showNotice(KEPT_NOTICE);
 }
 
-/** Wraps the selection (a shape or group) in a new group. */
+/** Wraps the selected shapes and groups (not cameras) in one new group. */
 export function groupSelection(): void {
-  const { scene, selectedId } = editor.get();
-  if (selectedId === null || !(findShape(scene, selectedId) || findGroup(scene, selectedId))) return;
-  run(groupObject(scene, selectedId), groupCommand(selectedId));
+  const state = editor.get();
+  const ids = selectionOf(state);
+  const result = groupObjects(state.scene, ids);
+  if (result.scene === state.scene) return;
+  run(result, groupCommand(ids));
 }
 
-/** Takes the selected group's insides out and removes it. */
+/** Takes the selected groups' insides out and removes those groups. */
 export function ungroupSelection(): void {
-  const { scene, selectedId } = editor.get();
-  if (selectedId === null || !findGroup(scene, selectedId)) return;
-  run(ungroup(scene, selectedId), ungroupCommand(selectedId));
+  const state = editor.get();
+  const groups = selectionOf(state).filter((id) => findGroup(state.scene, id));
+  if (groups.length === 0) return;
+  // Kept if any of them had to keep its own values.
+  let scene = state.scene;
+  let kept = false;
+  for (const id of groups) {
+    const result = ungroup(scene, id);
+    scene = result.scene;
+    kept ||= result.kept;
+  }
+  run({ scene, id: null, kept }, ungroupCommand(groups));
 }
 
 /** Moves a shape or group into another group (null: the top level). */

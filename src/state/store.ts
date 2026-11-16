@@ -35,7 +35,7 @@ export function createStore<T>(initial: T): Store<T> {
  * with the autosaved scene, or the 2020 starter scene on a first visit.
  */
 const tracked: Store<history.History> = createStore(
-  history.startHistory({ scene: readAutosave(browserStorage()) ?? starterScene(), selectedId: null }),
+  history.startHistory({ scene: readAutosave(browserStorage()) ?? starterScene(), selectedId: null, selectedIds: [] }),
 );
 
 /** Read-only view of the current editor state, for code outside components. */
