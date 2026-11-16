@@ -5,7 +5,7 @@ import { lottieStill } from '../src/export/lottie/exportScene';
 import { parseSceneFile } from '../src/model/sceneFile';
 import type { Scene } from '../src/model/types';
 import type { ViewSpec } from '../src/render/view';
-import { fileMenu, openEditorForEachTest } from './helpers';
+import { afterRedraw, fileMenu, openEditorForEachTest } from './helpers';
 
 const ZDOG = 'node_modules/zdog/dist/zdog.dist.min.js';
 const LOTTIE = 'node_modules/lottie-web/build/player/lottie.min.js';
@@ -137,3 +137,25 @@ test.describe('File ▾ › Example: Nippu', () => {
     await expect(page.getByRole('list', { name: 'Shapes' }).getByRole('button', { name: /^Ground/ })).toHaveCount(0);
   });
 });
+
+test.describe('File ▾ › Example: Nippu, walking', () => {
+  openEditorForEachTest(test);
+
+  test('opens the couple walking: their limbs are keyed and the pose changes with the frame', async ({ page }) => {
+    page.once('dialog', (dialog) => dialog.accept());
+    await fileMenu(page, 'Example: Nippu, walking');
+    await expect(page.getByRole('status')).toContainText('walk');
+    const timeline = page.getByRole('region', { name: 'Timeline' });
+    await expect(timeline.getByRole('button', { name: 'Right thigh' }).first()).toBeVisible();
+    await expect(timeline.getByRole('button', { name: 'Hips' }).first()).toBeVisible();
+
+    const drawing = () => page.locator('svg.scene').innerHTML();
+    await afterRedraw(page);
+    const first = await drawing();
+    await page.getByLabel('Frame', { exact: true }).fill('15');
+    await page.getByLabel('Frame', { exact: true }).press('Enter');
+    await afterRedraw(page);
+    expect(await drawing()).not.toBe(first);
+  });
+});
+

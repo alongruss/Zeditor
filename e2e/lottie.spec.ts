@@ -8,6 +8,7 @@ import { addShape, createCamera, createGroup, createShape, emptyScene } from '..
 import { SHAPE_TYPES, type CameraData, type Scene, type ShapeData } from '../src/model/types';
 import { rootTranslate, viewFromCamera, type ViewSpec } from '../src/render/view';
 import { ancestorsOf } from '../src/model/hierarchy';
+import { parseSceneFile } from '../src/model/sceneFile';
 import { zdogOptions, zdogTransform } from '../src/viewport/toZdog';
 import { fileMenu, openEditorForEachTest } from './helpers';
 
@@ -280,6 +281,24 @@ test.describe('Lottie export fidelity, animated', () => {
     for (const frame of [0, 9, 17, 29]) {
       const result = await compareFrame(page, sceneAtFrame(scene, frame), view(-0.35, 0.6), baked, frame);
       expect(result.ink, `frame ${frame} drew something`).toBeGreaterThan(20000);
+      expect(result.mismatched / result.ink, `frame ${frame}`).toBeLessThan(0.01);
+    }
+  });
+});
+
+test.describe('Lottie export fidelity, the walking example', () => {
+  test('one step through the Turntable camera matches zdog drawing the same frames', async ({ page }) => {
+    const opened = parseSceneFile(await readFile('src/examples/nippu-walking.zeditor.json', 'utf8'));
+    if (!opened.ok) throw new Error(opened.error);
+    const scene = opened.scene;
+    const camera = scene.cameras.find((c) => c.name === 'Turntable')!;
+    const filmed = (frame: number) => ({ ...viewFromCamera(objectAtFrame(camera, frame)), width: 384, height: 384 });
+    const frames = Array.from({ length: 30 }, (_, i) => i);
+    const baked = lottieAnimation(scene, filmed, { background: false, name: 'walking', frames });
+    // Off-key frames too: between keys, the bake must interpolate as the editor does.
+    for (const frame of [0, 10, 23]) {
+      const result = await compareFrame(page, sceneAtFrame(scene, frame), filmed(frame), baked, frame);
+      expect(result.ink, `frame ${frame} drew something`).toBeGreaterThan(15000);
       expect(result.mismatched / result.ink, `frame ${frame}`).toBeLessThan(0.01);
     }
   });

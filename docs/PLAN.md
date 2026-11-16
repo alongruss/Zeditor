@@ -345,7 +345,13 @@ gains groups:
   each keeping its place. Delete, Duplicate and Ungroup act on all of it, and the gizmo's arrows
   move it all as one undo step (turning several together needs a group). The Inspector lists
   what's selected. Asked for by the user after G2: without it, nothing could be grouped by hand.
-- **G3:** the walking version.
+- **G3, the walking version:** File ▾ › Example: Nippu, walking. `scripts/make-walk.mjs` keys a
+  30-frame step cycle (four steps loop with the Turntable): thighs swing in turn and lift as the
+  knee bends; knees follow a walk's curve; shoes stand flat, tip up at heel strike and down at
+  push-off; arms hang and swing against the legs. The body rides up and down so the lowest point
+  of a sole is always on the floor (tests check it on every key, and that there's no limp). The
+  lady's straight left leg gets a knee, at her right leg's length. Reviewed frame by frame from
+  the side, the front and the demo's angle.
 
 ## Later
 
