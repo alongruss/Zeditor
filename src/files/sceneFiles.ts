@@ -1,14 +1,13 @@
 import { LottieExportError } from '../export/lottie/bake';
 import { allFrames, lottieAnimation } from '../export/lottie/exportScene';
-import { exportZdogScript, scriptViewFromCamera, scriptViewFromFreeView } from '../export/zdogScript';
-import { objectAtFrame, sceneAtFrame } from '../model/evaluate';
+import { exportZdogScript, scriptAnimates, scriptViewFromCamera, scriptViewFromFreeView } from '../export/zdogScript';
+import { objectAtFrame } from '../model/evaluate';
 import { findCamera } from '../model/scene';
 import { MAX_SCENE_FILE_BYTES, SCENE_FILE_EXTENSION, parseSceneFile, serializeScene } from '../model/sceneFile';
 import { loadScene } from '../state/commands';
 import { showNotice } from '../state/notice';
 import { viewFromCamera, viewFromFreeView, type ViewSpec } from '../render/view';
-import { lookedThroughCamera } from '../state/currentView';
-import { dispatch, editor, freeView } from '../state/store';
+import { dispatch, editor, freeView, lookThrough } from '../state/store';
 import { currentFrame } from '../state/timeline';
 
 /** Base name for saved and exported files: the last opened file's, or "scene". */
@@ -71,11 +70,15 @@ export function chooseSceneFile(): void {
 /** Copies the Zdog script to the clipboard and downloads it. */
 export async function exportScript(): Promise<void> {
   const fileName = `${baseName}.zdog.js`;
-  // The pose on the current frame, through the current view (the camera
-  // being looked through, or the free view); animated script export comes later.
-  const camera = lookedThroughCamera();
-  const view = camera ? scriptViewFromCamera(camera) : scriptViewFromFreeView(freeView.get());
-  const script = exportZdogScript(sceneAtFrame(editor.get().scene, currentFrame()), view);
+  // Through the current view (the camera being looked through, or the free
+  // view). An animated scene plays from frame 0; a still one is drawn as on
+  // the current frame.
+  const { scene } = editor.get();
+  const camera = findCamera(scene, lookThrough.get());
+  const view = camera ? scriptViewFromCamera(camera, currentFrame()) : scriptViewFromFreeView(freeView.get());
+  const script = exportZdogScript(scene, view, currentFrame());
+  const { fps, duration } = scene.settings;
+  const plays = scriptAnimates(scene, view) ? ` It plays the animation (${duration} frames at ${fps} fps), looping.` : '';
   download(fileName, script, 'text/javascript');
   let copied = false;
   try {
@@ -86,8 +89,8 @@ export async function exportScript(): Promise<void> {
   }
   showNotice(
     copied
-      ? `Copied the Zdog script to the clipboard and saved ${fileName} to your downloads.`
-      : `Saved ${fileName} to your downloads. (The clipboard wasn't available.)`,
+      ? `Copied the Zdog script to the clipboard and saved ${fileName} to your downloads.${plays}`
+      : `Saved ${fileName} to your downloads. (The clipboard wasn't available.)${plays}`,
   );
 }
 
