@@ -1,6 +1,8 @@
 import * as Zdog from 'zdog';
 import { describe, expect, it } from 'vitest';
 import { worldTransform } from '../model/hierarchy';
+import { setKey } from '../model/animation';
+import { objectAtFrame, sceneAtFrame } from '../model/evaluate';
 import { addShape, createCamera, createGroup, createShape, emptyScene, updateShape } from '../model/scene';
 import { applyTransform } from '../model/transform';
 import { starterScene } from '../model/starterScene';
@@ -172,6 +174,7 @@ describe('constName', () => {
   });
 
   it('avoids clashes, reserved words, the script own names and leading digits', () => {
+    expect(named('player', 'Parse int', 'animated')).toEqual(['playerShape', 'parseIntShape', 'animatedShape']);
     expect(named('Box', 'box', 'new', 'illo', '3D thing', '!!!')).toEqual([
       'box',
       'box2',
@@ -203,5 +206,171 @@ describe('exportZdogScript with groups', () => {
     const expected = applyTransform(worldTransform(scene, box), { x: 0, y: 0, z: 0 });
     // The free view's rotation is the identity, so the render origin is the world position.
     for (const axis of ['x', 'y', 'z'] as const) expect(boxNode.renderOrigin[axis]).toBeCloseTo(expected[axis], 4);
+  });
+});
+
+/**
+ * Runs an animated script, as `run` does, and hands back its player and its
+ * list of animated objects. `tick(ms)` runs one animation frame at that time.
+ */
+function runAnimated(script: string) {
+  let next: ((now: number) => void) | null = null;
+  const element = { width: 0, height: 0, className: '', style: {} as Record<string, string> };
+  class Illustration extends Zdog.Anchor {
+    options: Record<string, unknown>;
+    zoom: number;
+    constructor(options: Record<string, unknown>) {
+      super(options as Zdog.AnchorOptions);
+      this.options = options;
+      this.zoom = options.zoom as number;
+    }
+    updateRenderGraph() {}
+  }
+  const page = { querySelector: () => null, createElement: () => element, body: { append: () => {} } };
+  const library = (Zdog as unknown as { default?: typeof Zdog }).default ?? Zdog;
+  const made = new Function('Zdog', 'document', 'requestAnimationFrame', `${script}\nreturn { animated, player, illo };`)(
+    { ...library, Illustration },
+    page,
+    (callback: (now: number) => void) => {
+      next = callback;
+    },
+  ) as {
+    animated: { node: Zdog.Anchor }[];
+    player: { frame: number; playing: boolean; play(): void; pause(): void; goTo(n: number): void };
+    illo: Illustration;
+  };
+  const tick = (now: number) => {
+    const callback = next;
+    next = null;
+    callback?.(now);
+  };
+  return { ...made, tick };
+}
+
+describe('exportZdogScript with animation', () => {
+  /** A scene with keys of every kind: moves, turns, colors, opacity, whole numbers, a group and easings. */
+  function animatedScene(): Scene {
+    let scene = starterScene();
+    const group = { ...createGroup(scene), translate: { x: 1, y: 0, z: 0 } };
+    scene = { ...scene, groups: [setKey(setKey(group, 'rotate.z', 0, 0), 'rotate.z', 40, 90)] };
+    const polygon: ShapeData = { ...createShape(scene, 'Polygon'), parent: group.id };
+    scene = addShape(scene, polygon);
+    const edit = (id: string, change: (shape: ShapeData) => ShapeData) => {
+      scene = { ...scene, shapes: scene.shapes.map((shape) => (shape.id === id ? change(shape) : shape)) };
+    };
+    edit('cone-1', (s) => setKey(setKey(s, 'translate.x', 0, -4), 'translate.x', 60, 20));
+    edit('cone-1', (s) => setKey(setKey(s, 'rotate.y', 10, 0), 'rotate.y', 50, 180));
+    edit('box-1', (s) => setKey(setKey(s, 'props.color', 0, '#ff0000'), 'props.color', 30, '#0000ff'));
+    edit('box-1', (s) => setKey(setKey(s, 'opacity', 20, 1), 'opacity', 80, 0.25));
+    edit('box-1', (s) => setKey(setKey(s, 'scale', 0, 1), 'scale', 89, 2));
+    edit(polygon.id, (s) => setKey(setKey(s, 'props.sides', 0, 3), 'props.sides', 60, 9));
+    // The cone is in the middle of the illustration's children: rebuilding it must keep it there.
+    edit('cone-1', (s) => setKey(setKey(s, 'props.color', 5, '#336699'), 'props.color', 70, '#ffcc00'));
+    // Every easing, on smooth tracks as well as a whole-number one.
+    const easings = { 'translate.x': 'easeIn', 'rotate.y': 'easeOut', 'props.color': 'linear', opacity: 'hold', 'props.sides': 'easeIn' } as const;
+    scene = {
+      ...scene,
+      shapes: scene.shapes.map((shape) => {
+        if (!shape.tracks) return shape;
+        const tracks = Object.fromEntries(
+          Object.entries(shape.tracks).map(([path, keys]) => {
+            const easing = easings[path as keyof typeof easings];
+            return [path, easing ? keys.map((key) => ({ ...key, easing })) : keys];
+          }),
+        );
+        return { ...shape, tracks };
+      }),
+    };
+    return scene;
+  }
+
+  it('plays the keys as the editor does, frame by frame, keeping each shape in its place', () => {
+    const scene = animatedScene();
+    const ran = runAnimated(exportZdogScript(scene, FREE));
+    const { fps } = scene.settings;
+    const animatedShapes = scene.shapes.filter((shape) => shape.tracks);
+    expect(ran.animated).toHaveLength(animatedShapes.length + 1); // and the group
+    ran.tick(5000); // the clock starts on frame 0
+    for (const frame of [0, 1, 7, 15, 25, 31, 44, 59, 60, 79, 88, 89]) {
+      ran.tick(5000 + (frame * 1000) / fps + 1);
+      expect(ran.player.frame).toBe(frame);
+      const posed = sceneAtFrame(scene, frame);
+      const group = ran.animated[0].node;
+      expect((group.rotate as Zdog.Vector).z, `group on ${frame}`).toBeCloseTo((posed.groups[0].rotate.z * Math.PI) / 180, 9);
+      animatedShapes.forEach((shape, i) => {
+        const node = ran.animated[i + 1].node;
+        expectSameShape(node, posed.shapes.find((s) => s.id === shape.id)!);
+        // A rebuilt shape stays where it was among its parent's children, so the drawing order holds.
+        const parent = (node as unknown as { addTo: Zdog.Anchor }).addTo;
+        const siblings = [...scene.groups, ...scene.shapes].filter((s) => s.parent === shape.parent);
+        expect(childrenOf(parent).indexOf(node), `${shape.id} on ${frame}`).toBe(siblings.findIndex((s) => s.id === shape.id));
+      });
+    }
+    // Nothing left behind: the illustration holds the group and the other shapes, the group the polygon.
+    expect(childrenOf(ran.illo)).toHaveLength(scene.shapes.length);
+    expect(childrenOf(ran.animated[0].node)).toHaveLength(1);
+  });
+
+  it('loops, and can be paused, played and sent to a frame', () => {
+    const scene = animatedScene();
+    const ran = runAnimated(exportZdogScript(scene, FREE));
+    const ms = 1000 / scene.settings.fps;
+    const coneX = () => (ran.animated[1].node.translate as Zdog.Vector).x;
+    ran.tick(0);
+    ran.tick(scene.settings.duration * ms + 5 * ms + 1);
+    expect(ran.player.frame).toBe(5);
+    ran.player.pause();
+    ran.tick(500 * ms);
+    expect(ran.player.frame).toBe(5);
+    ran.player.goTo(60);
+    ran.tick(501 * ms);
+    expect(ran.player.frame).toBe(60);
+    expect(coneX()).toBeCloseTo(20);
+    ran.player.play();
+    ran.tick(600 * ms);
+    ran.tick(610 * ms + 1);
+    expect(ran.player.frame).toBe(70);
+  });
+
+  it('moves with the camera it looks through: its angle, target and view span', () => {
+    let camera = createCamera(starterScene(), {
+      rotate: { x: -10, y: 0, z: 0 },
+      target: { x: 0, y: 0, z: 0 },
+      viewSpan: 20,
+      width: 400,
+      height: 300,
+    });
+    camera = setKey(setKey(camera, 'rotate.y', 0, 0), 'rotate.y', 89, 360);
+    camera = setKey(setKey(camera, 'target.x', 0, 0), 'target.x', 45, 6);
+    camera = setKey(setKey(camera, 'viewSpan', 0, 20), 'viewSpan', 45, 40);
+    const scene = { ...starterScene(), cameras: [camera] };
+    const script = exportZdogScript(scene, scriptViewFromCamera(camera, 30), 30);
+    expect(script).not.toContain('dragRotate'); // the camera turns, so dragging would fight it
+    const ran = runAnimated(script);
+    ran.tick(0);
+    const frame = 30;
+    ran.tick((frame * 1000) / scene.settings.fps + 1);
+    const posed = objectAtFrame(camera, frame);
+    expect((ran.illo.rotate as Zdog.Vector).y).toBeCloseTo((posed.rotate.y * Math.PI) / 180, 9);
+    expect((ran.illo.rotate as Zdog.Vector).x).toBeCloseTo((-10 * Math.PI) / 180, 9);
+    expect(ran.illo.zoom).toBeCloseTo(300 / posed.viewSpan, 9);
+    const world = childrenOf(ran.illo)[0];
+    expect((world.translate as Zdog.Vector).x).toBeCloseTo(-posed.target.x, 9);
+  });
+
+  it('draws a still scene as before, on the frame asked for, with no player', () => {
+    let scene = starterScene();
+    // Keys only on a camera it doesn't look through: still.
+    const camera = setKey(
+      createCamera(scene, { rotate: { x: 0, y: 0, z: 0 }, target: { x: 0, y: 0, z: 0 }, viewSpan: 20, width: 100, height: 100 }),
+      'viewSpan',
+      3,
+      10,
+    );
+    scene = { ...scene, cameras: [camera] };
+    const script = exportZdogScript(scene, FREE, 12);
+    expect(script).not.toContain('player');
+    expect(script).toContain('dragRotate: true');
+    expect(script).toBe(exportZdogScript(starterScene(), FREE));
   });
 });

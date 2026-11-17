@@ -128,6 +128,28 @@ test('Export Zdog JS copies and downloads a script that draws the scene', async 
   expect(painted).toBeGreaterThan(5000);
 });
 
+test('an animated scene exports as a script that plays it, looping', async ({ page, context }) => {
+  await treeItem(page, 'Cone 1').click();
+  await page.getByRole('button', { name: /^Animate Position at frame 0/ }).click();
+  await page.getByLabel('Frame', { exact: true }).fill('45');
+  await page.getByLabel('Frame', { exact: true }).press('Enter');
+  await field(page, 'Position X').fill('30');
+  await field(page, 'Position X').press('Tab');
+  const exported = await downloaded(page, () => fileMenu(page, 'Export Zdog JS'));
+  await expect(page.getByRole('status')).toContainText('It plays the animation (90 frames at 30 fps), looping.');
+
+  const blank = await context.newPage();
+  await blank.setContent('<!doctype html><html><body></body></html>');
+  await blank.addScriptTag({ path: 'node_modules/zdog/dist/zdog.dist.min.js' });
+  await blank.addScriptTag({ content: exported.text });
+  // It starts on frame 0, whatever frame the editor was on, and moves on by itself.
+  const startX = Number(await blank.evaluate('cone1.translate.x'));
+  await expect.poll(() => blank.evaluate('player.frame')).toBeGreaterThan(5);
+  await expect.poll(() => blank.evaluate('cone1.translate.x')).toBeGreaterThan(startX + 1);
+  await blank.evaluate('player.pause(); player.goTo(45)');
+  await expect.poll(() => blank.evaluate('cone1.translate.x')).toBe(30);
+});
+
 test('full flow: move with the gizmo, rotate, undo, save, reload', async ({ page }) => {
   await treeItem(page, 'Cone 1').click();
   const grip = await arrowGrip(page, 'x');

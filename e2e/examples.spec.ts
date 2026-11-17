@@ -2,6 +2,8 @@ import { readFileSync } from 'node:fs';
 import { type Page } from '@playwright/test';
 import { expect, test } from './fixtures';
 import { lottieStill } from '../src/export/lottie/exportScene';
+import { exportZdogScript, scriptViewFromCamera } from '../src/export/zdogScript';
+import { sceneAtFrame } from '../src/model/evaluate';
 import { parseSceneFile } from '../src/model/sceneFile';
 import type { Scene } from '../src/model/types';
 import type { ViewSpec } from '../src/render/view';
@@ -11,8 +13,8 @@ const ZDOG = 'node_modules/zdog/dist/zdog.dist.min.js';
 const LOTTIE = 'node_modules/lottie-web/build/player/lottie.min.js';
 const DEMO = 'examples-src/nippu.js';
 
-function nippu(): Scene {
-  const result = parseSceneFile(readFileSync('src/examples/nippu.zeditor.json', 'utf8'));
+function nippu(file = 'nippu'): Scene {
+  const result = parseSceneFile(readFileSync(`src/examples/${file}.zeditor.json`, 'utf8'));
   if (!result.ok) throw new Error(result.error);
   return result.scene;
 }
@@ -159,3 +161,58 @@ test.describe('File ▾ › Example: Nippu, walking', () => {
   });
 });
 
+
+test.describe('the walking example as an animated Zdog script', () => {
+  /** The script's canvas pixels, after it has drawn: in a page of its own, as its names are global. */
+  async function pixelsOf(editorPage: Page, script: string, frame?: number): Promise<Uint8Array> {
+    const page = await editorPage.context().newPage();
+    await page.setContent('<!doctype html><html><body style="margin:0"></body></html>');
+    await page.addScriptTag({ path: ZDOG });
+    await page.addScriptTag({ content: script });
+    const pixels = await page.evaluate(async (frame) => {
+      if (frame !== undefined) {
+        // The script's top-level names aren't window properties: reach them by name.
+        const player = new Function('return player')() as { pause(): void; goTo(n: number): void };
+        player.pause();
+        player.goTo(frame);
+      }
+      await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
+      const canvas = document.querySelector<HTMLCanvasElement>('canvas.zeditor-scene')!;
+      const data = canvas.getContext('2d')!.getImageData(0, 0, canvas.width, canvas.height).data;
+      // As base64: much quicker to hand back than a list of numbers.
+      let text = '';
+      for (let i = 0; i < data.length; i += 0x8000) text += String.fromCharCode(...data.subarray(i, i + 0x8000));
+      return btoa(text);
+    }, frame);
+    await page.close();
+    return Buffer.from(pixels, 'base64');
+  }
+
+  test('plays through the Turntable camera, and each frame looks as a still export of it does', async ({ page }) => {
+    const scene = nippu('nippu-walking');
+    const camera = scene.cameras[0];
+    const animated = exportZdogScript(scene, scriptViewFromCamera(camera));
+    for (const frame of [0, 17, 45, 101]) {
+      const played = await pixelsOf(page, animated, frame);
+      // The same pose with its keys dropped, so the export draws it still.
+      const posed = sceneAtFrame(scene, frame);
+      const still = {
+        ...posed,
+        shapes: posed.shapes.map((shape) => ({ ...shape, tracks: undefined })),
+        groups: posed.groups.map((group) => ({ ...group, tracks: undefined })),
+        cameras: [],
+      };
+      const expected = await pixelsOf(page, exportZdogScript(still, { ...scriptViewFromCamera(camera, frame), camera: undefined }));
+      expect(played.length).toBe(expected.length);
+      let ink = 0;
+      let mismatched = 0;
+      for (let i = 0; i < played.length; i += 4) {
+        if (expected[i + 3] > 0) ink += 1;
+        const d = Math.abs(played[i] - expected[i]) + Math.abs(played[i + 1] - expected[i + 1]) + Math.abs(played[i + 2] - expected[i + 2]);
+        if (d > 30) mismatched += 1;
+      }
+      expect(ink, `frame ${frame} drew something`).toBeGreaterThan(10000);
+      expect(mismatched / (played.length / 4), `frame ${frame}`).toBeLessThan(0.002);
+    }
+  });
+});

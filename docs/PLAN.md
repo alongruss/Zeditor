@@ -381,6 +381,13 @@ it can, with plain names and a tooltip that says what it does.
 - **H2, animated Zdog JS export:** the exported script plays the animation (its keys, easings,
   frame rate and length, looping), with a small player in the file and no other libraries. A
   still scene exports as it does today.
+  - It starts on frame 0, whatever frame the editor is on, and steps whole frames at the scene's
+    frame rate, as the editor plays. The player works values out the editor's way (the same easing
+    curves, colors mixed through RGBA, whole numbers kept whole); a test checks it frame by frame.
+  - Moves, turns and scales change the zdog objects in place. A shape whose size, colors or
+    opacity change is rebuilt where it was, so the drawing order holds.
+  - Through an animated camera, the camera moves too; if it turns, dragging the view is off.
+  - `player.pause()`, `player.play()` and `player.goTo(frame)` control it from the page.
 - **H3, a keyframed Lottie mode:** a Lottie export option that writes keys instead of every frame,
   for much smaller files. It's offered when it would match the baked picture (it's checked
   against the baked frames), and the dialog says when it can't and why (for example, shapes
