@@ -3,6 +3,7 @@ import type { Scene } from '../../model/types';
 import { recordFrame } from '../../render/drawOps';
 import type { ViewSpec } from '../../render/view';
 import { bakeLottie } from './bake';
+import { keyLottie } from './keys';
 import type { LottieAnimation } from './lottieJson';
 
 export interface LottieExportOptions {
@@ -11,6 +12,8 @@ export interface LottieExportOptions {
   readonly name: string;
   /** The frames to bake, in order (e.g. all of them, or just the current one). */
   readonly frames: readonly number[];
+  /** Every frame written out (baked, the default), or keys where the picture changes (see keys.ts). */
+  readonly mode?: 'baked' | 'keys';
 }
 
 /** Every frame of the scene's animation: 0 to duration - 1. */
@@ -28,18 +31,29 @@ export type ViewSource = ViewSpec | ((frame: number) => ViewSpec);
  * first frame's view's size (a camera's size never changes).
  */
 export function lottieAnimation(scene: Scene, view: ViewSource, options: LottieExportOptions): LottieAnimation {
+  return lottieExport(scene, view, options).animation;
+}
+
+/**
+ * As lottieAnimation, and in keys mode also the frames where a new layer
+ * starts because the drawing order changes (none when baked).
+ */
+export function lottieExport(
+  scene: Scene,
+  view: ViewSource,
+  options: LottieExportOptions,
+): { readonly animation: LottieAnimation; readonly breaks: readonly number[] } {
   const viewAt = typeof view === 'function' ? view : () => view;
   const size = viewAt(options.frames[0] ?? 0);
-  return bakeLottie(
-    options.frames.map((frame) => recordFrame(sceneAtFrame(scene, frame), viewAt(frame))),
-    {
-      width: size.width,
-      height: size.height,
-      fps: scene.settings.fps,
-      background: options.background ? scene.settings.background : null,
-      name: options.name,
-    },
-  );
+  const frames = options.frames.map((frame) => recordFrame(sceneAtFrame(scene, frame), viewAt(frame)));
+  const bakeOptions = {
+    width: size.width,
+    height: size.height,
+    fps: scene.settings.fps,
+    background: options.background ? scene.settings.background : null,
+    name: options.name,
+  };
+  return options.mode === 'keys' ? keyLottie(frames, bakeOptions) : { animation: bakeLottie(frames, bakeOptions), breaks: [] };
 }
 
 /** One frame (the scene as it is, or as posed on `frame`), as a single-frame Lottie. */

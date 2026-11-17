@@ -1,5 +1,5 @@
 import { LottieExportError } from '../export/lottie/bake';
-import { allFrames, lottieAnimation } from '../export/lottie/exportScene';
+import { allFrames, lottieExport } from '../export/lottie/exportScene';
 import { exportZdogScript, scriptAnimates, scriptViewFromCamera, scriptViewFromFreeView } from '../export/zdogScript';
 import { objectAtFrame } from '../model/evaluate';
 import { findCamera } from '../model/scene';
@@ -107,10 +107,18 @@ export interface LottieSettings {
   readonly background: boolean;
   /** Every frame of the animation, or only the frame the playhead is on. */
   readonly frames: 'all' | 'current';
+  /** Keys where the picture changes (much smaller), or every frame written out. */
+  readonly mode: 'keys' | 'baked';
 }
 
-/** The scene through the free view or a camera as Lottie JSON text, or why it can't be made. */
-export function lottieText(settings: LottieSettings): { readonly text: string } | { readonly error: string } {
+/**
+ * The scene through the free view or a camera as Lottie JSON text, or why it
+ * can't be made. With keys, also the frames where a new layer starts (see
+ * export/lottie/keys.ts).
+ */
+export function lottieText(
+  settings: LottieSettings,
+): { readonly text: string; readonly breaks: readonly number[] } | { readonly error: string } {
   const { scene } = editor.get();
   let view: ViewSpec | ((frame: number) => ViewSpec) | null;
   if (settings.camera === null) {
@@ -123,8 +131,13 @@ export function lottieText(settings: LottieSettings): { readonly text: string } 
   }
   try {
     const frames = lottieFrames(settings);
-    const animation = lottieAnimation(scene, view, { background: settings.background, name: baseName, frames });
-    return { text: JSON.stringify(animation) };
+    const { animation, breaks } = lottieExport(scene, view, {
+      background: settings.background,
+      name: baseName,
+      frames,
+      mode: settings.mode,
+    });
+    return { text: JSON.stringify(animation), breaks };
   } catch (error) {
     if (error instanceof LottieExportError) return { error: error.message };
     throw error;

@@ -30,9 +30,22 @@ function formatBytes(bytes: number): string {
 }
 
 /**
- * Export Lottie: the free view or a camera as a Lottie animation file,
- * "baked": every frame drawn exactly as zdog draws it. All frames, or just
- * the current one. The keyframed mode comes later.
+ * The size, and with keys, why the file starts new layers: Lottie can't
+ * change which shapes are drawn in front of which within one layer.
+ */
+function sizeNote(bytes: number, breaks: number, frameCount: number): string {
+  const size = `About ${formatBytes(bytes)}.`;
+  if (breaks === 0) return size;
+  if (breaks >= frameCount - 1) return `${size} Shapes pass in front of one another on every frame, so keys can't make this one smaller.`;
+  const frames = breaks === 1 ? '1 frame' : `${breaks} frames`;
+  return `${size} Shapes pass in front of one another on ${frames}, so the file starts a new layer there.`;
+}
+
+/**
+ * Export Lottie: the free view or a camera as a Lottie animation file, all
+ * frames or just the current one. With keys (the default), the picture is
+ * the same as baked on every frame, in a much smaller file; baked writes
+ * every frame out.
  */
 export function ExportLottieDialog({ defaultWidth, defaultHeight, defaultCamera, onClose }: ExportLottieDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -40,6 +53,7 @@ export function ExportLottieDialog({ defaultWidth, defaultHeight, defaultCamera,
   const [height, setHeight] = useState(String(Math.round(defaultHeight)));
   const [background, setBackground] = useState(true);
   const [frames, setFrames] = useState<LottieSettings['frames']>('all');
+  const [mode, setMode] = useState<LottieSettings['mode']>('keys');
   const { scene } = editor.get();
   const [cameraId, setCameraId] = useState<string | null>(findCamera(scene, defaultCamera) ? defaultCamera : null);
   const camera = findCamera(scene, cameraId);
@@ -66,11 +80,11 @@ export function ExportLottieDialog({ defaultWidth, defaultHeight, defaultCamera,
     setResult(null);
     if (w === null || h === null) return;
     const timer = setTimeout(
-      () => setResult(lottieText({ camera: cameraId, width: w, height: h, background, frames })),
+      () => setResult(lottieText({ camera: cameraId, width: w, height: h, background, frames, mode })),
       0,
     );
     return () => clearTimeout(timer);
-  }, [cameraId, w, h, background, frames]);
+  }, [cameraId, w, h, background, frames, mode]);
   const problem =
     w === null || h === null
       ? `Width and height must be whole numbers from 1 to ${MAX_SIDE}.`
@@ -85,7 +99,7 @@ export function ExportLottieDialog({ defaultWidth, defaultHeight, defaultCamera,
         onSubmit={(event) => {
           event.preventDefault();
           if (w === null || h === null) return;
-          const settings = { camera: cameraId, width: w, height: h, background, frames };
+          const settings = { camera: cameraId, width: w, height: h, background, frames, mode };
           const bytes = saveLottie(settings);
           if (bytes === null) return;
           dialogRef.current?.close();
@@ -160,17 +174,17 @@ export function ExportLottieDialog({ defaultWidth, defaultHeight, defaultCamera,
         <fieldset class="dialog-choices">
           <legend>Mode</legend>
           <label class="field field-checkbox">
-            <input type="radio" name="lottie-mode" checked />
-            <span class="field-label">Baked: drawn exactly as here, frame by frame</span>
+            <input type="radio" name="lottie-mode" checked={mode === 'keys'} onChange={() => setMode('keys')} />
+            <span class="field-label">Keys: the same picture, in a much smaller file</span>
           </label>
           <label class="field field-checkbox">
-            <input type="radio" name="lottie-mode" disabled />
-            <span class="field-label">Keyframed layers (coming later)</span>
+            <input type="radio" name="lottie-mode" checked={mode === 'baked'} onChange={() => setMode('baked')} />
+            <span class="field-label">Baked: every frame written out</span>
           </label>
         </fieldset>
 
         <p class={problem ? 'dialog-error' : 'dialog-note'} role={problem ? 'alert' : undefined}>
-          {problem ?? (result && 'text' in result ? `About ${formatBytes(result.text.length)}.` : 'Working out the size…')}
+          {problem ?? (result && 'text' in result ? sizeNote(result.text.length, result.breaks.length, frames === 'all' ? duration : 1) : 'Working out the size…')}
         </p>
 
         <div class="dialog-buttons">

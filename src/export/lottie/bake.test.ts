@@ -60,7 +60,7 @@ describe('toGroup', () => {
 
   it('puts color alpha into the opacity, as players ignore alpha in colors', () => {
     const fill = toGroup(square('#33aa6633'), 'g')!.it[1] as FillItem;
-    expect(fill.c.k.map((c) => Math.floor(c * 255))).toEqual([0x33, 0xaa, 0x66]);
+    expect((fill.c.k as readonly number[]).map((c) => Math.floor(c * 255))).toEqual([0x33, 0xaa, 0x66]);
     expect(fill.o.k).toBe(20);
   });
 
@@ -110,7 +110,7 @@ describe('bakeLottie', () => {
 
   it('puts what zdog drew last first, as Lottie draws the first item on top', () => {
     const [layer] = shapeLayers(bakeLottie([[square('#0000ff'), square('#ff0000')]], OPTIONS).layers);
-    const colors = layer.shapes.map((group) => (group.it[1] as FillItem).c.k.map((c) => Math.floor(c * 255)));
+    const colors = layer.shapes.map((group) => ((group.it[1] as FillItem).c.k as readonly number[]).map((c) => Math.floor(c * 255)));
     expect(colors).toEqual([[255, 0, 0], [0, 0, 255]]);
   });
 

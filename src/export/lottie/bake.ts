@@ -11,6 +11,8 @@ import {
   type LottieAnimation,
   type LottieBezier,
   type PathItem,
+  type ShapeLayer,
+  type Static,
   type StrokeItem,
   type Vec2,
 } from './lottieJson';
@@ -34,7 +36,7 @@ export interface BakeOptions {
 export class LottieExportError extends Error {}
 
 /** Coordinates are rounded to hundredths of a pixel: invisible, and keeps files small. */
-const round = (value: number) => {
+export const round = (value: number): number => {
   const rounded = Math.round(value * 100) / 100;
   return Object.is(rounded, -0) ? 0 : rounded;
 };
@@ -43,7 +45,7 @@ const relative = (p: Point, origin: Point): Vec2 => [round(p.x - origin.x), roun
 /** A fresh [0, 0] each time: lottie-web edits tangents in place, so none may be shared. */
 const zero = (): Vec2 => [0, 0];
 
-function colorOf(css: string): Rgba {
+export function colorOf(css: string): Rgba {
   const color = parseCssColor(css);
   if (!color) throw new LottieExportError(`Can't export the color "${css}".`);
   return color;
@@ -76,8 +78,8 @@ export function toBezier(subpath: Subpath): LottieBezier {
   return { c: subpath.closed, v: vertices.map(vec), i: ins, o: outs };
 }
 
-const CAPS: Record<LineCap, 1 | 2 | 3> = { butt: 1, round: 2, square: 3 };
-const JOINS: Record<LineJoin, 1 | 2 | 3> = { miter: 1, round: 2, bevel: 3 };
+export const CAPS: Record<LineCap, 1 | 2 | 3> = { butt: 1, round: 2, square: 3 };
+export const JOINS: Record<LineJoin, 1 | 2 | 3> = { miter: 1, round: 2, bevel: 3 };
 
 /**
  * A 0–255 color channel as Lottie's 0–1. lottie-web rounds down when turning
@@ -88,7 +90,7 @@ export function channel(value: number): number {
   return Math.min(1, Math.round(((Math.round(value) + 0.25) / 255) * 10000) / 10000);
 }
 
-function styleItem(paint: Paint): FillItem | StrokeItem {
+function styleItem(paint: Paint): (FillItem | StrokeItem) & { readonly o: Static<number> } {
   const color = colorOf(paint.color);
   const c = still([channel(color.r), channel(color.g), channel(color.b)] as const);
   // Players ignore a color's alpha, so it goes into the opacity.
@@ -132,10 +134,15 @@ export function bakeLottie(frames: readonly (readonly DrawOp[])[], options: Bake
     else runs.push({ start: frame, end: frame + 1, groups, key });
   });
 
-  const total = frames.length;
-  const layers: LottieAnimation['layers'][number][] = runs.map((run, i) =>
+  const layers = runs.map((run, i) =>
     shapeLayer(i + 1, runs.length === 1 ? 'scene' : `frames ${run.start}-${run.end - 1}`, run.start, run.end, run.groups),
   );
+  return lottieFile(layers, frames.length, options);
+}
+
+/** The file around some shape layers: the background (if any) underneath, the size and frame rate. */
+export function lottieFile(shapeLayers: readonly ShapeLayer[], total: number, options: BakeOptions): LottieAnimation {
+  const layers: LottieAnimation['layers'][number][] = [...shapeLayers];
   if (options.background !== null) {
     const color = colorOf(options.background);
     const hex = `#${[color.r, color.g, color.b].map((n) => Math.round(n).toString(16).padStart(2, '0')).join('')}`;

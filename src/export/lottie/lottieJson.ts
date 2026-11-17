@@ -16,6 +16,33 @@ export interface Static<T> {
   readonly k: T;
 }
 
+/** An easing handle: linear is out (0, 0) and in (1, 1). */
+export interface Handle {
+  readonly x: number;
+  readonly y: number;
+}
+
+/**
+ * One key of an animated property. `s` is the value, in an array (a shape's
+ * path, a color's channels, or a number alone). The last key has only `t` and
+ * `s`; a hold key (`h: 1`) keeps its value until the next one.
+ */
+export interface LottieKey<T> {
+  readonly t: number;
+  readonly s: readonly unknown[] & (T extends readonly unknown[] ? T : readonly [T]);
+  readonly h?: 1;
+  readonly o?: Handle;
+  readonly i?: Handle;
+}
+
+export interface Animated<T> {
+  readonly a: 1;
+  readonly k: readonly LottieKey<T>[];
+}
+
+/** A value that stays the same, or one with keys. */
+export type Prop<T> = Static<T> | Animated<T>;
+
 export type Vec2 = readonly [number, number];
 
 export interface LottieBezier {
@@ -31,24 +58,24 @@ export interface LottieBezier {
 
 export interface PathItem {
   readonly ty: 'sh';
-  readonly ks: Static<LottieBezier>;
+  readonly ks: Prop<LottieBezier>;
 }
 
 export interface FillItem {
   readonly ty: 'fl';
   /** [r, g, b] from 0 to 1. */
-  readonly c: Static<readonly [number, number, number]>;
+  readonly c: Prop<readonly [number, number, number]>;
   /** 0–100 */
-  readonly o: Static<number>;
+  readonly o: Prop<number>;
   /** 1 = nonzero, like canvas. */
   readonly r: 1;
 }
 
 export interface StrokeItem {
   readonly ty: 'st';
-  readonly c: Static<readonly [number, number, number]>;
-  readonly o: Static<number>;
-  readonly w: Static<number>;
+  readonly c: Prop<readonly [number, number, number]>;
+  readonly o: Prop<number>;
+  readonly w: Prop<number>;
   /** 1 butt, 2 round, 3 square */
   readonly lc: 1 | 2 | 3;
   /** 1 miter, 2 round, 3 bevel */
