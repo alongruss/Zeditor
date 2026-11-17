@@ -24,7 +24,7 @@ import {
   useFreeView,
   useLookThrough,
 } from '../state/store';
-import { currentFrame, pause, timeline, useTimeline } from '../state/timeline';
+import { currentFrame, pause, playTime, shownFrame, timeline, useShownFrame, useTimeline } from '../state/timeline';
 import { setViewportSize } from '../state/viewportSize';
 import { CameraFrames } from './CameraFrames';
 import { ContextToolbar } from './ContextToolbar';
@@ -118,10 +118,12 @@ export function Viewport() {
     const show = () => {
       const { scene, selectedIds } = editor.get();
       view.setPlaying(timeline.get().playing);
-      const spec = currentViewSpec(area.width, area.height);
+      // While playing, the exact moment (between frames), so motion is smooth.
+      const moment = shownFrame();
+      const spec = currentViewSpec(area.width, area.height, moment);
       if (spec) view.setView(spec);
       const frame = currentFrame();
-      view.setScene(sceneAtFrame(scene, frame));
+      view.setScene(sceneAtFrame(scene, moment));
       view.setSelected(selectedIds);
 
       const { ghosts: ghostsOn, playing } = timeline.get();
@@ -139,6 +141,7 @@ export function Viewport() {
     const unsubscribers = [
       editor.subscribe(show),
       timeline.subscribe(show),
+      playTime.subscribe(show),
       freeView.subscribe(show),
       lookThrough.subscribe(show),
     ];
@@ -281,6 +284,9 @@ export function Viewport() {
   }, []);
 
   const { frame, playing } = useTimeline();
+  // While playing, the overlays (camera frames, the camera looked through) follow the moment on
+  // screen; stopped, it's the playhead's frame.
+  const moment = useShownFrame();
   const pivotId = usePivotGroup();
   // The scene as posed on this frame: a group's pose moves what's inside it.
   const posed = sceneAtFrame(scene, frame);
@@ -292,9 +298,9 @@ export function Viewport() {
     return shape ? [{ shape, parent: shape.parent !== undefined ? parentTransform(posed, shape) : undefined }] : [];
   });
   const selectedOrigin = gizmoTargets.length > 0 ? gizmoOrigin(gizmoTargets) : undefined;
-  const posedCameras = scene.cameras.map((camera) => objectAtFrame(camera, frame));
+  const posedCameras = scene.cameras.map((camera) => objectAtFrame(camera, moment));
   const throughCamera = posedCameras.find((camera) => camera.id === lookingThrough) ?? null;
-  const spec = size && currentViewSpec(size.width, size.height);
+  const spec = size && currentViewSpec(size.width, size.height, moment);
   const transform: ViewTransform | null = spec && {
     width: spec.width,
     height: spec.height,
@@ -345,7 +351,8 @@ export function Viewport() {
           </span>
         </div>
       )}
-      {gizmoTargets.length > 0 && transform && (
+      {/* Hidden while playing, as the selection toolbar is: nothing is edited between frames. */}
+      {gizmoTargets.length > 0 && transform && !playing && (
         <Gizmo
           targets={gizmoTargets}
           frame={frame}

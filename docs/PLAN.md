@@ -456,6 +456,22 @@ in front of one another on 237 frames"), and MP4 video. One PR each: culling and
 - **V2, MP4 video:** each frame drawn with zdog's canvas renderer through the chosen view,
   encoded as H.264 with the browser's WebCodecs, in an MP4 file.
 
+## Smooth playback
+
+Playback looked jittery on fast movement. The editor showed whole frames only: at 30 fps a pose
+stayed up for 33 ms and then jumped, and when a frame change fell right on a screen refresh, timing
+wobble decided which refresh got it, so some poses stayed up for 1 refresh instead of 2 (on a 144 Hz
+screen, an uneven 5, 5, 5, 5, 4). Measured at 60 Hz: the moving cone changed on exactly half of the
+refreshes.
+
+- While playing, the viewport shows the exact moment, between frames too (`playTime` in
+  `src/state/timeline.ts`), worked out from the same keys and easing, so motion moves on every
+  refresh. Holds still jump on their frame. The camera being looked through moves the same way.
+- The playhead, the Frame box, the timeline and every edit stay on whole frames; pausing lands on
+  the frame in the Frame box. The gizmo hides while playing, as the selection toolbar does.
+- The exported Zdog script's player plays the same way (`player.time` is the moment shown;
+  `player.frame` the whole frame), and pauses on a whole frame.
+
 ## Later
 
 **Lottie export.** Now planned and under way: see "Animation, cameras and Lottie" above.

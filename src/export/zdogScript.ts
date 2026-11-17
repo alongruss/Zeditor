@@ -321,35 +321,44 @@ const PLAYER = `const player = (() => {
   }
 
   let playing = true;
-  let frame = 0;
+  // The moment shown, in frames: while playing it has a fraction (the pose between two
+  // frames), so motion moves on with every screen refresh.
+  let time = 0;
   let start = null;
   let shown = -1;
   return {
-    /** Called on every animation frame with its time: moves on while playing, and draws a new frame. */
+    /** Called on every animation frame with its time: moves on while playing, and draws what changed. */
     tick(now) {
       if (playing && now !== undefined) {
-        if (start === null) start = now - (frame * 1000) / FPS;
-        frame = Math.floor(((now - start) * FPS) / 1000) % FRAMES;
+        if (start === null) start = now - (time * 1000) / FPS;
+        time = (((now - start) * FPS) / 1000) % FRAMES;
       }
-      if (frame !== shown) {
-        show(frame);
-        shown = frame;
+      if (time !== shown) {
+        show(time);
+        shown = time;
       }
     },
     play() {
       if (!playing) start = null;
       playing = true;
     },
+    /** Stops on the whole frame it's on. */
     pause() {
       playing = false;
+      time = Math.floor(time);
     },
     /** Shows frame n (0 to FRAMES - 1); keeps playing from there if it was. */
     goTo(n) {
-      frame = ((Math.round(n) % FRAMES) + FRAMES) % FRAMES;
+      time = ((Math.round(n) % FRAMES) + FRAMES) % FRAMES;
       start = null;
     },
+    /** The whole frame it's on. */
     get frame() {
-      return frame;
+      return Math.floor(time);
+    },
+    /** The exact moment shown, in frames. */
+    get time() {
+      return time;
     },
     get playing() {
       return playing;
@@ -484,6 +493,7 @@ function animationSource(
 // Each track lists its keys as [frame, value, easing to the next key]; angles are in degrees.
 // A shape whose size, colors or opacity change is rebuilt when they do:
 // its entry's \`node\` is the one on screen.
+// It plays smoothly, showing the moments between frames too.
 // player.pause(), player.play() and player.goTo(frame) control it.
 const FPS = ${num(fps, 3)};
 const FRAMES = ${Math.max(1, Math.round(duration))};
