@@ -57,7 +57,7 @@ function SelectionSummary({ ids }: { ids: readonly string[] }) {
         {rest > 0 && <li class="selection-more">and {rest} more</li>}
       </ul>
       <p class="field-note">
-        The gizmo moves them together. To turn or scale them as one, or animate them together, put them in a group.
+        The gizmo moves and turns them together. To scale them as one, or animate them as one, put them in a group.
         Ctrl-click (Cmd-click) one to leave it out.
       </p>
       {groupable && (

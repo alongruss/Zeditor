@@ -20,6 +20,8 @@ export type Shortcut =
   | 'open'
   | 'togglePlay'
   | 'deleteKeys'
+  | 'copyKeys'
+  | 'pasteKeys'
   | 'firstFrame'
   | 'lastFrame'
   | 'group'
@@ -60,13 +62,17 @@ function letterOf(press: KeyPress): string {
  *   Space                           play / pause
  *   Left / Right (Shift: 10)        step the playhead
  *   Home / End                      first / last frame
+ *   Ctrl+C (Cmd+C)                  copy the keys selected in the timeline
+ *   Ctrl+V (Cmd+V)                  paste copied keys on the playhead
  * With keys selected in the timeline, Delete / Backspace delete those keys
- * instead of the shape.
+ * instead of the shape. Ctrl+C and Ctrl+V are left to the browser when there
+ * are no keys to copy or paste.
  */
 export function shortcutFor(
   press: KeyPress,
   selected: string | null | readonly string[],
   keysSelected = false,
+  keysCopied = false,
 ): Shortcut | null {
   const selection = selected === null ? [] : typeof selected === 'string' ? [selected] : selected;
   const modifier = press.ctrlKey || press.metaKey;
@@ -98,6 +104,8 @@ export function shortcutFor(
     return selection.length === 0 ? nothing : duplicateObjects(selection);
   }
   if (letter === 'a' && !press.shiftKey) return selectAll;
+  if (letter === 'c' && !press.shiftKey && keysSelected) return 'copyKeys';
+  if (letter === 'v' && !press.shiftKey && keysCopied) return 'pasteKeys';
   return null;
 }
 

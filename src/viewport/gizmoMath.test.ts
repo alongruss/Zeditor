@@ -1,6 +1,6 @@
 import * as Zdog from 'zdog';
 import { describe, expect, it } from 'vitest';
-import { applyTransform } from '../model/transform';
+import { applyMatrix, applyTransform, compose, rotationMatrix } from '../model/transform';
 import type { Vec3 } from '../model/types';
 import {
   AXES,
@@ -14,6 +14,7 @@ import {
   ringPoints,
   ringRotation,
   screenAngle,
+  turnTogether,
   type ViewTransform,
 } from './gizmoMath';
 
@@ -217,5 +218,31 @@ describe('inside a turned, scaled group', () => {
     expect(turned.some((p, i) => Math.abs(p.x - plain[i].x) > 1 || Math.abs(p.y - plain[i].y) > 1)).toBe(true);
     // With no group (or the identity), nothing changes.
     expect(ringPoints(origin, 'y', rotate, front, { translate: origin, rotate, scale: 1 })).toEqual(plain);
+  });
+});
+
+describe('turnTogether', () => {
+  it('turns several objects as one rigid whole about the center, each written in its own group', () => {
+    const group = { translate: { x: 3, y: -1, z: 2 }, rotate: { x: 30, y: -20, z: 15 }, scale: 2 };
+    const targets = [
+      { translate: { x: 1, y: 2, z: 0 }, rotate: { x: 0, y: 40, z: 0 }, scale: 1 },
+      { translate: { x: -1, y: 0.5, z: 1 }, rotate: { x: 10, y: 0, z: -20 }, scale: 0.5, parent: group },
+    ];
+    const center = { x: 0.5, y: 1, z: -1 };
+    for (const axis of AXES) {
+      const turned = turnTogether(targets, center, axis, 35);
+      const spin = rotationMatrix({ x: 0, y: 0, z: 0, [axis]: 35 });
+      targets.forEach((target, i) => {
+        const world = (t: { translate: Vec3; rotate: Vec3 }) => compose(target.parent ?? { translate: { x: 0, y: 0, z: 0 }, rotate: { x: 0, y: 0, z: 0 }, scale: 1 }, { ...t, scale: target.scale });
+        for (const p of [{ x: 0, y: 0, z: 0 }, { x: 1, y: -2, z: 3 }]) {
+          const before = applyTransform(world(target), p);
+          const offset = applyMatrix(spin, { x: before.x - center.x, y: before.y - center.y, z: before.z - center.z });
+          const after = applyTransform(world(turned[i]), p);
+          expect(after.x).toBeCloseTo(center.x + offset.x, 2);
+          expect(after.y).toBeCloseTo(center.y + offset.y, 2);
+          expect(after.z).toBeCloseTo(center.z + offset.z, 2);
+        }
+      });
+    }
   });
 });

@@ -353,6 +353,42 @@ gains groups:
   lady's straight left leg gets a knee, at her right leg's length. Reviewed frame by frame from
   the side, the front and the demo's angle.
 
+## Animating by hand, and the rest of "Later"
+
+The walk had to be written as a script: the editor could show it but not make it. The user asked
+for four more phases, in order, aiming for usability and simplicity ("this editor is fun and not a
+chore"). One PR each, branched from main after the previous one merges. Each adds as little UI as
+it can, with plain names and a tooltip that says what it does.
+
+- **H1, tools for animating by hand:**
+  - **Copy and paste keys.** Ctrl+C copies the keys selected in the timeline (and Copy keys in
+    their right-click menu). Ctrl+V pastes them with the first one on the playhead, keeping
+    their spacing and easing. Keys copied from one object go onto the selected object if it has
+    the same properties (pose the left leg, paste onto the right leg half a step later);
+    otherwise back onto the objects they came from. Right-clicking a timeline row offers
+    "Paste keys here" at that frame, onto that row. Keys that would land past the end are left
+    out, with a notice. One undo step.
+  - **Ghosts (onion skin).** A Ghosts button in the transport bar shows faint copies of the
+    selected objects (everything, with nothing selected) as posed on the keys before and after
+    the playhead: cool for the one before, warm for the one after. Drawn behind the scene, they
+    can't be clicked, and they hide while playing.
+  - **Move a group's pivot.** A Pivot button in a group's selection toolbar: while it's on, the
+    gizmo's arrows move the group's origin (the point it turns and scales about) and its insides
+    stay where they are. Their keys move with them. A group that turns or scales over time can't
+    move its pivot without changing the animation, so the editor says so and leaves it.
+  - **Turning several objects at once.** With several selected, the gizmo has rings too. They turn
+    the selection together about its middle, around the world's axes, as one undo step.
+- **H2, animated Zdog JS export:** the exported script plays the animation (its keys, easings,
+  frame rate and length, looping), with a small player in the file and no other libraries. A
+  still scene exports as it does today.
+- **H3, a keyframed Lottie mode:** a Lottie export option that writes keys instead of every frame,
+  for much smaller files. It's offered when it would match the baked picture (it's checked
+  against the baked frames), and the dialog says when it can't and why (for example, shapes
+  changing their drawing order).
+- **H4, custom easing and a graph editor:** a key's easing can be a curve, edited in a graph view
+  of the timeline (a property's value over time, with handles on each key). The named easings
+  stay as presets.
+
 ## Later
 
 **Lottie export.** Now planned and under way: see "Animation, cameras and Lottie" above.

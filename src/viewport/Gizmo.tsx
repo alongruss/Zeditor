@@ -1,10 +1,13 @@
 import { useRef } from 'preact/hooks';
 import { applyTransform, directionInto, type Transform } from '../model/transform';
-import type { Placeable, Vec3 } from '../model/types';
+import { canMovePivot, movePivot } from '../model/groups';
+import { findGroup } from '../model/hierarchy';
+import type { Placeable, Scene, Vec3 } from '../model/types';
 import { edit, editMany } from '../state/commands';
 import { newGroup } from '../state/history';
+import { showNotice } from '../state/notice';
 import { setPointerDrag } from '../state/pointerDrag';
-import { dispatch } from '../state/store';
+import { dispatch, editor } from '../state/store';
 import { pause } from '../state/timeline';
 import {
   ARROW_HEAD_PX,
@@ -19,7 +22,9 @@ import {
   ringRotation,
   screenAngle,
   type Axis,
+  turnTogether,
   type ScreenPoint,
+  type TurnTarget,
   type ViewTransform,
 } from './gizmoMath';
 
@@ -35,6 +40,18 @@ type Drag =
       readonly group: string;
     }
   | {
+      /** Moving a group's pivot: the group moves, what's inside stays (see movePivot). */
+      readonly kind: 'pivot';
+      readonly axis: Axis;
+      readonly pointerId: number;
+      readonly start: ScreenPoint;
+      readonly id: string;
+      readonly parent?: Transform;
+      /** The scene when the drag began: each step is worked out from it. */
+      readonly scene: Scene;
+      readonly group: string;
+    }
+  | {
       readonly kind: 'rotate';
       readonly axis: Axis;
       readonly pointerId: number;
@@ -42,6 +59,8 @@ type Drag =
       readonly startDeg: number;
       readonly direction: -1 | 1;
       readonly group: string;
+      /** With several selected: each one as it was, turned together about `origin`. */
+      readonly together?: { readonly origin: Vec3; readonly targets: readonly (TurnTarget & { readonly id: string })[] };
       lastAngle: number;
       swept: number;
     };
@@ -90,6 +109,8 @@ interface GizmoProps {
   readonly view: ViewTransform;
   /** The playhead's frame: animated values are keyed there. */
   readonly frame: number;
+  /** A single group whose Pivot button is on: the arrows move its pivot, and there are no rings. */
+  readonly pivot?: boolean;
 }
 
 /**
@@ -98,10 +119,12 @@ interface GizmoProps {
  * take the pointer; everywhere else clicks and drags reach the scene.
  *
  * Arrows point along the world X/Y/Z axes. Each ring edits the matching
- * rotation value shown in the Inspector. Hold Shift to snap moves to whole
- * units and rotation to 15°. Each drag is one undo step.
+ * rotation value shown in the Inspector; with several selected, the rings
+ * turn them all together about their middle, around the world's axes. Hold
+ * Shift to snap moves to whole units and rotation to 15°. Each drag is one
+ * undo step.
  */
-export function Gizmo({ targets, view, frame }: GizmoProps) {
+export function Gizmo({ targets, view, frame, pivot = false }: GizmoProps) {
   const drag = useRef<Drag | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [{ shape, parent }] = targets;
@@ -128,7 +151,14 @@ export function Gizmo({ targets, view, frame }: GizmoProps) {
     const current = drag.current;
     if (!current || event.pointerId !== current.pointerId) return;
     const point = { x: event.clientX, y: event.clientY };
-    if (current.kind === 'move') {
+    if (current.kind === 'pivot') {
+      const moved = { x: point.x - current.start.x, y: point.y - current.start.y };
+      const world = moveAlongAxis(ZERO, current.axis, moved, view, event.shiftKey);
+      const local = current.parent ? directionInto(current.parent, world) : world;
+      const delta = { x: round3(local.x), y: round3(local.y), z: round3(local.z) };
+      const scene = movePivot(current.scene, current.id, delta);
+      dispatch((state) => (state.scene === scene ? state : { ...state, scene }), { group: current.group });
+    } else if (current.kind === 'move') {
       const moved = { x: point.x - current.start.x, y: point.y - current.start.y };
       if (current.targets.length === 1) {
         const [target] = current.targets;
@@ -149,7 +179,13 @@ export function Gizmo({ targets, view, frame }: GizmoProps) {
       current.swept += angleBetween(current.lastAngle, angle);
       current.lastAngle = angle;
       const value = ringRotation(current.startDeg, current.swept, current.direction, event.shiftKey);
-      dispatch(edit(shape.id, { rotate: { [current.axis]: value } }, frame), { group: current.group });
+      if (current.together) {
+        const { origin: middle, targets: turning } = current.together;
+        const turned = turnTogether(turning, middle, current.axis, value);
+        dispatch(editMany(turning.map((t, i) => ({ id: t.id, patch: turned[i] })), frame), { group: current.group });
+      } else {
+        dispatch(edit(shape.id, { rotate: { [current.axis]: value } }, frame), { group: current.group });
+      }
     }
   };
 
@@ -159,11 +195,13 @@ export function Gizmo({ targets, view, frame }: GizmoProps) {
     setPointerDrag(false);
   };
 
-  // Several objects turn about their own origins, so turning them together needs a group (Ctrl+G).
-  const rings = !single ? [] : AXES.map((axis) => {
-    const direction = ringDirection(axis, shape.rotate, view, parent);
+  // One object: rings for its own rotation values. Several: world-axis rings that turn them together.
+  const ringRotate = single ? shape.rotate : ZERO;
+  const ringParent = single ? parent : undefined;
+  const rings = pivot ? [] : AXES.map((axis) => {
+    const direction = ringDirection(axis, ringRotate, view, ringParent);
     const enabled = direction !== 0;
-    const points = toPoints(ringPoints(origin, axis, shape.rotate, view, parent));
+    const points = toPoints(ringPoints(origin, axis, ringRotate, view, ringParent));
     return (
       <g
         key={`rotate-${axis}`}
@@ -177,9 +215,21 @@ export function Gizmo({ targets, view, frame }: GizmoProps) {
             axis,
             pointerId: event.pointerId,
             center: pageCenter,
-            startDeg: shape.rotate[axis],
+            startDeg: single ? shape.rotate[axis] : 0,
             direction,
             group: newGroup(),
+            together: single
+              ? undefined
+              : {
+                  origin,
+                  targets: targets.map((t) => ({
+                    id: t.shape.id,
+                    translate: t.shape.translate,
+                    rotate: t.shape.rotate,
+                    scale: t.shape.scale,
+                    parent: t.parent,
+                  })),
+                },
             lastAngle: screenAngle(pageCenter, { x: event.clientX, y: event.clientY }),
             swept: 0,
           });
@@ -204,6 +254,27 @@ export function Gizmo({ targets, view, frame }: GizmoProps) {
         data-handle={`move-${axis}`}
         onPointerDown={(event) => {
           if (event.button !== 0 || !enabled) return;
+          if (pivot) {
+            const scene = editor.get().scene;
+            const group = findGroup(scene, shape.id);
+            if (!group) return;
+            if (!canMovePivot(group)) {
+              event.stopPropagation();
+              showNotice(`${group.name} turns or scales over time, so moving its pivot would change the animation. Move the pivot before animating it.`);
+              return;
+            }
+            startDrag(event, {
+              kind: 'pivot',
+              axis,
+              pointerId: event.pointerId,
+              start: { x: event.clientX, y: event.clientY },
+              id: shape.id,
+              parent,
+              scene,
+              group: newGroup(),
+            });
+            return;
+          }
           startDrag(event, {
             kind: 'move',
             axis,
@@ -227,7 +298,7 @@ export function Gizmo({ targets, view, frame }: GizmoProps) {
   return (
     <svg
       ref={svgRef}
-      class="gizmo"
+      class={pivot ? 'gizmo is-pivot' : 'gizmo'}
       width={view.width}
       height={view.height}
       aria-hidden="true"
