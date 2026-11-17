@@ -1,5 +1,6 @@
 import type { DrawOp, Paint } from '../../render/drawOps';
-import { CAPS, JOINS, LottieExportError, channel, colorOf, lottieFile, round, toBezier, type BakeOptions } from './bake';
+import { CAPS, JOINS, LottieExportError, bakeLottie, channel, colorOf, lottieFile, round, toBezier, type BakeOptions } from './bake';
+import { boundsOf, overlap, type Bounds } from './cull';
 import {
   identityGroupTransform,
   shapeLayer,
@@ -19,17 +20,16 @@ import {
  * Keyframed Lottie: the same picture as the baked export on every frame,
  * written as keys instead of every frame, so files are much smaller.
  *
- * The nth path zdog draws on one frame is followed to the nth path on the
- * next, and its outline, colors, opacity and line width become animated
- * properties. A key is kept only where a straight line from the key before
- * can't reproduce the frames in between (to within a tenth of a pixel). Keys
- * a frame apart hold, so a sudden change (say two box faces trading places in
- * the drawing order) happens on the frame, as baked, never as an in-between.
+ * Each path zdog draws is followed from frame to frame (by the zdog item that
+ * drew it, see DrawOp.source), and its outline, colors, opacity and line
+ * width become animated properties. A key is kept only where a straight line
+ * from the key before can't reproduce the frames in between (to within a
+ * tenth of a pixel). Keys a frame apart hold, so a sudden change (a path
+ * appearing, or moving in the drawing order) happens on the frame, as baked,
+ * never as an in-between.
  *
- * Lottie can't change the makeup of a layer, so wherever the paths drawn
- * stop lining up (a different number of them, or the nth one has a different
- * number of points or paints, as when a cone passes in front of a box), a new
- * layer starts: at worst, one per frame, as baked.
+ * Lottie can't change the drawing order within a layer; see keyLottie for
+ * how paths that pass in front of one another are handled.
  */
 
 /** How far a keyed value may be from the baked one, on any frame. */
@@ -49,7 +49,7 @@ interface Tracked {
   readonly paints: readonly Paint[];
 }
 
-/** What must stay the same for a path to be keyed from frame to frame: its makeup. */
+/** What must stay the same for a path to be keyed from frame to frame, besides who drew it: its makeup. */
 function signature(op: DrawOp, beziers: readonly LottieBezier[]): string {
   const outline = beziers.map((b) => `${b.c ? 'c' : 'o'}${b.v.length}`).join(',');
   const paints = op.paints.map((p) => (p.kind === 'fill' ? 'f' : `s${CAPS[p.cap]}${JOINS[p.join]}`)).join('');
@@ -101,24 +101,37 @@ function property<T>(
 ): Prop<T> {
   const flat = values.map(numbers);
   const first = flat[0];
-  if (flat.every((value) => value.every((n, d) => n === first[d]))) return still(values[0]);
+  // Copies throughout: lottie-web rewrites what it's given (see lottieJson.ts), and a hidden
+  // frame holds the same value object as the frame before it.
+  if (flat.every((value) => value.every((n, d) => n === first[d]))) return still(structuredClone(values[0]));
   const keys = keyIndexes(flat, tolerance);
   return {
     a: 1,
     k: keys.map((index, j): LottieKey<T> => {
       const t = start + index;
-      const s = wrap(values[index]);
+      const s = structuredClone(wrap(values[index]));
       if (j === keys.length - 1) return { t, s };
       // A key on the very next frame: hold, so the step between frames looks as baked.
-      return keys[j + 1] === index + 1 ? { t, s, h: 1 } : { t, s, ...LINEAR };
+      return keys[j + 1] === index + 1 ? { t, s, h: 1 } : { t, s, ...structuredClone(LINEAR) };
     }),
   };
 }
 
 type Rgb = readonly [number, number, number];
 
-/** One path followed through a run of frames, as a Lottie group. Null if it never shows. */
-function trackedGroup(frames: readonly Tracked[], start: number, name: string): GroupItem | null {
+/**
+ * One slot followed through a run of frames, as a Lottie group: its path on
+ * the frames it shows (`null` where it's hidden: drawn elsewhere in the order,
+ * out of view, or not drawn). Null if it never shows.
+ */
+function trackedGroup(slot: readonly (Tracked | null)[], start: number, name: string): GroupItem | null {
+  // Hidden frames keep the nearest shown value (so they need no keys) and get opacity 0.
+  const firstShown = slot.find((frame): frame is Tracked => frame !== null);
+  if (!firstShown) return null;
+  let held = firstShown;
+  const frames = slot.map((frame) => (frame === null ? held : (held = frame)));
+  const shown = slot.map((frame) => frame !== null);
+
   const paths: PathItem[] = frames[0].beziers.map((_, b) => ({
     ty: 'sh',
     ks: property(
@@ -132,7 +145,7 @@ function trackedGroup(frames: readonly Tracked[], start: number, name: string): 
   const styles: (FillItem | StrokeItem)[] = [];
   frames[0].paints.forEach((first, p) => {
     const colors = frames.map((frame) => colorOf(frame.paints[p].color));
-    const opacities = colors.map((color) => round(color.a * 100));
+    const opacities = colors.map((color, f) => (shown[f] ? round(color.a * 100) : 0));
     if (opacities.every((o) => o <= 0)) return; // never shows
     const number = (n: number) => [n];
     const c = property<Rgb>(
@@ -162,38 +175,102 @@ function trackedGroup(frames: readonly Tracked[], start: number, name: string): 
 
 export interface KeyedLottie {
   readonly animation: LottieAnimation;
-  /** The frames (after the first) where the paths drawn stop lining up, so a new layer starts. */
+  /** The frames (after the first) where so many paths changed places that a new layer starts. */
   readonly breaks: readonly number[];
+  /** True if keys came out bigger than baking, so the file is baked instead (the same picture). */
+  readonly baked: boolean;
 }
 
-/** A keyframed Lottie animation from recorded frames (frame 0 first). */
+/** A place in a layer's drawing order, for one path (by who drew it and its makeup). */
+interface Slot {
+  readonly key: string;
+  /** The path on each frame of the run so far; null where this slot is hidden. */
+  readonly frames: (Tracked | null)[];
+}
+
+/**
+ * Most slots a layer may have, per path drawn on a frame: past this, a new
+ * layer is cheaper than more hidden copies.
+ */
+const SLOTS_PER_PATH = 8;
+const MIN_SLOTS = 64;
+
+/**
+ * A keyframed Lottie animation from recorded frames (frame 0 first).
+ *
+ * Each path keeps its place (a slot) in the layer from frame to frame. The
+ * order only has to hold between paths that overlap on screen: zdog re-sorts
+ * by depth all the time, but two paths that don't touch can be drawn in
+ * either order. When a path must now be drawn after one it overlaps that's in
+ * a later slot, it gets a slot past that one and its old slot is hidden from
+ * then on. A path that isn't drawn on a frame (say, it's out of view) is
+ * hidden there. Only when the slots pile up does a new layer start, and if
+ * keys still come out bigger than baking, the file is baked instead.
+ */
 export function keyLottie(frames: readonly (readonly DrawOp[])[], options: BakeOptions): KeyedLottie {
   if (frames.length === 0) throw new LottieExportError('There are no frames to export.');
-  const runs: { start: number; end: number; key: string; frames: Tracked[][] }[] = [];
+  interface Run {
+    readonly start: number;
+    end: number;
+    readonly slots: Slot[];
+  }
+  const runs: Run[] = [];
+  let lastSlot = new Map<string, Slot>();
+  const widest = Math.max(1, ...frames.map((ops) => ops.length));
+  const maxSlots = Math.max(MIN_SLOTS, SLOTS_PER_PATH * widest);
+
   frames.forEach((ops, frame) => {
-    const tracked = ops.map((op) => ({ beziers: op.subpaths.map(toBezier), paints: op.paints }));
-    const key = ops.map((op, i) => signature(op, tracked[i].beziers)).join('|');
-    const previous = runs[runs.length - 1];
-    if (previous && previous.key === key) {
-      previous.end = frame + 1;
-      previous.frames.push(tracked);
-    } else runs.push({ start: frame, end: frame + 1, key, frames: [tracked] });
+    let run = runs[runs.length - 1];
+    if (!run || run.slots.length > maxSlots) {
+      run = { start: frame, end: frame, slots: [] };
+      runs.push(run);
+      lastSlot = new Map();
+    }
+    const index = frame - run.start;
+    const slots = run.slots;
+    const used = new Set<Slot>();
+    const drawn: { bounds: Bounds; slot: Slot }[] = [];
+    for (const op of ops) {
+      const tracked = { beziers: op.subpaths.map(toBezier), paints: op.paints };
+      const key = `${op.source ?? '?'}|${signature(op, tracked.beziers)}`;
+      const bounds = boundsOf(op);
+      // It must come after every path drawn before it that it overlaps.
+      let lowest = 0;
+      for (const earlier of drawn) {
+        if (overlap(bounds, earlier.bounds)) lowest = Math.max(lowest, slots.indexOf(earlier.slot) + 1);
+      }
+      // Its slot from the frame before, if that's still late enough; else a free one like it; else a new one.
+      const previous = lastSlot.get(key);
+      let at = previous && !used.has(previous) ? slots.indexOf(previous) : -1;
+      if (at < lowest) at = slots.findIndex((slot, i) => i >= lowest && slot.key === key && !used.has(slot));
+      if (at === -1) {
+        at = lowest;
+        slots.splice(at, 0, { key, frames: new Array<Tracked | null>(index).fill(null) });
+      }
+      const slot = slots[at];
+      slot.frames[index] = tracked;
+      used.add(slot);
+      lastSlot.set(key, slot);
+      drawn.push({ bounds, slot });
+    }
+    for (const slot of slots) if (!used.has(slot)) slot.frames[index] = null;
+    run.end = frame + 1;
   });
 
-  const layers: ShapeLayer[] = runs.map((run, i) => {
-    const count = run.frames[0].length;
+  const layers: ShapeLayer[] = runs.map((r, i) => {
     const groups: GroupItem[] = [];
-    for (let op = 0; op < count; op++) {
-      const group = trackedGroup(
-        run.frames.map((frame) => frame[op]),
-        run.start,
-        `shape ${op + 1}`,
-      );
+    r.slots.forEach((slot, n) => {
+      const group = trackedGroup(slot.frames, r.start, `shape ${n + 1}`);
       if (group) groups.push(group);
-    }
+    });
     // zdog draws back to front; Lottie lists the top first.
     groups.reverse();
-    return shapeLayer(i + 1, runs.length === 1 ? 'scene' : `frames ${run.start}-${run.end - 1}`, run.start, run.end, groups);
+    return shapeLayer(i + 1, runs.length === 1 ? 'scene' : `frames ${r.start}-${r.end - 1}`, r.start, r.end, groups);
   });
-  return { animation: lottieFile(layers, frames.length, options), breaks: runs.slice(1).map((run) => run.start) };
+  const keyed = lottieFile(layers, frames.length, options);
+  const baked = bakeLottie(frames, options);
+  // Nothing changes over time (one baked layer): keys have nothing to save, and that's fine.
+  if (baked.layers.filter((layer) => layer.ty === 4).length <= 1) return { animation: baked, breaks: [], baked: false };
+  if (JSON.stringify(baked).length < JSON.stringify(keyed).length) return { animation: baked, breaks: [], baked: true };
+  return { animation: keyed, breaks: runs.slice(1).map((r) => r.start), baked: false };
 }

@@ -118,7 +118,7 @@ export interface LottieSettings {
  */
 export function lottieText(
   settings: LottieSettings,
-): { readonly text: string; readonly breaks: readonly number[] } | { readonly error: string } {
+): { readonly text: string; readonly breaks: readonly number[]; readonly bakedInstead: boolean } | { readonly error: string } {
   const { scene } = editor.get();
   let view: ViewSpec | ((frame: number) => ViewSpec) | null;
   if (settings.camera === null) {
@@ -131,13 +131,13 @@ export function lottieText(
   }
   try {
     const frames = lottieFrames(settings);
-    const { animation, breaks } = lottieExport(scene, view, {
+    const { animation, breaks, bakedInstead } = lottieExport(scene, view, {
       background: settings.background,
       name: baseName,
       frames,
       mode: settings.mode,
     });
-    return { text: JSON.stringify(animation), breaks };
+    return { text: JSON.stringify(animation), breaks, bakedInstead };
   } catch (error) {
     if (error instanceof LottieExportError) return { error: error.message };
     throw error;

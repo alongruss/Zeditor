@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { setKey } from '../../model/animation';
-import { sceneAtFrame } from '../../model/evaluate';
+import { readFileSync } from 'node:fs';
+import { objectAtFrame, sceneAtFrame } from '../../model/evaluate';
+import { parseSceneFile } from '../../model/sceneFile';
 import { starterScene } from '../../model/starterScene';
 import type { Scene, ShapeData } from '../../model/types';
 import { recordFrame, type DrawOp } from '../../render/drawOps';
-import type { ViewSpec } from '../../render/view';
+import { viewFromCamera, type ViewSpec } from '../../render/view';
 import { bakeLottie } from './bake';
+import { overlap, type Bounds } from './cull';
 import { keyIndexes, keyLottie } from './keys';
 import type { GroupItem, LottieAnimation, Prop, ShapeLayer } from './lottieJson';
 
@@ -102,6 +105,62 @@ function expectClose(actual: unknown, expected: unknown, where: string, toleranc
   }
 }
 
+/** Like expectClose, as a yes or no. */
+function closeEnough(actual: unknown, expected: unknown, tolerance = 0.21): boolean {
+  if (typeof expected === 'number') return typeof actual === 'number' && Math.abs(actual - expected) <= tolerance;
+  if (Array.isArray(expected)) {
+    return Array.isArray(actual) && actual.length === expected.length && expected.every((e, i) => closeEnough(actual[i], e, tolerance));
+  }
+  if (expected && typeof expected === 'object') {
+    if (!actual || typeof actual !== 'object') return false;
+    return Object.entries(expected).every(([k, e]) => closeEnough((actual as Record<string, unknown>)[k], e, k === 'c' ? 0.0016 : tolerance));
+  }
+  return actual === expected;
+}
+
+/** Where a resolved group can paint: its points and handles, widened by its widest stroke. */
+function boxOf(group: unknown): Bounds {
+  const items = (group as { it: { ty: string; ks?: { v: number[][]; i: number[][]; o: number[][] }; w?: number }[] }).it;
+  const xs: number[] = [];
+  const ys: number[] = [];
+  let margin = 1;
+  for (const item of items) {
+    if (item.ty === 'sh' && item.ks) {
+      item.ks.v.forEach(([x, y], n) => {
+        for (const [dx, dy] of [[0, 0], item.ks!.i[n], item.ks!.o[n]]) {
+          xs.push(x + dx);
+          ys.push(y + dy);
+        }
+      });
+    }
+    if (item.ty === 'st' && typeof item.w === 'number') margin = Math.max(margin, item.w / 2 + 1);
+  }
+  return { left: Math.min(...xs) - margin, top: Math.min(...ys) - margin, right: Math.max(...xs) + margin, bottom: Math.max(...ys) + margin };
+}
+
+/**
+ * The same picture: every shown group has a twin in the baked frame (within
+ * the tolerances), and any two that overlap are in the same order. Groups
+ * that don't touch may be listed in either order: it can't change a pixel.
+ */
+function expectSamePicture(actual: unknown[], expected: unknown[], where: string): void {
+  expect(actual.length, `${where}: shapes shown`).toBe(expected.length);
+  const twins: number[] = [];
+  const taken = new Set<number>();
+  actual.forEach((group, i) => {
+    const twin = expected.findIndex((e, k) => !taken.has(k) && closeEnough(group, e));
+    if (twin === -1) expectClose(group, expected[i], `${where}: shape ${i} has no twin in the baked frame`);
+    taken.add(twin);
+    twins.push(twin);
+  });
+  const boxes = expected.map(boxOf);
+  for (let i = 0; i < twins.length; i++) {
+    for (let j = i + 1; j < twins.length; j++) {
+      if (overlap(boxes[twins[i]], boxes[twins[j]])) expect(twins[i] < twins[j], `${where}: shapes ${i} and ${j} overlap, out of order`).toBe(true);
+    }
+  }
+}
+
 describe('keyIndexes', () => {
   it('keeps only the ends of a straight line, and a key at each corner', () => {
     expect(keyIndexes([[0], [1], [2], [3]], 0.01)).toEqual([0, 3]);
@@ -130,12 +189,11 @@ describe('keyLottie', () => {
     const scene = animated();
     const frames = record(scene);
     const { animation, breaks } = keyLottie(frames, OPTIONS);
-    for (let f = 0; f < frames.length; f++) expectClose(shownOn(animation, f), bakedOn(frames, f), `frame ${f}`);
+    for (let f = 0; f < frames.length; f++) expectSamePicture(shownOn(animation, f), bakedOn(frames, f), `frame ${f}`);
     const baked = JSON.stringify(bakeLottie(frames, OPTIONS)).length;
     expect(JSON.stringify(animation).length).toBeLessThan(baked / 4);
-    // As the box turns, its faces move past the other shapes in the drawing order: a few new layers.
-    expect(breaks.length).toBeGreaterThan(0);
-    expect(breaks.length).toBeLessThan(frames.length / 5);
+    // The box's faces swap places as it turns, but each keeps a place of its own: no new layers.
+    expect(breaks).toEqual([]);
     expect(animation).toMatchObject({ fr: 30, ip: 0, op: frames.length, w: 320, h: 240 });
   });
 
@@ -146,21 +204,103 @@ describe('keyLottie', () => {
     const { animation, breaks } = keyLottie(frames, OPTIONS);
     expect(breaks).toEqual([]);
     expect(shapeLayers(animation)).toHaveLength(1);
-    for (let f = 0; f < frames.length; f++) expectClose(shownOn(animation, f), bakedOn(frames, f), `frame ${f}`);
+    for (let f = 0; f < frames.length; f++) expectSamePicture(shownOn(animation, f), bakedOn(frames, f), `frame ${f}`);
     expect(JSON.stringify(animation).length).toBeLessThan(JSON.stringify(bakeLottie(frames, OPTIONS)).length / 10);
   });
 
-  it('starts a new layer where the drawing order changes, and still matches', () => {
-    // The camera goes all the way round: shapes pass in front of each other.
+  it('matches with the camera going all the way round, shapes passing in front of each other', () => {
     const scene = animated();
     const turning = Array.from({ length: scene.settings.duration }, (_, f) =>
       recordFrame(sceneAtFrame(scene, f), { ...VIEW, rotate: { x: -0.3, y: (f / scene.settings.duration) * Math.PI * 2, z: 0 } }),
     );
-    const { animation, breaks } = keyLottie(turning, OPTIONS);
-    expect(breaks.length).toBeGreaterThan(0);
-    const layers = shapeLayers(animation);
-    expect(layers.map((l) => l.ip)).toEqual([0, ...breaks]);
-    for (let f = 0; f < turning.length; f++) expectClose(shownOn(animation, f), bakedOn(turning, f), `frame ${f}`);
+    const { animation } = keyLottie(turning, OPTIONS);
+    expect(JSON.stringify(animation).length).toBeLessThanOrEqual(JSON.stringify(bakeLottie(turning, OPTIONS)).length);
+    for (let f = 0; f < turning.length; f++) expectSamePicture(shownOn(animation, f), bakedOn(turning, f), `frame ${f}`);
+  });
+
+  /** Two overlapping squares, drawn by two different items. */
+  const square = (source: string, x: number, color: string): DrawOp => ({
+    source,
+    subpaths: [
+      {
+        start: { x, y: 0 },
+        segments: [
+          { kind: 'line', to: { x: x + 40, y: 0 } },
+          { kind: 'line', to: { x: x + 40, y: 40 } },
+          { kind: 'line', to: { x, y: 40 } },
+        ],
+        closed: true,
+      },
+    ],
+    paints: [{ kind: 'fill', color }],
+  });
+
+  it('gives a path a new place when it passes in front of one it overlaps; only a pile-up starts a new layer', () => {
+    const red = (x: number) => square('/0#0', x, '#ff0000');
+    const blue = (x: number) => square('/1#0', x, '#0000ff');
+    // They swap on frame 5 and stay swapped: one extra place, one layer.
+    const once = Array.from({ length: 10 }, (_, f) => (f < 5 ? [red(f), blue(20)] : [blue(20), red(f)]));
+    const swapped = keyLottie(once, OPTIONS);
+    expect(swapped.breaks).toEqual([]);
+    expect(shapeLayers(swapped.animation)[0].shapes).toHaveLength(3);
+    for (let f = 0; f < once.length; f++) expectSamePicture(shownOn(swapped.animation, f), bakedOn(once, f), `frame ${f}`);
+    // They swap on every frame: places pile up until a new layer is cheaper.
+    const always = Array.from({ length: 200 }, (_, f) => (f % 2 === 0 ? [red(f / 10), blue(20)] : [blue(20), red(f / 10)]));
+    const piled = keyLottie(always, OPTIONS);
+    if (!piled.baked) {
+      expect(piled.breaks.length).toBeGreaterThan(0);
+      for (let f = 0; f < always.length; f += 7) expectSamePicture(shownOn(piled.animation, f), bakedOn(always, f), `frame ${f}`);
+    }
+  });
+
+  it('lets paths that do not touch swap places freely: no new places needed', () => {
+    const red = (x: number) => square('/0#0', x, '#ff0000');
+    const blue = square('/1#0', 200, '#0000ff');
+    const frames = Array.from({ length: 20 }, (_, f) => (f % 2 === 0 ? [red(f), blue] : [blue, red(f)]));
+    const { animation, breaks } = keyLottie(frames, OPTIONS);
+    expect(breaks).toEqual([]);
+    expect(shapeLayers(animation)[0].shapes).toHaveLength(2);
+    expect(JSON.stringify(animation)).not.toContain('"o":{"a":1');
+  });
+
+  it('writes the baked file when keys come out no smaller (the walking couple on the turntable)', () => {
+    const opened = parseSceneFile(readFileSync('src/examples/nippu-walking.zeditor.json', 'utf8'));
+    if (!opened.ok) throw new Error(opened.error);
+    const scene = opened.scene;
+    const turntable = scene.cameras[0];
+    const frames = Array.from({ length: scene.settings.duration }, (_, f) =>
+      recordFrame(sceneAtFrame(scene, f), viewFromCamera(objectAtFrame(turntable, f))),
+    );
+    const size = { ...OPTIONS, width: turntable.width, height: turntable.height };
+    const keyed = keyLottie(frames, size);
+    expect(keyed.baked).toBe(true);
+    expect(keyed.breaks).toEqual([]);
+    expect(keyed.animation).toEqual(bakeLottie(frames, size));
+  }, 30000);
+
+  it('never puts one object in two places (lottie-web rewrites what it is given)', () => {
+    const red = square('/0#0', 0, '#ff0000');
+    const moved = square('/0#0', 30, '#ff0000');
+    const blue = square('/1#0', 20, '#0000ff');
+    const frames = [[red, blue], [red, blue], [], [blue, moved], [moved, blue], [red]];
+    for (const animation of [keyLottie(frames, OPTIONS).animation, keyLottie(record(animated()), OPTIONS).animation]) {
+      const seen = new Set<object>();
+      const walk = (value: unknown, where: string) => {
+        if (!value || typeof value !== 'object') return;
+        expect(seen.has(value), `${where} is also somewhere else`).toBe(false);
+        seen.add(value);
+        for (const [key, child] of Object.entries(value)) walk(child, `${where}.${key}`);
+      };
+      walk(animation, 'animation');
+    }
+  });
+
+  it('hides a path on the frames it is not drawn (say, out of view)', () => {
+    const red = square('/0#0', 0, '#ff0000');
+    const frames = [[red], [red], [], [], [red]];
+    const { animation } = keyLottie(frames, OPTIONS);
+    expect(shownOn(animation, 2)).toEqual([]);
+    for (let f = 0; f < frames.length; f++) expectSamePicture(shownOn(animation, f), bakedOn(frames, f), `frame ${f}`);
   });
 
   it('holds a key followed by one on the next frame, so a jump happens on the frame', () => {
@@ -173,7 +313,7 @@ describe('keyLottie', () => {
     expect(path.ty === 'sh' && path.ks.a === 1 && path.ks.k.map((key) => [key.t, key.h ?? 0])).toEqual([[0, 1], [1, 1], [2, 0], [4, 0]]);
   });
 
-  it('starts a new layer when a path gets more points (a shape rebuilt with more sides)', () => {
+  it('gives a path a new place when it gets more points (a shape rebuilt with more sides)', () => {
     const polygon = (points: number): DrawOp => ({
       subpaths: [
         {
@@ -189,15 +329,18 @@ describe('keyLottie', () => {
     });
     const frames = [[polygon(3)], [polygon(3)], [polygon(5)], [polygon(5)]];
     const { animation, breaks } = keyLottie(frames, OPTIONS);
-    expect(breaks).toEqual([2]);
-    for (let f = 0; f < frames.length; f++) expectClose(shownOn(animation, f), bakedOn(frames, f), `frame ${f}`);
+    expect(breaks).toEqual([]);
+    expect(shapeLayers(animation)[0].shapes).toHaveLength(2);
+    for (let f = 0; f < frames.length; f++) expectSamePicture(shownOn(animation, f), bakedOn(frames, f), `frame ${f}`);
   });
 
-  it('writes a still scene with no keys at all', () => {
+  it('writes a still scene with no keys at all, and no note about keys', () => {
     const frames = record(starterScene());
-    const { animation } = keyLottie(frames, OPTIONS);
+    const { animation, baked, breaks } = keyLottie(frames, OPTIONS);
+    expect(baked).toBe(false);
+    expect(breaks).toEqual([]);
     expect(JSON.stringify(animation)).not.toContain('"a":1');
     expect(shapeLayers(animation)).toHaveLength(1);
-    expectClose(shownOn(animation, 40), bakedOn(frames, 40), 'frame 40');
+    expectSamePicture(shownOn(animation, 40), bakedOn(frames, 40), 'frame 40');
   });
 });

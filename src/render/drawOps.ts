@@ -38,6 +38,13 @@ export interface DrawOp {
   readonly subpaths: readonly Subpath[];
   /** In the order they were painted. */
   readonly paints: readonly Paint[];
+  /**
+   * Which zdog item drew it, the same on every frame of the same scene: its
+   * place in the zdog tree (child indexes from the root), then a count for
+   * the paths one item draws (a Group draws all of its children's). The
+   * keyframed Lottie export follows a path from frame to frame by it.
+   */
+  readonly source?: string;
 }
 
 const TAU = Math.PI * 2;
@@ -93,8 +100,14 @@ interface MutableSubpath {
  * any other canvas feature throws, so a zdog code path the export doesn't
  * understand fails loudly instead of being dropped from the picture.
  */
-export function createRecorder(): { readonly ctx: CanvasRenderingContext2D; readonly ops: DrawOp[] } {
+export function createRecorder(): {
+  readonly ctx: CanvasRenderingContext2D;
+  readonly ops: DrawOp[];
+  /** Tags the paths drawn from now on (see DrawOp.source). */
+  setSource(source: string | undefined): void;
+} {
   const ops: DrawOp[] = [];
+  let source: string | undefined;
   let subpaths: MutableSubpath[] = [];
   let current: MutableSubpath | null = null;
   /** Where a new subpath starts after closePath (the canvas rule). */
@@ -136,7 +149,7 @@ export function createRecorder(): { readonly ctx: CanvasRenderingContext2D; read
     }
     const recorded = snapshot();
     if (recorded.length === 0) return;
-    ops.push({ subpaths: recorded, paints: [p] });
+    ops.push(source === undefined ? { subpaths: recorded, paints: [p] } : { subpaths: recorded, paints: [p], source });
     paintedVersion = pathVersion;
   };
 
@@ -205,7 +218,20 @@ export function createRecorder(): { readonly ctx: CanvasRenderingContext2D; read
     },
   }) as unknown as CanvasRenderingContext2D;
 
-  return { ctx, ops };
+  return {
+    ctx,
+    ops,
+    setSource(next) {
+      source = next;
+    },
+  };
+}
+
+/** `place#n`: the item's nth path on this frame. */
+function numbered(place: string, counts: Map<string, number>): string {
+  const n = counts.get(place) ?? 0;
+  counts.set(place, n + 1);
+  return `${place}#${n}`;
 }
 
 const toScreen = (view: ViewSpec) => (p: Point): Point => ({
@@ -230,11 +256,26 @@ export function recordFrame(scene: Scene, view: ViewSpec): DrawOp[] {
   buildZdogGraph(scene, root);
   root.updateGraph();
 
+  // Each item's place in the tree, so every path can say which item drew it.
+  const places = new Map<ZdogTypes.Anchor, string>();
+  const walk = (node: ZdogTypes.Anchor, place: string) => {
+    places.set(node, place);
+    (node as unknown as { children: ZdogTypes.Anchor[] }).children.forEach((child, i) => walk(child, `${place}/${i}`));
+  };
+  walk(root, '');
+
+  // What zdog's renderGraphCanvas does, one item at a time.
   const recorder = createRecorder();
-  root.renderGraphCanvas(recorder.ctx);
+  const items = (root as unknown as { flatGraph: { render(ctx: CanvasRenderingContext2D, renderer: unknown): void }[] }).flatGraph;
+  for (const item of items) {
+    recorder.setSource(places.get(item as unknown as ZdogTypes.Anchor));
+    item.render(recorder.ctx, (Zdog as unknown as { CanvasRenderer: unknown }).CanvasRenderer);
+  }
 
   const map = toScreen(view);
+  const counts = new Map<string, number>();
   return recorder.ops.map((op) => ({
+    ...(op.source === undefined ? {} : { source: numbered(op.source, counts) }),
     subpaths: op.subpaths.map((sub) => ({
       start: map(sub.start),
       segments: sub.segments.map((segment) => mapSegment(segment, map)),
