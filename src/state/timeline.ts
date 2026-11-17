@@ -66,6 +66,37 @@ export function currentFrame(): number {
 }
 
 /**
+ * While playing, the moment on screen, in frames with a fraction (45.6 is
+ * six tenths of the way from frame 45 to 46), so motion moves on every screen
+ * refresh, not only 30 times a second. Null when stopped. Not part of the
+ * timeline state, so only the viewport redraws for it; the playhead, the
+ * Frame box and every edit stay on whole frames.
+ */
+export const playTime: Store<number | null> = createStore<number | null>(null);
+
+/** The moment the viewport shows: the moment playing, or else the playhead's frame. */
+export function shownFrame(): number {
+  const time = playTime.get();
+  return timeline.get().playing && time !== null ? time : currentFrame();
+}
+
+/** shownFrame(), re-rendering on every new moment while playing. */
+export function useShownFrame(): number {
+  useStore(playTime);
+  useStore(timeline);
+  return shownFrame();
+}
+
+/**
+ * Where playback is after `elapsed` milliseconds, starting from `startFrame`:
+ * in frames, with a fraction, looping over `duration` frames.
+ */
+export function playbackTime(elapsed: number, startFrame: number, fps: number, duration: number): number {
+  const length = Math.max(1, duration);
+  return (((startFrame + (elapsed * fps) / 1000) % length) + length) % length;
+}
+
+/**
  * Moves the playhead (and stops playback). Edits on either side of a frame
  * change are separate undo steps, even mid-way through typing in a field.
  */
@@ -118,7 +149,10 @@ export function startTimeline(): () => void {
   let startFrame = 0;
   const tick = (now: number) => {
     const { fps, duration } = editor.get().scene.settings;
-    const frame = (startFrame + Math.floor(((now - startTime) * fps) / 1000)) % Math.max(1, duration);
+    const time = playbackTime(now - startTime, startFrame, fps, duration);
+    const frame = Math.floor(time);
+    // The playhead moves on whole frames; the viewport shows the moment in between.
+    playTime.dispatch(() => time);
     timeline.dispatch((state) => (state.frame === frame || !state.playing ? state : { ...state, frame }));
     raf = requestAnimationFrame(tick);
   };
@@ -127,6 +161,8 @@ export function startTimeline(): () => void {
     if (state.playing === wasPlaying) return;
     wasPlaying = state.playing;
     cancelAnimationFrame(raf);
+    // Stopped: back on the playhead's whole frame.
+    if (!state.playing) playTime.dispatch(() => null);
     if (state.playing) {
       startTime = performance.now();
       startFrame = state.frame;

@@ -236,7 +236,7 @@ function runAnimated(script: string) {
     },
   ) as {
     animated: { node: Zdog.Anchor }[];
-    player: { frame: number; playing: boolean; play(): void; pause(): void; goTo(n: number): void };
+    player: { frame: number; time: number; playing: boolean; play(): void; pause(): void; goTo(n: number): void };
     illo: Illustration;
   };
   const tick = (now: number) => {
@@ -294,7 +294,7 @@ describe('exportZdogScript with animation', () => {
     for (const frame of [0, 1, 7, 15, 25, 31, 44, 59, 60, 79, 88, 89]) {
       ran.tick(5000 + (frame * 1000) / fps + 1);
       expect(ran.player.frame).toBe(frame);
-      const posed = sceneAtFrame(scene, frame);
+      const posed = sceneAtFrame(scene, ran.player.time);
       const group = ran.animated[0].node;
       expect((group.rotate as Zdog.Vector).z, `group on ${frame}`).toBeCloseTo((posed.groups[0].rotate.z * Math.PI) / 180, 9);
       animatedShapes.forEach((shape, i) => {
@@ -337,9 +337,27 @@ describe('exportZdogScript with animation', () => {
     ran.tick(0);
     for (const frame of [3, 8, 20, 33, 38, 40]) {
       ran.tick((frame * 1000) / scene.settings.fps + 1);
-      const posed = sceneAtFrame(scene, frame);
+      const posed = sceneAtFrame(scene, ran.player.time);
       shapes.forEach((shape, i) => expectSameShape(ran.animated[i].node, posed.shapes.find((s) => s.id === shape.id)!));
     }
+  });
+
+  it('plays the moments between frames, and pauses on a whole frame', () => {
+    const scene = animatedScene();
+    const ran = runAnimated(exportZdogScript(scene, FREE));
+    const ms = 1000 / scene.settings.fps;
+    const coneX = () => (ran.animated[1].node.translate as Zdog.Vector).x;
+    const editorX = (moment: number) => sceneAtFrame(scene, moment).shapes.find((s) => s.id === 'cone-1')!.translate.x;
+    ran.tick(0);
+    ran.tick(20.5 * ms);
+    expect(ran.player.time).toBeCloseTo(20.5, 9);
+    expect(ran.player.frame).toBe(20);
+    expect(coneX()).toBeCloseTo(editorX(20.5), 9);
+    expect(Math.abs(coneX() - editorX(20))).toBeGreaterThan(0.01); // not held on frame 20
+    ran.player.pause();
+    ran.tick(30 * ms);
+    expect(ran.player.time).toBe(20);
+    expect(coneX()).toBeCloseTo(editorX(20), 9);
   });
 
   it('loops, and can be paused, played and sent to a frame', () => {
@@ -381,7 +399,7 @@ describe('exportZdogScript with animation', () => {
     ran.tick(0);
     const frame = 30;
     ran.tick((frame * 1000) / scene.settings.fps + 1);
-    const posed = objectAtFrame(camera, frame);
+    const posed = objectAtFrame(camera, ran.player.time);
     expect((ran.illo.rotate as Zdog.Vector).y).toBeCloseTo((posed.rotate.y * Math.PI) / 180, 9);
     expect((ran.illo.rotate as Zdog.Vector).x).toBeCloseTo((-10 * Math.PI) / 180, 9);
     expect(ran.illo.zoom).toBeCloseTo(300 / posed.viewSpan, 9);
