@@ -6,7 +6,7 @@ import { objectAtFrame, sceneAtFrame } from '../model/evaluate';
 import { addShape, createCamera, createGroup, createShape, emptyScene, updateShape } from '../model/scene';
 import { applyTransform } from '../model/transform';
 import { starterScene } from '../model/starterScene';
-import type { Scene, ShapeData } from '../model/types';
+import type { Keyframe, Scene, ShapeData } from '../model/types';
 import { turn } from '../render/view';
 import { DEFAULT_FREE_VIEW, type FreeView } from '../viewport/freeView';
 import { createZdogShape, zdogOptions } from '../viewport/toZdog';
@@ -309,6 +309,37 @@ describe('exportZdogScript with animation', () => {
     // Nothing left behind: the illustration holds the group and the other shapes, the group the polygon.
     expect(childrenOf(ran.illo)).toHaveLength(scene.shapes.length);
     expect(childrenOf(ran.animated[0].node)).toHaveLength(1);
+  });
+
+  it('plays custom curves as the editor does, overshoots included, within each setting limits', () => {
+    const back = [0.3, -0.8, 0.7, 1.8] as const;
+    let scene = starterScene();
+    const curved = (shape: ShapeData, path: string, from: Keyframe['value'], to: Keyframe['value']) => ({
+      ...shape,
+      tracks: { ...shape.tracks, [path]: [{ frame: 0, value: from, easing: back }, { frame: 40, value: to, easing: 'linear' as const }] },
+    });
+    scene = {
+      ...scene,
+      shapes: scene.shapes.map((shape) =>
+        shape.id === 'cone-1'
+          ? curved(curved(shape, 'translate.x', -5, 5), 'scale', 0.1, 2) // dips below 0: stops at 0
+          : shape.id === 'box-1'
+            ? curved(curved(shape, 'opacity', 0.05, 0.95), 'props.color', '#000000', '#808080')
+            : shape,
+      ),
+    };
+    const script = exportZdogScript(scene, FREE);
+    expect(script).toContain('limits: { opacity: { min: 0, max: 1 } }');
+    expect(script).toContain('limits: { scale: { min: 0 } }');
+    expect(script).toContain('[0.3, -0.8, 0.7, 1.8]');
+    const ran = runAnimated(script);
+    const shapes = scene.shapes.filter((shape) => shape.tracks);
+    ran.tick(0);
+    for (const frame of [3, 8, 20, 33, 38, 40]) {
+      ran.tick((frame * 1000) / scene.settings.fps + 1);
+      const posed = sceneAtFrame(scene, frame);
+      shapes.forEach((shape, i) => expectSameShape(ran.animated[i].node, posed.shapes.find((s) => s.id === shape.id)!));
+    }
   });
 
   it('loops, and can be paused, played and sent to a frame', () => {

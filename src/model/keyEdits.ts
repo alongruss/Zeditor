@@ -1,3 +1,4 @@
+import { sameEasing } from './easing';
 import { propertySpec } from './animatable';
 import { removeKey } from './animation';
 import { findObject, replaceObjects } from './scene';
@@ -112,7 +113,7 @@ export function setKeysEasing(scene: Scene, refs: readonly KeyRef[], easing: Eas
       const track = tracks[path];
       if (!track) continue;
       tracks[path] = track.map((key) => {
-        if (!frames.has(key.frame) || key.easing === easing) return key;
+        if (!frames.has(key.frame) || sameEasing(key.easing, easing)) return key;
         any = true;
         return { ...key, easing };
       });
@@ -124,13 +125,14 @@ export function setKeysEasing(scene: Scene, refs: readonly KeyRef[], easing: Eas
 
 /** The easing the keys share, 'mixed' if they differ, or null if there are none. */
 export function sharedEasing(scene: Scene, refs: readonly KeyRef[]): Easing | 'mixed' | null {
-  const easings = new Set<Easing>();
+  let shared: Easing | null = null;
   for (const ref of refs) {
     const key = findObject(scene, ref.objectId)?.tracks?.[ref.path]?.find((k) => k.frame === ref.frame);
-    if (key) easings.add(key.easing);
+    if (!key) continue;
+    if (shared === null) shared = key.easing;
+    else if (!sameEasing(shared, key.easing)) return 'mixed';
   }
-  if (easings.size === 0) return null;
-  return easings.size === 1 ? [...easings][0] : 'mixed';
+  return shared;
 }
 
 /**

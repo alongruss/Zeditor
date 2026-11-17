@@ -1,3 +1,4 @@
+import { readCurve } from './easing';
 import { propertySpec, type PropertySpec } from './animatable';
 import { MAX_DEPTH } from './hierarchy';
 import { DEFAULT_BACKGROUND } from './scene';
@@ -163,11 +164,12 @@ function readTracks(raw: unknown, type: ObjectType, where: string): Tracks | und
       }
       const value = readKeyValue(rawKey.value, spec);
       if (value === null) return fail(`${where}: the "${path}" key at frame ${frame} has a value that doesn't fit.`);
-      const easing = rawKey.easing ?? 'easeInOut';
-      if (!(EASINGS as readonly unknown[]).includes(easing)) {
+      const rawEasing = rawKey.easing ?? 'easeInOut';
+      const easing = (EASINGS as readonly unknown[]).includes(rawEasing) ? (rawEasing as Easing) : readCurve(rawEasing);
+      if (easing === null) {
         return fail(`${where}: the "${path}" key at frame ${frame} has an unknown easing.`);
       }
-      return { frame, value, easing: easing as Easing };
+      return { frame, value, easing };
     });
     keys.sort((a, b) => a.frame - b.frame);
     for (let i = 1; i < keys.length; i++) {

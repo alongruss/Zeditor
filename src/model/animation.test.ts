@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { propertiesOf, readBase } from './animatable';
 import { editAtFrame, groupKeyState, keyState, removeKey, setKey, toggleKeys, trackValueAt, valueAt } from './animation';
-import { ease } from './easing';
+import { EASING_CURVES, curveOf, ease, easingLabel, overshoots, readCurve, sameEasing } from './easing';
 import { isAnimated, sceneAtFrame, shapeAtFrame } from './evaluate';
 import { addShape, createShape, duplicateShape, emptyScene } from './scene';
 import { EASINGS, SHAPE_TYPES, type Keyframe, type ShapeData } from './types';
@@ -182,5 +182,57 @@ describe('the animatable property list', () => {
     const copy = after.shapes.find((s) => s.id === id)!;
     expect({ ...copy, id: animated.id, name: animated.name }).toEqual(animated);
     expect(copy.tracks).not.toBe(animated.tracks);
+  });
+});
+
+describe('custom easing curves', () => {
+  it('ease the same as the preset with the same numbers', () => {
+    for (const t of [0, 0.1, 0.33, 0.5, 0.8, 1]) {
+      expect(ease([0.42, 0, 0.58, 1], t)).toBeCloseTo(ease('easeInOut', t), 9);
+      expect(ease([0, 0, 1, 1], t)).toBeCloseTo(t, 9);
+    }
+  });
+
+  it('can overshoot and anticipate, past either key', () => {
+    const back: [number, number, number, number] = [0.3, -0.6, 0.7, 1.6];
+    const values = Array.from({ length: 21 }, (_, i) => ease(back, i / 20));
+    expect(Math.min(...values)).toBeLessThan(0);
+    expect(Math.max(...values)).toBeGreaterThan(1);
+    expect(values[0]).toBe(0);
+    expect(values[20]).toBeCloseTo(1, 6);
+    expect(overshoots(back)).toBe(true);
+    expect(overshoots('easeInOut')).toBe(false);
+    expect(overshoots([0.2, 0, 0.8, 1])).toBe(false);
+  });
+
+  it('go past the keys for numbers, but within the setting limits; colors stop at the keys', () => {
+    const back: Keyframe['easing'] = [0.3, -0.8, 0.7, 1.8];
+    const opacity = { path: 'opacity', label: 'Opacity', kind: 'number' as const, min: 0, max: 1 };
+    const track = [key(0, 0.05, back), key(20, 0.95)];
+    const values = Array.from({ length: 21 }, (_, f) => trackValueAt(track, f, opacity) as number);
+    expect(Math.min(...values)).toBe(0); // dipped below 0.05, stopped at 0
+    expect(Math.max(...values)).toBe(1); // rose past 0.95, stopped at 1
+    const free = Array.from({ length: 21 }, (_, f) => trackValueAt([key(0, 0, back), key(20, 10)], f, numberSpec) as number);
+    expect(Math.min(...free)).toBeLessThan(0);
+    expect(Math.max(...free)).toBeGreaterThan(10);
+    const color = { path: 'props.color', label: 'Color', kind: 'color' as const };
+    const colors = Array.from({ length: 21 }, (_, f) => trackValueAt([key(0, '#000000', back), key(20, '#808080')], f, color));
+    const reds = colors.map((c) => parseInt((c as string).slice(1, 3), 16));
+    expect(Math.min(...reds)).toBe(0);
+    expect(Math.max(...reds)).toBe(0x80);
+  });
+
+  it('have a label, compare by their numbers, and are read from files only within the limits', () => {
+    expect(easingLabel([0.1, 0.2, 0.3, 0.4])).toBe('Custom curve');
+    expect(easingLabel('easeIn')).toBe('Ease in');
+    expect(sameEasing([0.1, 0.2, 0.3, 0.4], [0.1, 0.2, 0.3, 0.4])).toBe(true);
+    expect(sameEasing([0.1, 0.2, 0.3, 0.4], [0.1, 0.2, 0.3, 0.5])).toBe(false);
+    expect(sameEasing('linear', [0, 0, 1, 1])).toBe(false);
+    expect(curveOf('easeOut')).toEqual(EASING_CURVES.easeOut);
+    expect(curveOf('hold')).toBeNull();
+    expect(readCurve([0.2, -1, 1, 2])).toEqual([0.2, -1, 1, 2]);
+    for (const bad of [[1.2, 0, 0, 1], [0, 0, -0.1, 1], [0, 2.5, 1, 1], [0, 0, 1], [0, 0, 1, 'x'], [0, 0, 1, Infinity], 'curve']) {
+      expect(readCurve(bad), JSON.stringify(bad)).toBeNull();
+    }
   });
 });

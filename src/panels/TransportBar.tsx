@@ -3,7 +3,7 @@ import { isAnimated } from '../model/evaluate';
 import { findShape } from '../model/scene';
 import { retimeCommand, setTiming } from '../state/commands';
 import { dispatch, useEditorState } from '../state/store';
-import { pause, setFrame, setGhosts, setPanelOpen, togglePlayback, useTimeline } from '../state/timeline';
+import { pause, setCurves, setFrame, setGhosts, setPanelOpen, togglePlayback, useTimeline } from '../state/timeline';
 import { FpsDialog } from './FpsDialog';
 import { NumberInput } from './fields';
 
@@ -28,7 +28,7 @@ function niceStep(pixelsPerFrame: number, gap: number): number {
  */
 export function TransportBar() {
   const { scene, selectedId } = useEditorState();
-  const { frame, playing, panelOpen, ghosts } = useTimeline();
+  const { frame, playing, panelOpen, ghosts, curves } = useTimeline();
   const [pendingFps, setPendingFps] = useState<number | null>(null);
   const closeFpsDialog = useCallback(() => setPendingFps(null), []);
   const { fps, duration } = scene.settings;
@@ -138,6 +138,15 @@ export function TransportBar() {
         onClick={() => setGhosts(!ghosts)}
       >
         Ghosts
+      </button>
+      <button
+        type="button"
+        class="transport-curves"
+        aria-pressed={curves && panelOpen}
+        title="Curves: the selected object's animation as a graph. Click between two keys, then drag the handles to shape how it eases."
+        onClick={() => setCurves(!(curves && panelOpen))}
+      >
+        Curves
       </button>
       <label class="field transport-setting">
         <span class="field-label">fps</span>

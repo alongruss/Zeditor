@@ -134,6 +134,13 @@ describe('scene files with animation (version 2)', () => {
     expect(parseSceneFile(serializeScene(scene))).toEqual({ ok: true, scene });
   });
 
+  it('keeps custom easing curves', () => {
+    const tracks = { 'translate.x': [{ frame: 0, value: 0, easing: [0.3, -0.6, 0.7, 1.6] }, { frame: 20, value: 5 }] };
+    const scene = sceneOf(animatedFile(tracks));
+    expect(scene.shapes[0].tracks!['translate.x'][0].easing).toEqual([0.3, -0.6, 0.7, 1.6]);
+    expect(parseSceneFile(serializeScene(scene))).toEqual({ ok: true, scene });
+  });
+
   it('refuses tracks that do not fit their property', () => {
     const one = (path: string, keyframe: Record<string, unknown>) => errorOf(animatedFile({ [path]: [keyframe] }));
     expect(one('props.wings', { frame: 0, value: 1 })).toMatch(/"props.wings" can't be animated/);
@@ -143,6 +150,7 @@ describe('scene files with animation (version 2)', () => {
     expect(one('props.color', { frame: 0, value: 'url(x.png)' })).toMatch(/doesn't fit/);
     expect(one('props.fill', { frame: 0, value: 'yes' })).toMatch(/doesn't fit/);
     expect(one('scale', { frame: 0, value: 1, easing: 'bounce' })).toMatch(/unknown easing/);
+    expect(one('scale', { frame: 0, value: 1, easing: [1.5, 0, 0.5, 1] })).toMatch(/unknown easing/);
     expect(errorOf(animatedFile({ scale: [] }))).toMatch(/no keys/);
     const twice = { scale: [{ frame: 3, value: 1 }, { frame: 3, value: 2 }] };
     expect(errorOf(animatedFile(twice))).toMatch(/two "scale" keys are on frame 3/);

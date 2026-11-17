@@ -405,6 +405,16 @@ it can, with plain names and a tooltip that says what it does.
 - **H4, custom easing and a graph editor:** a key's easing can be a curve, edited in a graph view
   of the timeline (a property's value over time, with handles on each key). The named easings
   stay as presets.
+  - A custom curve is `[x1, y1, x2, y2]`, as CSS `cubic-bezier()`: x from 0 to 1, y from -1 to 2,
+    so motion can overshoot or anticipate. Numbers go past the keys but stay within a setting's
+    limits (opacity 0 to 1, scale 0 or more); colors stop at the keys. Files keep curves.
+  - **Curves** (next to Ghosts) turns the timeline into a graph of the selected object's
+    animated numbers, each stretched to fill the height (position x, y, z in the gizmo's colors).
+    Clicking a key, or the curve after it, selects that stretch and shows its two handles;
+    dragging one shapes the easing (one undo step), and the arrow keys nudge a focused handle.
+    Curves that lie on top of each other: click a name in the legend to show only that one.
+  - The Easing menu shows "Custom curve" for one; choosing a preset replaces it. The Zdog
+    script's player plays curves too, with the same limits; Lottie records frames, so it follows.
 
 ## Later
 

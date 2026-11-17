@@ -15,6 +15,8 @@ export interface TimelineState {
   readonly panelOpen: boolean;
   /** Whether the viewport shows ghosts of the poses on the keys before and after the playhead. */
   readonly ghosts: boolean;
+  /** Whether the timeline shows the selected object's curves (a graph) instead of its keys in rows. */
+  readonly curves: boolean;
 }
 
 export const timeline: Store<TimelineState> = createStore<TimelineState>({
@@ -23,6 +25,7 @@ export const timeline: Store<TimelineState> = createStore<TimelineState>({
   selectedKeys: [],
   panelOpen: true,
   ghosts: false,
+  curves: false,
 });
 
 /** Replaces the key selection (duplicates are dropped). */
@@ -43,6 +46,13 @@ export function setPanelOpen(open: boolean): void {
 
 export function setGhosts(ghosts: boolean): void {
   timeline.dispatch((state) => (state.ghosts === ghosts ? state : { ...state, ghosts }));
+}
+
+/** Shows the curves (opening the timeline if it was closed), or the keys in rows. */
+export function setCurves(curves: boolean): void {
+  timeline.dispatch((state) =>
+    state.curves === curves && (!curves || state.panelOpen) ? state : { ...state, curves, panelOpen: curves || state.panelOpen },
+  );
 }
 
 /** The last frame of the scene's animation. */

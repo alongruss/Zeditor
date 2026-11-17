@@ -1,14 +1,15 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { propertiesOf } from '../model/animatable';
-import { EASING_LABELS } from '../model/easing';
+import { EASING_LABELS, easingLabel, isCurve } from '../model/easing';
 import { keyRefId, moveKeys, sharedEasing, type KeyRef } from '../model/keyEdits';
 import { allObjects } from '../model/scene';
-import { EASINGS, type Easing, type Scene, type SceneObject } from '../model/types';
+import { EASINGS, type Easing, type EasingPreset, type Scene, type SceneObject } from '../model/types';
 import { deleteKeysCommand, moveKeysCommand, select, setEasingCommand } from '../state/commands';
 import { newGroup } from '../state/history';
 import { dispatch, editor, useEditorState } from '../state/store';
 import { copySelectedKeys, pasteCopiedKeys, useKeyClipboard } from '../state/keyClipboard';
 import { clearKeySelection, pause, selectKeys, setFrame, timeline, useTimeline } from '../state/timeline';
+import { CurvesView } from './CurvesView';
 import { PopupMenu, type MenuPosition } from './PopupMenu';
 
 /** Space kept at each end of the lanes, so the first and last keys can be grabbed. */
@@ -67,7 +68,7 @@ function buildRows(scene: Scene, selectedId: string | null, expanded: ReadonlySe
         diamonds: track.map((key) => ({
           refs: [{ objectId: object.id, path: spec.path, frame: key.frame }],
           frame: key.frame,
-          label: `${object.name} ${spec.label} key on frame ${key.frame}, ${EASING_LABELS[key.easing]}`,
+          label: `${object.name} ${spec.label} key on frame ${key.frame}, ${easingLabel(key.easing)}`,
           hold: key.easing === 'hold',
         })),
       });
@@ -108,7 +109,7 @@ type Drag =
  */
 export function TimelinePanel() {
   const { scene, selectedId } = useEditorState();
-  const { frame, selectedKeys } = useTimeline();
+  const { frame, selectedKeys, curves } = useTimeline();
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
   const [menu, setMenu] = useState<MenuPosition | null>(null);
   /** Right-click on a row's empty lane: paste there. */
@@ -174,6 +175,7 @@ export function TimelinePanel() {
     if (event.button !== 0) return;
     const target = event.target as Element;
     if (target.closest('.tl-label')) return; // labels have their own buttons
+    if (curves) return; // the curves handle their own pointer
     // Take focus from wherever it was (an Inspector field, say), so Ctrl+C copies keys, not text.
     bodyRef.current?.focus({ preventScroll: true });
     if (event.currentTarget instanceof Element) event.currentTarget.setPointerCapture(event.pointerId);
@@ -277,7 +279,7 @@ export function TimelinePanel() {
 
   let index = -1;
   return (
-    <section class="timeline-panel" aria-label="Timeline" ref={panelRef} style={{ '--lane-pad': `${PAD}px` }}>
+    <section class={curves ? 'timeline-panel is-curves' : 'timeline-panel'} aria-label="Timeline" ref={panelRef} style={{ '--lane-pad': `${PAD}px` }}>
       <div class="tl-header">
         <div class="tl-corner">
           <label class="tl-easing">
@@ -285,10 +287,15 @@ export function TimelinePanel() {
             <select
               aria-label="Easing of selected keys"
               disabled={easing === null}
-              value={easing === null || easing === 'mixed' ? '' : easing}
-              onChange={(event) => setEasing(event.currentTarget.value as Easing)}
+              value={easing === null || easing === 'mixed' ? '' : isCurve(easing) ? 'custom' : easing}
+              onChange={(event) => setEasing(event.currentTarget.value as EasingPreset)}
             >
               {(easing === null || easing === 'mixed') && <option value="">{easing === 'mixed' ? 'Mixed' : '—'}</option>}
+              {easing !== null && easing !== 'mixed' && isCurve(easing) && (
+                <option value="custom" disabled>
+                  Custom curve
+                </option>
+              )}
               {EASINGS.map((value) => (
                 <option key={value} value={value}>
                   {EASING_LABELS[value]}
@@ -342,6 +349,7 @@ export function TimelinePanel() {
         onPointerUp={onBodyPointerUp}
         onPointerCancel={onBodyPointerUp}
         onContextMenu={(event) => {
+          if (curves) return;
           const bounds = panelRef.current!.getBoundingClientRect();
           const at = { x: event.clientX - bounds.left, y: event.clientY - bounds.top };
           const diamond = diamondAt(event.target);
@@ -361,10 +369,13 @@ export function TimelinePanel() {
           setMenu(at);
         }}
       >
-        {rows.length === 0 && (
+        {curves && (
+          <CurvesView scene={scene} selectedId={selectedId} selectedKeys={selectedKeys} last={last} laneWidth={laneWidth} xOf={xOf} />
+        )}
+        {!curves && rows.length === 0 && (
           <p class="tl-empty">Nothing is animated yet. Select a shape or camera and click a ◇ in the Inspector to add a key.</p>
         )}
-        {rows.map((row) => (
+        {!curves && rows.map((row) => (
           <div key={row.id} class={row.property ? 'tl-row tl-property' : 'tl-row'}>
             <div class="tl-label">
               {row.property ? (
@@ -428,7 +439,7 @@ export function TimelinePanel() {
           items={[
             ...EASINGS.map((value) => ({
               label: EASING_LABELS[value],
-              checked: easing === value,
+              checked: easing !== null && easing !== 'mixed' && !isCurve(easing) && easing === value,
               onSelect: () => setEasing(value),
             })),
             { label: 'Copy keys', shortcut: 'Ctrl+C', onSelect: copySelectedKeys },
