@@ -10,7 +10,7 @@ import { rootTranslate, viewFromCamera, type ViewSpec } from '../src/render/view
 import { ancestorsOf } from '../src/model/hierarchy';
 import { parseSceneFile } from '../src/model/sceneFile';
 import { zdogOptions, zdogTransform } from '../src/viewport/toZdog';
-import { fileMenu, openEditorForEachTest } from './helpers';
+import { field, fileMenu, openEditorForEachTest, treeItem } from './helpers';
 
 const ZDOG = 'node_modules/zdog/dist/zdog.dist.min.js';
 const LOTTIE = 'node_modules/lottie-web/build/player/lottie.min.js';
@@ -277,17 +277,22 @@ test.describe('Lottie export fidelity, animated', () => {
     const frames = Array.from({ length: 30 }, (_, i) => i);
     const baked = lottieAnimation(scene, view(-0.35, 0.6), { background: false, name: 'animated', frames });
     expect(baked.layers.length).toBeGreaterThan(10); // the frames differ, so they don't merge
+    const keyed = lottieAnimation(scene, view(-0.35, 0.6), { background: false, name: 'animated', frames, mode: 'keys' });
+    expect(JSON.stringify(keyed).length).toBeLessThan(JSON.stringify(baked).length * 0.7);
 
     for (const frame of [0, 9, 17, 29]) {
-      const result = await compareFrame(page, sceneAtFrame(scene, frame), view(-0.35, 0.6), baked, frame);
-      expect(result.ink, `frame ${frame} drew something`).toBeGreaterThan(20000);
-      expect(result.mismatched / result.ink, `frame ${frame}`).toBeLessThan(0.01);
+      for (const [mode, lottie] of [['baked', baked], ['keys', keyed]] as const) {
+        const result = await compareFrame(page, sceneAtFrame(scene, frame), view(-0.35, 0.6), lottie, frame);
+        expect(result.ink, `${mode}, frame ${frame} drew something`).toBeGreaterThan(20000);
+        expect(result.mismatched / result.ink, `${mode}, frame ${frame}`).toBeLessThan(0.01);
+      }
     }
   });
 });
 
 test.describe('Lottie export fidelity, the walking example', () => {
-  test('one step through the Turntable camera matches zdog drawing the same frames', async ({ page }) => {
+  test('one step through the Turntable camera matches zdog drawing the same frames, and keys write the same file', async ({ page }) => {
+    test.slow(); // the biggest scene here, exported twice
     const opened = parseSceneFile(await readFile('src/examples/nippu-walking.zeditor.json', 'utf8'));
     if (!opened.ok) throw new Error(opened.error);
     const scene = opened.scene;
@@ -295,12 +300,47 @@ test.describe('Lottie export fidelity, the walking example', () => {
     const filmed = (frame: number) => ({ ...viewFromCamera(objectAtFrame(camera, frame)), width: 384, height: 384 });
     const frames = Array.from({ length: 30 }, (_, i) => i);
     const baked = lottieAnimation(scene, filmed, { background: false, name: 'walking', frames });
+    const keyed = lottieAnimation(scene, filmed, { background: false, name: 'walking', frames, mode: 'keys' });
+    // The camera turns, so shapes pass in front of one another on every frame: each frame is
+    // a layer of its own, and keys write exactly what baking does.
+    expect(JSON.stringify(keyed)).toBe(JSON.stringify(baked));
     // Off-key frames too: between keys, the bake must interpolate as the editor does.
     for (const frame of [0, 10, 23]) {
       const result = await compareFrame(page, sceneAtFrame(scene, frame), filmed(frame), baked, frame);
       expect(result.ink, `frame ${frame} drew something`).toBeGreaterThan(15000);
       expect(result.mismatched / result.ink, `frame ${frame}`).toBeLessThan(0.01);
     }
+  });
+});
+
+test.describe('Lottie export with keys, between frames', () => {
+  test('a slide plays smoothly between frames, and a jump still happens on its frame', async ({ page }) => {
+    let scene = fidelityScene();
+    const [first, second] = scene.shapes;
+    const keys = (path: string, values: [number, number | string, 'linear' | 'hold'][]) => ({
+      [path]: values.map(([frame, value, easing]) => ({ frame, value, easing })),
+    });
+    scene = {
+      ...scene,
+      shapes: scene.shapes.map((s) =>
+        s.id === first.id
+          ? { ...s, tracks: keys('translate.y', [[0, -6, 'linear'], [29, 6, 'linear']]) }
+          : s.id === second.id
+            ? { ...s, tracks: keys('props.color', [[0, '#ff0000', 'hold'], [10, '#0000ff', 'hold']]) }
+            : s,
+      ),
+    };
+    const frames = Array.from({ length: 30 }, (_, i) => i);
+    const keyed = lottieAnimation(scene, view(0, 0), { background: false, name: 'between', frames, mode: 'keys' });
+    // The slide is a straight line: two keys. The color jumps from frame 9 to 10: held keys there.
+    const text = JSON.stringify(keyed);
+    expect(text).toContain('"h":1');
+    // Halfway between frames 4 and 5 the slide is halfway too. Between 9 and 10 the slide moves on,
+    // but the color hasn't changed yet (as the editor poses it: a held key keeps its value till the next).
+    const halfway = await compareFrame(page, sceneAtFrame(scene, 4.5), view(0, 0), keyed, 4.5);
+    expect(halfway.mismatched / halfway.ink).toBeLessThan(0.01);
+    const beforeJump = await compareFrame(page, sceneAtFrame(scene, 9.5), view(0, 0), keyed, 9.5);
+    expect(beforeJump.mismatched / beforeJump.ink).toBeLessThan(0.01);
   });
 });
 
@@ -331,7 +371,8 @@ test.describe('Export Lottie dialog', () => {
     const file = await download;
     expect(file.suggestedFilename()).toBe('scene.lottie.json');
     const lottie = JSON.parse(await readFile(await file.path(), 'utf8'));
-    // All 90 frames; nothing is animated, so they share one layer.
+    // All 90 frames; nothing is animated, so they share one layer, and with keys (the default) nothing is keyed.
+    expect(JSON.stringify(lottie)).not.toContain('"a":1');
     expect(lottie).toMatchObject({ w: 320, h: 240, ip: 0, op: 90, fr: 30 });
     expect(lottie.layers).toHaveLength(1);
     expect(lottie.layers[0]).toMatchObject({ ty: 4, st: 0, ip: 0, op: 90 });
@@ -339,6 +380,40 @@ test.describe('Export Lottie dialog', () => {
 
     await expect(dialog).toBeHidden();
     await expect(page.getByRole('status')).toContainText('Saved scene.lottie.json');
+  });
+
+  test('keys make a much smaller file than baking every frame, and say where a new layer starts', async ({ page }) => {
+    // The cone slides across and back, behind the other shapes.
+    await treeItem(page, 'Cone 1').click();
+    await page.getByRole('button', { name: /^Animate Position at frame 0/ }).click();
+    await page.getByLabel('Frame', { exact: true }).fill('60');
+    await page.getByLabel('Frame', { exact: true }).press('Enter');
+    await field(page, 'Position X').fill('-20');
+    await field(page, 'Position X').press('Tab');
+    await field(page, 'Position Z').fill('-40');
+    await field(page, 'Position Z').press('Tab');
+
+    await fileMenu(page, 'Export Lottie…');
+    const dialog = page.getByRole('dialog', { name: 'Export Lottie' });
+    const keys = dialog.getByRole('radio', { name: /^Keys/ });
+    await expect(keys).toBeChecked();
+    const note = dialog.getByText(/^About /);
+    await expect(note).toContainText('Shapes pass in front of one another on');
+    const size = async () => {
+      const text = (await note.textContent())!;
+      const [, n, unit] = /About ([\d.]+) (bytes|KB|MB)/.exec(text)!;
+      return Number(n) * { bytes: 1, KB: 1024, MB: 1024 * 1024 }[unit as 'bytes' | 'KB' | 'MB'];
+    };
+    const keyedSize = await size();
+    await dialog.getByRole('radio', { name: /^Baked/ }).check();
+    await expect(note).not.toContainText('Shapes pass');
+    await expect.poll(size).toBeGreaterThan(keyedSize * 2);
+
+    await keys.check();
+    const download = page.waitForEvent('download');
+    await dialog.getByRole('button', { name: 'Export' }).click();
+    const lottie = JSON.parse(await readFile(await (await download).path(), 'utf8'));
+    expect(JSON.stringify(lottie)).toContain('"a":1');
   });
 
   test('films through a camera at its own picture size; looking through it picks it', async ({ page }) => {

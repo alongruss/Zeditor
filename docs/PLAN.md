@@ -392,6 +392,16 @@ it can, with plain names and a tooltip that says what it does.
   for much smaller files. It's offered when it would match the baked picture (it's checked
   against the baked frames), and the dialog says when it can't and why (for example, shapes
   changing their drawing order).
+  - Built as "Keys" in the dialog's Mode, the default. It records the frames as baking does,
+    follows the nth path drawn from frame to frame, and keys its outline, colors, opacity and
+    line width only where a straight line from the key before can't reproduce the frames in
+    between (to within a tenth of a pixel). A test checks every frame against the bake.
+  - Keys a frame apart hold, so a sudden change (a held color, two faces trading places) happens
+    on its frame, never as an in-between.
+  - A layer can't change its makeup, so where the paths drawn stop lining up (a cone passing in
+    front of a box), a new layer starts, and the dialog says on how many frames. When that's every
+    frame (a turntable camera), keys write exactly the baked file, and the dialog says keys can't
+    make it smaller.
 - **H4, custom easing and a graph editor:** a key's easing can be a curve, edited in a graph view
   of the timeline (a property's value over time, with handles on each key). The named easings
   stay as presets.
