@@ -3,6 +3,7 @@ import type { Scene } from '../../model/types';
 import { recordFrame } from '../../render/drawOps';
 import type { ViewSpec } from '../../render/view';
 import { bakeLottie } from './bake';
+import { cullFrame } from './cull';
 import { keyLottie } from './keys';
 import type { LottieAnimation } from './lottieJson';
 
@@ -27,25 +28,30 @@ export type ViewSource = ViewSpec | ((frame: number) => ViewSpec);
 /**
  * The scene as seen through `view`, baked frame by frame into a Lottie
  * animation at the scene's frame rate. Each frame is the scene as posed on
- * that frame, drawn exactly as zdog draws it. The picture's size is the
- * first frame's view's size (a camera's size never changes).
+ * that frame, drawn exactly as zdog draws it, without the paths that can't
+ * show in the picture (see cull.ts). The picture's size is the first frame's
+ * view's size (a camera's size never changes).
  */
 export function lottieAnimation(scene: Scene, view: ViewSource, options: LottieExportOptions): LottieAnimation {
   return lottieExport(scene, view, options).animation;
 }
 
-/**
- * As lottieAnimation, and in keys mode also the frames where a new layer
- * starts because the drawing order changes (none when baked).
- */
-export function lottieExport(
-  scene: Scene,
-  view: ViewSource,
-  options: LottieExportOptions,
-): { readonly animation: LottieAnimation; readonly breaks: readonly number[] } {
+export interface LottieExport {
+  readonly animation: LottieAnimation;
+  /** With keys: the frames where a new layer starts (see keys.ts). */
+  readonly breaks: readonly number[];
+  /** With keys: true if they came out bigger than baking, so the file is baked instead. */
+  readonly bakedInstead: boolean;
+}
+
+/** As lottieAnimation, with what the keys mode did. */
+export function lottieExport(scene: Scene, view: ViewSource, options: LottieExportOptions): LottieExport {
   const viewAt = typeof view === 'function' ? view : () => view;
   const size = viewAt(options.frames[0] ?? 0);
-  const frames = options.frames.map((frame) => recordFrame(sceneAtFrame(scene, frame), viewAt(frame)));
+  const frames = options.frames.map((frame) => {
+    const spec = viewAt(frame);
+    return cullFrame(recordFrame(sceneAtFrame(scene, frame), spec), spec.width, spec.height);
+  });
   const bakeOptions = {
     width: size.width,
     height: size.height,
@@ -53,7 +59,9 @@ export function lottieExport(
     background: options.background ? scene.settings.background : null,
     name: options.name,
   };
-  return options.mode === 'keys' ? keyLottie(frames, bakeOptions) : { animation: bakeLottie(frames, bakeOptions), breaks: [] };
+  if (options.mode !== 'keys') return { animation: bakeLottie(frames, bakeOptions), breaks: [], bakedInstead: false };
+  const keyed = keyLottie(frames, bakeOptions);
+  return { animation: keyed.animation, breaks: keyed.breaks, bakedInstead: keyed.baked };
 }
 
 /** One frame (the scene as it is, or as posed on `frame`), as a single-frame Lottie. */

@@ -30,15 +30,18 @@ function formatBytes(bytes: number): string {
 }
 
 /**
- * The size, and with keys, why the file starts new layers: Lottie can't
- * change which shapes are drawn in front of which within one layer.
+ * The size, and with keys, anything that kept the file from being smaller:
+ * Lottie can't change which shapes are drawn in front of which within one
+ * layer, and it moves points in straight lines between keys.
  */
-function sizeNote(bytes: number, breaks: number, frameCount: number): string {
+function sizeNote(bytes: number, breaks: number, bakedInstead: boolean): string {
   const size = `About ${formatBytes(bytes)}.`;
+  if (bakedInstead) {
+    return `${size} Here keys come out bigger than baking (most of the picture turns or swings on every frame), so it's written baked.`;
+  }
   if (breaks === 0) return size;
-  if (breaks >= frameCount - 1) return `${size} Shapes pass in front of one another on every frame, so keys can't make this one smaller.`;
-  const frames = breaks === 1 ? '1 frame' : `${breaks} frames`;
-  return `${size} Shapes pass in front of one another on ${frames}, so the file starts a new layer there.`;
+  const times = breaks === 1 ? 'once' : `${breaks} times`;
+  return `${size} Shapes swap places in front of one another so often that the file starts a new layer ${times}.`;
 }
 
 /**
@@ -184,7 +187,7 @@ export function ExportLottieDialog({ defaultWidth, defaultHeight, defaultCamera,
         </fieldset>
 
         <p class={problem ? 'dialog-error' : 'dialog-note'} role={problem ? 'alert' : undefined}>
-          {problem ?? (result && 'text' in result ? sizeNote(result.text.length, result.breaks.length, frames === 'all' ? duration : 1) : 'Working out the size…')}
+          {problem ?? (result && 'text' in result ? sizeNote(result.text.length, result.breaks.length, result.bakedInstead) : 'Working out the size…')}
         </p>
 
         <div class="dialog-buttons">

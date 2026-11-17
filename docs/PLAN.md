@@ -416,6 +416,46 @@ it can, with plain names and a tooltip that says what it does.
   - The Easing menu shows "Custom curve" for one; choosing a preset replaces it. The Zdog
     script's player plays curves too, with the same limits; Lottie records frames, so it follows.
 
+## Exports: culling, fewer Lottie layers, and video
+
+Next, the user asked for three things: exports that leave out what's out of view (counting stroke
+thickness), a way to make Lottie files with keys need fewer new layers (a file said "Shapes pass
+in front of one another on 237 frames"), and MP4 video. One PR each: culling and layers together
+(V1), then MP4 (V2).
+
+- **V1, culling and fewer layers** (`src/export/lottie/cull.ts`, `keys.ts`):
+  - **Culling.** Each frame of a Lottie export leaves out the paths that can't show in the
+    picture. A path's bounds take in its bezier handles (a curve stays inside them) and how far
+    its strokes reach: half the line width, more for square caps (x1.41) and mitered corners (up
+    to the miter limit, x4), plus a pixel for antialiasing. Nothing that shows is ever dropped;
+    a browser test zooms in past the edges and checks the picture against zdog's own.
+  - The Zdog script isn't culled: its view can be dragged round, so anything may come into view.
+  - **Places in the layer.** Each zdog item's path keeps its own place (a slot) in the layer from
+    frame to frame (paths are tagged by the item that drew them, `DrawOp.source`). Order only has
+    to hold between paths that overlap on screen (by the same bounds): zdog re-sorts by depth all
+    the time, but paths that don't touch can be drawn in either order. When a path has to move
+    past one it overlaps, it gets a new place there and its old one is hidden from then on. A
+    path that isn't drawn on a frame (out of view, say) is hidden there. A new layer only starts
+    when the places pile up (more than 8 per path drawn, at least 64).
+  - **Never bigger.** If keys come out bigger than baking, the file is written baked (the same
+    picture), and the dialog says so. A scene where nothing moves gets no note.
+  - Measured, keys against baked (before this, keys started a new layer on every frame of these,
+    so they came out the same as baked):
+    - the walking couple from a still camera: 4.91 MB down to 1.80 MB, one new layer;
+    - the walking couple on the turning Turntable: 4.91 MB down to 2.90 MB, two new layers;
+    - Nippu on the Turntable: 4.86 MB down to 2.48 MB, one new layer.
+    Turning outlines move along curves, and Lottie moves points in straight lines between keys,
+    so they still need many keys; slides, scales and fades need very few.
+  - Found while testing:
+    - The recorder dropped a path's tag when zdog stroked and then filled it (the two paints
+      merge into one path), so those paths shared one key and their places got mixed up. Fixing
+      that took the turntable files from about the baked size to the figures above.
+    - The keyed file shared objects between keys (a hidden frame holding the value before it),
+      which lottie-web rewrites in place; every value is copied now, and a test checks no object
+      appears twice.
+- **V2, MP4 video:** each frame drawn with zdog's canvas renderer through the chosen view,
+  encoded as H.264 with the browser's WebCodecs, in an MP4 file.
+
 ## Later
 
 **Lottie export.** Now planned and under way: see "Animation, cameras and Lottie" above.
