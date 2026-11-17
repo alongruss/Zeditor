@@ -107,3 +107,12 @@ describe('shortcutFor', () => {
     expect(shortcutFor(press('b', { ctrlKey: true }), 'box-1')).toBeNull();
   });
 });
+
+describe('copying and pasting keys', () => {
+  it('Ctrl+C copies selected keys and Ctrl+V pastes copied ones; otherwise the browser keeps them', () => {
+    expect(shortcutFor(press('c', { ctrlKey: true }), 'box-1', true)).toBe('copyKeys');
+    expect(shortcutFor(press('c', { ctrlKey: true }), 'box-1', false)).toBeNull();
+    expect(shortcutFor(press('v', { metaKey: true }), null, false, true)).toBe('pasteKeys');
+    expect(shortcutFor(press('v', { ctrlKey: true }), null, true, false)).toBeNull();
+  });
+});

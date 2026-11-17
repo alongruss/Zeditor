@@ -1,7 +1,7 @@
 import { ancestorsOf, childrenOf, commonParent, depthOf, findGroup, MAX_DEPTH, subtreeIds, topmost, worldTransform } from './hierarchy';
 import { createGroup, findShape, replaceObjects } from './scene';
-import { compose, IDENTITY, relativeTo, type Transform } from './transform';
-import type { GroupData, Placeable, Scene, SceneObject } from './types';
+import { compose, directionInto, IDENTITY, relativeTo, type Transform } from './transform';
+import type { GroupData, Placeable, Scene, SceneObject, Vec3 } from './types';
 
 /**
  * Putting shapes and groups into groups and taking them out. Each keeps its
@@ -169,3 +169,50 @@ export function ungroup(scene: Scene, groupId: string): GroupResult {
 }
 
 export type { GroupData };
+
+// ----- a group's pivot -----
+
+const TURNS_OR_SCALES = /^rotate\.|^scale$/;
+
+/**
+ * Whether a group's pivot can move without changing its animation: not if
+ * it turns or scales over time (its insides would then swing differently).
+ */
+export function canMovePivot(group: GroupData): boolean {
+  return !Object.keys(group.tracks ?? {}).some((path) => TURNS_OR_SCALES.test(path));
+}
+
+const round = (n: number) => {
+  const r = Math.round(n * 1e6) / 1e6; // float noise only, so the insides stay exactly put
+  return Object.is(r, -0) ? 0 : r;
+};
+
+/** The object moved by `d` (in its parent's space), every position key too. */
+function shifted<T extends Placeable>(object: T, d: Vec3): T {
+  const t = object.translate;
+  const next: T = { ...object, translate: { x: round(t.x + d.x), y: round(t.y + d.y), z: round(t.z + d.z) } };
+  if (!object.tracks) return next;
+  const tracks = { ...object.tracks };
+  for (const axis of ['x', 'y', 'z'] as const) {
+    const track = tracks[`translate.${axis}`];
+    if (track) tracks[`translate.${axis}`] = track.map((key) => ({ ...key, value: round((key.value as number) + d[axis]) }));
+  }
+  return { ...next, tracks };
+}
+
+/**
+ * Moves a group's pivot (its origin: the point it turns and scales about)
+ * by `delta`, a change of its position in its parent's space. What's inside
+ * stays where it is, on every frame: each child moves back by the same
+ * amount in the group's space, keys and all. Leaves the scene alone if the
+ * group can't (see canMovePivot).
+ */
+export function movePivot(scene: Scene, groupId: string, delta: Vec3): Scene {
+  const group = findGroup(scene, groupId);
+  if (!group || !canMovePivot(group) || (delta.x === 0 && delta.y === 0 && delta.z === 0)) return scene;
+  const inside = directionInto({ ...IDENTITY, rotate: group.rotate, scale: group.scale }, delta);
+  const back = { x: -inside.x, y: -inside.y, z: -inside.z };
+  const changed = new Map<string, SceneObject>([[group.id, shifted(group, delta)]]);
+  for (const child of childrenOf(scene, group.id)) changed.set(child.id, shifted(child, back));
+  return replaceObjects(scene, changed);
+}

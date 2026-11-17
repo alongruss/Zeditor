@@ -7,6 +7,7 @@ import { EASINGS, type Easing, type Scene, type SceneObject } from '../model/typ
 import { deleteKeysCommand, moveKeysCommand, select, setEasingCommand } from '../state/commands';
 import { newGroup } from '../state/history';
 import { dispatch, editor, useEditorState } from '../state/store';
+import { copySelectedKeys, pasteCopiedKeys, useKeyClipboard } from '../state/keyClipboard';
 import { clearKeySelection, pause, selectKeys, setFrame, timeline, useTimeline } from '../state/timeline';
 import { PopupMenu, type MenuPosition } from './PopupMenu';
 
@@ -110,6 +111,9 @@ export function TimelinePanel() {
   const { frame, selectedKeys } = useTimeline();
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
   const [menu, setMenu] = useState<MenuPosition | null>(null);
+  /** Right-click on a row's empty lane: paste there. */
+  const [pasteMenu, setPasteMenu] = useState<(MenuPosition & { objectId: string; name: string; frame: number }) | null>(null);
+  const clip = useKeyClipboard();
   const [marquee, setMarquee] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
   const panelRef = useRef<HTMLElement>(null);
   const rulerRef = useRef<HTMLDivElement>(null);
@@ -170,6 +174,8 @@ export function TimelinePanel() {
     if (event.button !== 0) return;
     const target = event.target as Element;
     if (target.closest('.tl-label')) return; // labels have their own buttons
+    // Take focus from wherever it was (an Inspector field, say), so Ctrl+C copies keys, not text.
+    bodyRef.current?.focus({ preventScroll: true });
     if (event.currentTarget instanceof Element) event.currentTarget.setPointerCapture(event.pointerId);
     const diamond = diamondAt(event.target);
     if (diamond) {
@@ -330,17 +336,29 @@ export function TimelinePanel() {
       <div
         class="tl-body"
         ref={bodyRef}
+        tabIndex={-1}
         onPointerDown={onBodyPointerDown}
         onPointerMove={onBodyPointerMove}
         onPointerUp={onBodyPointerUp}
         onPointerCancel={onBodyPointerUp}
         onContextMenu={(event) => {
-          const diamond = diamondAt(event.target);
-          if (!diamond) return;
-          event.preventDefault();
-          if (!allSelected(diamond.refs)) selectKeys(diamond.refs);
           const bounds = panelRef.current!.getBoundingClientRect();
-          setMenu({ x: event.clientX - bounds.left, y: event.clientY - bounds.top });
+          const at = { x: event.clientX - bounds.left, y: event.clientY - bounds.top };
+          const diamond = diamondAt(event.target);
+          if (!diamond) {
+            // An empty lane: paste the copied keys onto that row's object, at that frame.
+            const lane = (event.target as Element).closest?.('.tl-lane');
+            const row = rows.find((r) => r.id === lane?.getAttribute('data-row'));
+            if (!clip || !row) return;
+            event.preventDefault();
+            setMenu(null);
+            setPasteMenu({ ...at, objectId: row.object.id, name: row.object.name, frame: frameAt(event.clientX) });
+            return;
+          }
+          event.preventDefault();
+          setPasteMenu(null);
+          if (!allSelected(diamond.refs)) selectKeys(diamond.refs);
+          setMenu(at);
         }}
       >
         {rows.length === 0 && (
@@ -373,7 +391,7 @@ export function TimelinePanel() {
                 </>
               )}
             </div>
-            <div class="tl-lane">
+            <div class="tl-lane" data-row={row.id}>
               {row.diamonds.length === 0 && <span class="tl-hint">No keys yet</span>}
               {row.diamonds.map((diamond) => {
                 index += 1;
@@ -413,7 +431,22 @@ export function TimelinePanel() {
               checked: easing === value,
               onSelect: () => setEasing(value),
             })),
+            { label: 'Copy keys', shortcut: 'Ctrl+C', onSelect: copySelectedKeys },
+            ...(clip ? [{ label: 'Paste keys on the playhead', shortcut: 'Ctrl+V', onSelect: () => pasteCopiedKeys() }] : []),
             { label: 'Delete keys', shortcut: 'Del', onSelect: deleteSelected },
+          ]}
+        />
+      )}
+      {pasteMenu && (
+        <PopupMenu
+          label="Timeline row actions"
+          position={pasteMenu}
+          onClose={() => setPasteMenu(null)}
+          items={[
+            {
+              label: `Paste keys here (${pasteMenu.name}, frame ${pasteMenu.frame})`,
+              onSelect: () => pasteCopiedKeys(pasteMenu.frame, pasteMenu.objectId),
+            },
           ]}
         />
       )}

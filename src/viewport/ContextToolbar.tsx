@@ -3,6 +3,7 @@ import { groupKeyState } from '../model/animation';
 import type { CameraData, PropertyPath, SceneObject, Vec3 } from '../model/types';
 import { deleteObjects, duplicateObjects, select, toggleKey } from '../state/commands';
 import { groupSelection, ungroupSelection } from '../state/groupActions';
+import { setPivotGroup, usePivotGroup } from '../state/pivot';
 import { usePointerDrag } from '../state/pointerDrag';
 import { dispatch, editor } from '../state/store';
 import { pause } from '../state/timeline';
@@ -77,8 +78,12 @@ export function ContextToolbar({ object, count, origin, view, frame, pinned, pla
   const isCamera = object.type === 'Camera' && !several;
   const isGroup = object.type === 'Group' && !several;
   const parentId = object.type !== 'Camera' && !several ? object.parent : undefined;
-  // Roving focus: one Tab stop, the arrow keys move between the buttons.
-  const keyIndex = (isCamera ? 2 : 3) + (parentId !== undefined ? 1 : 0);
+  const pivotOn = usePivotGroup() === object.id && isGroup;
+  // Roving focus: one Tab stop, the arrow keys move between the buttons (numbered in order).
+  const groupIndex = 2;
+  const pivotIndex = groupIndex + (several || !isCamera ? 1 : 0);
+  const selectGroupIndex = pivotIndex + (isGroup ? 1 : 0);
+  const keyIndex = selectGroupIndex + (parentId !== undefined ? 1 : 0);
   const stop = (index: number) => ({ tabIndex: active === index ? 0 : -1, onFocus: () => setActive(index) });
   const keyPaths = isCamera ? CAMERA_KEY_PATHS : SHAPE_KEY_PATHS;
   const keyed = groupKeyState(object, keyPaths, frame) === 'key';
@@ -176,7 +181,7 @@ export function ContextToolbar({ object, count, origin, view, frame, pinned, pla
       {(several || !isCamera) && (
         <button
           type="button"
-          {...stop(2)}
+          {...stop(groupIndex)}
           title={
             isGroup
               ? 'Take everything out of this group (Ctrl+Shift+G)'
@@ -189,8 +194,20 @@ export function ContextToolbar({ object, count, origin, view, frame, pinned, pla
           {isGroup ? 'Ungroup' : 'Group'}
         </button>
       )}
+      {isGroup && (
+        <button
+          type="button"
+          class="pivot-toggle"
+          {...stop(pivotIndex)}
+          aria-pressed={pivotOn}
+          title="Move the pivot: the point this group turns and scales about. What's inside stays put."
+          onClick={() => setPivotGroup(pivotOn ? null : object.id)}
+        >
+          Pivot
+        </button>
+      )}
       {parentId !== undefined && (
-        <button type="button" {...stop(isCamera ? 2 : 3)} title="Select the group this is in" onClick={() => dispatch(select(parentId))}>
+        <button type="button" {...stop(selectGroupIndex)} title="Select the group this is in" onClick={() => dispatch(select(parentId))}>
           Select group
         </button>
       )}

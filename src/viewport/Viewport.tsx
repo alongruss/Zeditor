@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { objectAtFrame, sceneAtFrame } from '../model/evaluate';
+import { ghostFrames, ghostScene } from '../model/ghosts';
 import { parentTransform, topmost } from '../model/hierarchy';
 import { SHAPE_TYPE_DEFS } from '../model/shapeTypes';
 import { SHAPE_TYPES } from '../model/types';
@@ -10,6 +11,7 @@ import { cameraFrame } from '../render/view';
 import { addShapeOfType, edit, select, toggleSelect } from '../state/commands';
 import { currentViewSpec, lookedThroughCamera } from '../state/currentView';
 import { newGroup } from '../state/history';
+import { usePivotGroup } from '../state/pivot';
 import { setPointerDrag } from '../state/pointerDrag';
 import { PopupMenu } from '../panels/PopupMenu';
 import {
@@ -82,6 +84,8 @@ export function Viewport() {
   const lookingThrough = useLookThrough();
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
+  const ghostBeforeRef = useRef<SVGSVGElement>(null);
+  const ghostAfterRef = useRef<SVGSVGElement>(null);
   const outlineRef = useRef<HTMLDivElement>(null);
   const [menu, setMenu] = useState<MenuPosition | null>(null);
   /** Right-click on empty space: an "Add here" menu at that point. */
@@ -92,14 +96,22 @@ export function Viewport() {
     const container = containerRef.current;
     const svg = svgRef.current;
     const outline = outlineRef.current;
-    if (!container || !svg || !outline) return;
+    const ghostSvgs = [ghostBeforeRef.current, ghostAfterRef.current];
+    if (!container || !svg || !outline || !ghostSvgs[0] || !ghostSvgs[1]) return;
 
     // zdog reads the initial size from these attributes when it attaches to an
     // <svg>; without them it writes width="null" and logs an error.
-    svg.setAttribute('width', String(Math.max(1, container.clientWidth)));
-    svg.setAttribute('height', String(Math.max(1, container.clientHeight)));
+    for (const element of [svg, ...ghostSvgs] as SVGSVGElement[]) {
+      element.setAttribute('width', String(Math.max(1, container.clientWidth)));
+      element.setAttribute('height', String(Math.max(1, container.clientHeight)));
+    }
 
     const view = new SceneView(svg, outline);
+    // Ghosts: the selection on the keys before and after the playhead, drawn behind the scene.
+    const ghosts = (ghostSvgs as SVGSVGElement[]).map((element) => ({
+      element,
+      view: new SceneView(element, document.createElement('div')),
+    }));
     let area: Size = { width: container.clientWidth, height: container.clientHeight };
     // The scene as posed on the playhead's frame, through the current view.
     // Playback only moves the playhead; it never goes through the undo history.
@@ -108,8 +120,20 @@ export function Viewport() {
       view.setPlaying(timeline.get().playing);
       const spec = currentViewSpec(area.width, area.height);
       if (spec) view.setView(spec);
-      view.setScene(sceneAtFrame(scene, currentFrame()));
+      const frame = currentFrame();
+      view.setScene(sceneAtFrame(scene, frame));
       view.setSelected(selectedIds);
+
+      const { ghosts: ghostsOn, playing } = timeline.get();
+      const frames = ghostsOn && !playing ? ghostFrames(scene, selectedIds, frame) : {};
+      [frames.before, frames.after].forEach((ghostFrame, i) => {
+        const ghost = ghosts[i];
+        ghost.element.style.display = ghostFrame === undefined ? 'none' : '';
+        ghost.element.dataset.frame = ghostFrame === undefined ? '' : String(ghostFrame);
+        if (ghostFrame === undefined) return;
+        if (spec) ghost.view.setView(spec);
+        ghost.view.setScene(ghostScene(sceneAtFrame(scene, ghostFrame), selectedIds));
+      });
     };
     show();
     const unsubscribers = [
@@ -252,10 +276,12 @@ export function Viewport() {
       observer.disconnect();
       for (const unsubscribe of unsubscribers) unsubscribe();
       view.destroy();
+      for (const ghost of ghosts) ghost.view.destroy();
     };
   }, []);
 
   const { frame, playing } = useTimeline();
+  const pivotId = usePivotGroup();
   // The scene as posed on this frame: a group's pose moves what's inside it.
   const posed = sceneAtFrame(scene, frame);
   const placeable = (id: string) => posed.shapes.find((s) => s.id === id) ?? posed.groups.find((g) => g.id === id);
@@ -289,6 +315,9 @@ export function Viewport() {
 
   return (
     <div class="viewport" ref={containerRef} style={{ background: scene.settings.background }}>
+      <svg class="ghost ghost-before" ref={ghostBeforeRef} aria-hidden="true" style={{ display: 'none' }} />
+      <svg class="ghost ghost-after" ref={ghostAfterRef} aria-hidden="true" style={{ display: 'none' }} />
+      <GhostTints />
       <svg class="scene" ref={svgRef} aria-label="Scene" tabindex={-1} />
       <div class="selection-outline" ref={outlineRef} hidden aria-hidden="true" />
       {transform && !throughCamera && (
@@ -316,7 +345,14 @@ export function Viewport() {
           </span>
         </div>
       )}
-      {gizmoTargets.length > 0 && transform && <Gizmo targets={gizmoTargets} frame={frame} view={transform} />}
+      {gizmoTargets.length > 0 && transform && (
+        <Gizmo
+          targets={gizmoTargets}
+          frame={frame}
+          view={transform}
+          pivot={gizmoTargets.length === 1 && selected?.type === 'Group' && pivotId === selected.id}
+        />
+      )}
       {selectedObject && transform && (
         <ContextToolbar
           object={selectedObject}
@@ -347,5 +383,27 @@ export function Viewport() {
         />
       )}
     </div>
+  );
+}
+
+/**
+ * The ghosts' tints, as SVG filters the ghost layers use (styles.css): each
+ * color is mostly replaced with blue for the key before, orange for the key
+ * after, keeping a little of its shading.
+ */
+function GhostTints() {
+  const tint = (id: string, [r, g, b]: readonly [number, number, number]) => (
+    <filter id={id} color-interpolation-filters="sRGB">
+      <feColorMatrix
+        type="matrix"
+        values={`0.3 0 0 0 ${r * 0.7} 0 0.3 0 0 ${g * 0.7} 0 0 0.3 0 ${b * 0.7} 0 0 0 1 0`}
+      />
+    </filter>
+  );
+  return (
+    <svg class="ghost-tints" aria-hidden="true" width="0" height="0">
+      {tint('ghost-tint-before', [0.16, 0.45, 1])}
+      {tint('ghost-tint-after', [1, 0.5, 0.05])}
+    </svg>
   );
 }

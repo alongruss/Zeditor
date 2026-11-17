@@ -8,9 +8,11 @@ Zdog shapes, save your scene, and export it as a ready-to-run Zdog script.
 > the view, undo or redo any change, save and open `.zeditor.json` files (your work is also kept
 > between visits), and export a ready-to-run Zdog script or a Lottie file.
 > Animation: key any Inspector value on any frame, with easing, play it back, and edit keys on a
-> timeline (move, ease, delete); the Lottie export bakes every frame. Cameras: add cameras to the
+> timeline (move, ease, copy and paste, delete); Ghosts show the poses on the keys either side; the Lottie
+> export bakes every frame. Cameras: add cameras to the
 > scene, look through them, animate them, and export through them. Groups: put shapes in groups
-> (nested as deep as you like), which move, turn, scale and animate together. The "Playroom" redesign is done:
+> (nested as deep as you like), which move, turn, scale and animate together; move a group's
+> pivot to set where it turns; select several to move or turn them at once. The "Playroom" redesign is done:
 > docked panels, a picture Add menu, a selection toolbar, a light and a dark theme
 > ([docs/REDESIGN.md](docs/REDESIGN.md)).
 > See [docs/PLAN.md](docs/PLAN.md). The 2020 editor is preserved at the

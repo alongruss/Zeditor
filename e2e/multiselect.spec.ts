@@ -67,8 +67,8 @@ test('Ctrl-click in the scene adds a shape; the gizmo moves both together, as on
   await page.keyboard.up(ctrl);
   await expect(treeItem(page, 'Cone 1')).toHaveAttribute('aria-pressed', 'true');
   await expect(treeItem(page, 'Box 1')).toHaveAttribute('aria-pressed', 'true');
-  // Several: arrows only (turning them together needs a group).
-  await expect(page.locator('.gizmo [data-handle^="rotate-"]')).toHaveCount(0);
+  // Several: arrows, and rings that turn them together (see handtools.spec.ts).
+  await expect(page.locator('.gizmo [data-handle^="rotate-"]')).toHaveCount(3);
 
   const before = await centers(page, ['box-1', 'cone-1']);
   const grip = await arrowGrip(page, 'x');

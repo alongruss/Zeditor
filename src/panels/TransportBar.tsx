@@ -3,7 +3,7 @@ import { isAnimated } from '../model/evaluate';
 import { findShape } from '../model/scene';
 import { retimeCommand, setTiming } from '../state/commands';
 import { dispatch, useEditorState } from '../state/store';
-import { pause, setFrame, setPanelOpen, togglePlayback, useTimeline } from '../state/timeline';
+import { pause, setFrame, setGhosts, setPanelOpen, togglePlayback, useTimeline } from '../state/timeline';
 import { FpsDialog } from './FpsDialog';
 import { NumberInput } from './fields';
 
@@ -28,7 +28,7 @@ function niceStep(pixelsPerFrame: number, gap: number): number {
  */
 export function TransportBar() {
   const { scene, selectedId } = useEditorState();
-  const { frame, playing, panelOpen } = useTimeline();
+  const { frame, playing, panelOpen, ghosts } = useTimeline();
   const [pendingFps, setPendingFps] = useState<number | null>(null);
   const closeFpsDialog = useCallback(() => setPendingFps(null), []);
   const { fps, duration } = scene.settings;
@@ -130,6 +130,15 @@ export function TransportBar() {
       <span class="transport-time" aria-label="Time">
         {(frame / fps).toFixed(2)} s
       </span>
+      <button
+        type="button"
+        class="transport-ghosts"
+        aria-pressed={ghosts}
+        title="Ghosts: faint copies of the selection on the keys before (blue) and after (orange) this frame"
+        onClick={() => setGhosts(!ghosts)}
+      >
+        Ghosts
+      </button>
       <label class="field transport-setting">
         <span class="field-label">fps</span>
         <select

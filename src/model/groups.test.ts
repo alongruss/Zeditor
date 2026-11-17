@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { setKey } from './animation';
-import { groupObject, groupObjects, setParent, ungroup } from './groups';
+import { setKey, valueAt } from './animation';
+import { sceneAtFrame } from './evaluate';
+import { canMovePivot, groupObject, groupObjects, movePivot, setParent, ungroup } from './groups';
 import { childrenOf, findGroup, subtreeIds, topmost, worldTransform } from './hierarchy';
 import { addShape, createGroup, createShape, duplicateObject, emptyScene, findShape, removeObject } from './scene';
 import { parseSceneFile, serializeScene } from './sceneFile';
@@ -181,5 +182,35 @@ describe('scene files, version 4', () => {
   it('opens version 3 files with no groups', () => {
     const result = parseSceneFile(JSON.stringify({ version: 3, settings: {}, shapes: [], cameras: [] }));
     expect(result.ok && result.scene.groups).toEqual([]);
+  });
+});
+
+describe("a group's pivot", () => {
+  it('moves the group and keeps what is inside where it was, on every frame', () => {
+    let scene = sample();
+    // The box moves over time inside the turned, scaled group; the group moves too.
+    scene = {
+      ...scene,
+      shapes: scene.shapes.map((s) => (s.id === 'box-1' ? setKey(setKey(s, 'translate.x', 0, 1), 'translate.x', 10, 4) : s)),
+      groups: scene.groups.map((g) => setKey(setKey(g, 'translate.y', 0, -2), 'translate.y', 10, 3)),
+    };
+    const moved = movePivot(scene, 'group-1', { x: 2, y: -1, z: 0.5 });
+    for (const frame of [0, 5, 10]) {
+      const [before, after] = [scene, moved].map((s) => sceneAtFrame(s, frame));
+      expectSamePlace(worldPoints(after, findShape(after, 'box-1')!), worldPoints(before, findShape(before, 'box-1')!));
+    }
+    const group = findGroup(moved, 'group-1')!;
+    expect(group.translate.x).toBe(7);
+    expect(valueAt(group, 'translate.y', 10)).toBe(2);
+    // The cone is outside the group: untouched.
+    expect(findShape(moved, 'cone-1')).toBe(findShape(scene, 'cone-1'));
+  });
+
+  it("is refused for a group that turns or scales over time", () => {
+    const scene = sample();
+    const turning = { ...scene, groups: scene.groups.map((g) => setKey(g, 'rotate.y', 0, 10)) };
+    expect(canMovePivot(findGroup(turning, 'group-1')!)).toBe(false);
+    expect(movePivot(turning, 'group-1', { x: 1, y: 0, z: 0 })).toBe(turning);
+    expect(canMovePivot(findGroup(scene, 'group-1')!)).toBe(true);
   });
 });

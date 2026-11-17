@@ -1,5 +1,5 @@
 import { Zdog } from '../zdog';
-import { applyMatrix, directionInto, rotationMatrix, type Transform } from '../model/transform';
+import { applyMatrix, compose, directionInto, eulerOf, IDENTITY, multiply, relativeTo, rotationMatrix, type Transform } from '../model/transform';
 import type { Vec3 } from '../model/types';
 
 /**
@@ -237,4 +237,42 @@ export function angleBetween(from: number, to: number): number {
 export function ringRotation(startDeg: number, swept: number, direction: -1 | 0 | 1, snap: boolean): number {
   const raw = startDeg + (direction * swept) / DEG;
   return snap ? Math.round(raw / ROTATION_SNAP_DEG) * ROTATION_SNAP_DEG : roundTo(raw, 2);
+}
+
+// ----- turning several together -----
+
+/** An object to turn with others: its own transform and its group's, as seen from the world. */
+export interface TurnTarget extends Transform {
+  readonly parent?: Transform;
+}
+
+/**
+ * Several objects turned together by `degrees` around the world `axis`
+ * through `center`, as a rigid whole: each one's new position and rotation
+ * in its own group's space (scale doesn't change).
+ */
+export function turnTogether(
+  targets: readonly TurnTarget[],
+  center: Vec3,
+  axis: Axis,
+  degrees: number,
+): { translate: Vec3; rotate: Vec3 }[] {
+  const turn3 = rotationMatrix({ x: 0, y: 0, z: 0, [axis]: degrees });
+  return targets.map((target) => {
+    const parent = target.parent ?? IDENTITY;
+    const world = compose(parent, target);
+    const offset = applyMatrix(turn3, {
+      x: world.translate.x - center.x,
+      y: world.translate.y - center.y,
+      z: world.translate.z - center.z,
+    });
+    const turned: Transform = {
+      translate: { x: center.x + offset.x, y: center.y + offset.y, z: center.z + offset.z },
+      rotate: eulerOf(multiply(turn3, rotationMatrix(world.rotate))),
+      scale: world.scale,
+    };
+    const local = relativeTo(parent, turned);
+    const r3 = (v: Vec3, places: number) => ({ x: roundTo(v.x, places), y: roundTo(v.y, places), z: roundTo(v.z, places) });
+    return { translate: r3(local.translate, 3), rotate: r3(local.rotate, 2) };
+  });
 }

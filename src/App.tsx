@@ -12,6 +12,7 @@ import { SceneTree } from './panels/SceneTree';
 import { chooseSceneFile, saveScene } from './files/sceneFiles';
 import { deleteKeysCommand } from './state/commands';
 import { groupSelection, ungroupSelection } from './state/groupActions';
+import { copySelectedKeys, keyClipboard, pasteCopiedKeys } from './state/keyClipboard';
 import { shortcutAllowedIn, shortcutFor } from './state/shortcuts';
 import {
   clearKeySelection,
@@ -38,7 +39,7 @@ function useKeyboardShortcuts() {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented) return;
       const keysSelected = timeline.get().selectedKeys.length > 0;
-      const shortcut = shortcutFor(event, editor.get().selectedIds, keysSelected);
+      const shortcut = shortcutFor(event, editor.get().selectedIds, keysSelected, keyClipboard.get() !== null);
       if (!shortcut || !shortcutAllowedIn(event.target, shortcut)) return;
       event.preventDefault();
       if (shortcut === 'undo') undo();
@@ -50,6 +51,8 @@ function useKeyboardShortcuts() {
       else if (shortcut === 'group') groupSelection();
       else if (shortcut === 'ungroup') ungroupSelection();
       else if (shortcut === 'lastFrame') setFrame(lastFrame());
+      else if (shortcut === 'copyKeys') copySelectedKeys();
+      else if (shortcut === 'pasteKeys') pasteCopiedKeys();
       else if (shortcut === 'deleteKeys') {
         dispatch(deleteKeysCommand(timeline.get().selectedKeys));
         clearKeySelection();

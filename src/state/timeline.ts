@@ -13,6 +13,8 @@ export interface TimelineState {
   readonly selectedKeys: readonly KeyRef[];
   /** Whether the timeline panel under the viewport is open. */
   readonly panelOpen: boolean;
+  /** Whether the viewport shows ghosts of the poses on the keys before and after the playhead. */
+  readonly ghosts: boolean;
 }
 
 export const timeline: Store<TimelineState> = createStore<TimelineState>({
@@ -20,6 +22,7 @@ export const timeline: Store<TimelineState> = createStore<TimelineState>({
   playing: false,
   selectedKeys: [],
   panelOpen: true,
+  ghosts: false,
 });
 
 /** Replaces the key selection (duplicates are dropped). */
@@ -36,6 +39,10 @@ export function clearKeySelection(): void {
 
 export function setPanelOpen(open: boolean): void {
   timeline.dispatch((state) => (state.panelOpen === open ? state : { ...state, panelOpen: open }));
+}
+
+export function setGhosts(ghosts: boolean): void {
+  timeline.dispatch((state) => (state.ghosts === ghosts ? state : { ...state, ghosts }));
 }
 
 /** The last frame of the scene's animation. */

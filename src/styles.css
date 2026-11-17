@@ -315,13 +315,45 @@ body {
 }
 
 .scene {
+  /* Positioned, so it's drawn over the ghosts. */
+  position: relative;
   display: block;
   width: 100%;
   height: 100%;
   cursor: move;
 }
 
+/* ----- ghosts (onion skin): the poses on the keys before and after, faint, behind the scene ----- */
+
+.ghost {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.ghost-before {
+  filter: url(#ghost-tint-before);
+}
+
+.ghost-after {
+  filter: url(#ghost-tint-after);
+}
+
+.ghost-tints {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+
 /* ----- gizmo (over the scene; only its handles take the pointer) ----- */
+
+/* Moving a group's pivot: dashed arrows, so it's clear they don't move the group's insides. */
+.gizmo.is-pivot .gizmo-line {
+  stroke-dasharray: 5 3;
+}
 
 .gizmo {
   position: absolute;
@@ -597,6 +629,11 @@ body {
   user-select: none;
 }
 
+/* Focused by a click (so shortcuts act on keys), never by Tab: no ring. */
+.tl-body:focus {
+  outline: none;
+}
+
 .tl-row {
   display: grid;
   grid-template-columns: var(--tl-label-width) minmax(0, 1fr);
@@ -717,8 +754,15 @@ body {
   pointer-events: none;
 }
 
-.transport-toggle {
+.transport-toggle,
+.transport-ghosts {
   flex: none;
+}
+
+.transport-ghosts[aria-pressed='true'],
+.pivot-toggle[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--hover-bg);
 }
 
 /* ----- keyframe buttons and animated fields ----- */
