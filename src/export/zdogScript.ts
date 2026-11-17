@@ -1,5 +1,6 @@
 import { propertySpec } from '../model/animatable';
 import { objectAtFrame, sceneAtFrame } from '../model/evaluate';
+import { overshoots } from '../model/easing';
 import { getShapeTypeDef } from '../model/shapeTypes';
 import type { CameraData, GroupData, Keyframe, PropValue, Scene, SceneObject, ShapeData, Vec3 } from '../model/types';
 import type { FreeView } from '../viewport/freeView';
@@ -151,7 +152,7 @@ function groupSource(group: GroupData, name: string, addTo: string): string {
 const PLACED = /^(?:translate\.[xyz]|rotate\.[xyz]|scale|target\.[xyz]|viewSpan)$/;
 
 const keysSource = (keys: readonly Keyframe[]) =>
-  `[${keys.map((key) => `[${key.frame}, ${source(key.value)}, ${JSON.stringify(key.easing)}]`).join(', ')}]`;
+  `[${keys.map((key) => `[${key.frame}, ${source(key.value)}, ${source(key.easing)}]`).join(', ')}]`;
 
 /** One entry of the script's `animated` list: a zdog object and its tracks. */
 function animatedSource(node: string, tracks: readonly (readonly [string, readonly Keyframe[]])[], extra: readonly string[] = []): string {
@@ -181,7 +182,24 @@ function animatedShapeSource(shape: ShapeData, name: string): string {
   }
   const whole = tracks.filter(([path]) => propertySpec(shape.type, path)?.integer).map(([path]) => path);
   if (whole.length > 0) extra.push(`whole: ${source(whole)}`);
+  const limits = limitsSource(shape, tracks);
+  if (limits) extra.push(limits);
   return animatedSource(name, tracks, extra);
+}
+
+/**
+ * `limits: { opacity: { min: 0, max: 1 } }` for tracks whose custom curves
+ * can overshoot past a setting's limits, so the player stops there as the
+ * editor does.
+ */
+function limitsSource(object: SceneObject, tracks: readonly (readonly [string, readonly Keyframe[]])[]): string | null {
+  const limits: Record<string, { min?: number; max?: number }> = {};
+  for (const [path, keys] of tracks) {
+    const spec = propertySpec(object.type, path);
+    if (!spec || (spec.min === undefined && spec.max === undefined) || !keys.some((key) => overshoots(key.easing))) continue;
+    limits[path] = { ...(spec.min === undefined ? {} : { min: spec.min }), ...(spec.max === undefined ? {} : { max: spec.max }) };
+  }
+  return Object.keys(limits).length > 0 ? `limits: ${source(limits)}` : null;
 }
 
 /**
@@ -198,7 +216,8 @@ const PLAYER = `const player = (() => {
   function ease(easing, t) {
     if (easing === 'hold') return 0;
     const time = Math.min(1, Math.max(0, t));
-    const [x1, y1, x2, y2] = CURVES[easing] || CURVES.linear;
+    // A preset's name, or a curve of its own: [x1, y1, x2, y2], as CSS cubic-bezier().
+    const [x1, y1, x2, y2] = Array.isArray(easing) ? easing : CURVES[easing] || CURVES.linear;
     if (x1 === y1 && x2 === y2) return time;
     let s = time;
     for (let i = 0; i < 8; i++) {
@@ -237,7 +256,7 @@ const PLAYER = `const player = (() => {
   };
 
   // A track's value on a frame: eased between keys, held before the first and after the last.
-  function valueAt(keys, frame, whole) {
+  function valueAt(keys, frame, whole, limits) {
     const first = keys[0];
     const last = keys[keys.length - 1];
     if (frame <= first[0]) return first[1];
@@ -249,12 +268,16 @@ const PLAYER = `const player = (() => {
     const [next, b] = keys[i + 1];
     const amount = ease(easing, (frame - at) / (next - at));
     if (typeof a === 'number' && typeof b === 'number') {
-      const value = a + (b - a) * amount;
+      let value = a + (b - a) * amount;
+      // A curve that overshoots stays within the setting's limits (opacity 0 to 1, say).
+      if (limits && limits.min !== undefined) value = Math.max(limits.min, value);
+      if (limits && limits.max !== undefined) value = Math.min(limits.max, value);
       return whole ? Math.round(value) : value;
     }
     const from = rgba(a);
     const to = rgba(b);
-    return from && to ? hex(from.map((x, j) => x + (to[j] - x) * amount)) : a;
+    const t = Math.min(1, Math.max(0, amount)); // colors stop at the keys
+    return from && to ? hex(from.map((x, j) => x + (to[j] - x) * t)) : a;
   }
 
   function place(node, path, value) {
@@ -282,7 +305,7 @@ const PLAYER = `const player = (() => {
       const look = item.look && { ...item.look.props };
       let opacity = item.look && item.look.opacity;
       for (const [path, keys] of Object.entries(item.tracks)) {
-        const value = valueAt(keys, frame, item.whole && item.whole.includes(path));
+        const value = valueAt(keys, frame, item.whole && item.whole.includes(path), item.limits && item.limits[path]);
         if (path.startsWith('props.')) look[path.slice(6)] = value;
         else if (path === 'opacity') opacity = value;
         else place(item.node, path, value);
@@ -417,7 +440,7 @@ const illo = new Zdog.Illustration({
 });
 ${world}
 ${shapes.join('\n\n')}
-${animates ? animationSource(full, shapeNames, groupNames, cameraTracks) : STILL_LOOP}`;
+${animates ? animationSource(full, shapeNames, groupNames, cameraTracks, camera) : STILL_LOOP}`;
 }
 
 const STILL_LOOP = `
@@ -434,17 +457,24 @@ function animationSource(
   shapeNames: ReadonlyMap<string, string>,
   groupNames: ReadonlyMap<string, string>,
   cameraTracks: readonly (readonly [string, readonly Keyframe[]])[],
+  camera: CameraData | undefined,
 ): string {
   const entries: string[] = [];
   for (const group of scene.groups) {
-    if (hasTracks(group)) entries.push(animatedSource(groupNames.get(group.id)!, Object.entries(group.tracks!)));
+    if (!hasTracks(group)) continue;
+    const tracks = Object.entries(group.tracks!);
+    const limits = limitsSource(group, tracks);
+    entries.push(animatedSource(groupNames.get(group.id)!, tracks, limits ? [limits] : []));
   }
   for (const shape of scene.shapes) {
     if (hasTracks(shape)) entries.push(animatedShapeSource(shape, shapeNames.get(shape.id)!));
   }
   const view = cameraTracks.filter(([path]) => !path.startsWith('target.'));
   const aim = cameraTracks.filter(([path]) => path.startsWith('target.'));
-  if (view.length > 0) entries.push(animatedSource('illo', view));
+  if (view.length > 0) {
+    const limits = camera ? limitsSource(camera, view) : null;
+    entries.push(animatedSource('illo', view, limits ? [limits] : []));
+  }
   if (aim.length > 0) entries.push(animatedSource('world', aim));
   const { fps, duration } = scene.settings;
   const seconds = num(duration / fps, 2);

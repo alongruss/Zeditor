@@ -85,6 +85,10 @@ describe('setKeysEasing', () => {
     expect(sharedEasing(scene, [x(0), x(20)])).toBe('hold');
     expect(sharedEasing(scene, [x(0), x(10)])).toBe('mixed');
     expect(sharedEasing(scene, [])).toBeNull();
+    // Custom curves: the same numbers are the same easing, and setting them again changes nothing.
+    const curved = setKeysEasing(scene, [x(0), x(20)], [0.2, 0.1, 0.3, 1.4]);
+    expect(sharedEasing(curved, [x(0), x(20)])).toEqual([0.2, 0.1, 0.3, 1.4]);
+    expect(setKeysEasing(curved, [x(0)], [0.2, 0.1, 0.3, 1.4])).toBe(curved);
     // Hold: the value jumps at the next key.
     expect(valueAt(scene.shapes[0], 'translate.x', 9)).toBe(0);
   });

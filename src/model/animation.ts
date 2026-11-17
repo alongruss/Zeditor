@@ -39,14 +39,21 @@ function mixColors(a: string, b: string, t: number): string | null {
   return hexOf({ r: mix(from.r, to.r), g: mix(from.g, to.g), b: mix(from.b, to.b), a: mix(from.a, to.a) });
 }
 
-/** The value `amount` (0–1, already eased) of the way from `a` to `b`. */
+/**
+ * The value `amount` (already eased) of the way from `a` to `b`. A custom
+ * curve can take the amount past 0 or 1 (an overshoot): numbers then go past
+ * the keys, but stay within the property's own limits (opacity 0–1, scale 0
+ * or more); colors stop at the keys.
+ */
 function between(spec: PropertySpec, a: TrackValue, b: TrackValue, amount: number): TrackValue {
   if (spec.kind === 'number' && typeof a === 'number' && typeof b === 'number') {
-    const value = a + (b - a) * amount;
+    let value = a + (b - a) * amount;
+    if (spec.min !== undefined) value = Math.max(spec.min, value);
+    if (spec.max !== undefined) value = Math.min(spec.max, value);
     return spec.integer ? Math.round(value) : value;
   }
   if ((spec.kind === 'color' || spec.kind === 'face') && typeof a === 'string' && typeof b === 'string') {
-    return mixColors(a, b, amount) ?? a;
+    return mixColors(a, b, Math.min(1, Math.max(0, amount))) ?? a;
   }
   return a; // hold: keeps the earlier key's value until the next key
 }

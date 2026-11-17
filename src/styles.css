@@ -724,6 +724,135 @@ body {
   background: var(--summary-key);
 }
 
+/* ----- curves (the timeline as a graph) ----- */
+
+.timeline-panel.is-curves {
+  height: 240px;
+}
+
+.tl-curves {
+  display: grid;
+  grid-template-columns: var(--tl-label-width) minmax(0, 1fr);
+  height: 100%;
+}
+
+.tl-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 6px;
+  overflow-y: auto;
+  list-style: none;
+  border-right: 1px solid var(--border);
+}
+
+.tl-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 2px 6px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tl-legend-item:hover {
+  background: var(--hover-bg);
+}
+
+.tl-legend-item[aria-pressed='true'] {
+  border-color: var(--accent);
+}
+
+.tl-legend-hint {
+  margin-top: 4px;
+  padding: 0 6px;
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.tl-legend-swatch {
+  flex: none;
+  width: 10px;
+  height: 3px;
+  border-radius: 2px;
+}
+
+.tl-graph {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.tl-graph-svg {
+  display: block;
+  overflow: visible;
+}
+
+.tl-curve-line {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+.tl-curve-line.is-outside {
+  stroke-dasharray: 3 3;
+  opacity: 0.5;
+}
+
+.tl-curve.is-dimmed {
+  opacity: 0.3;
+}
+
+/* A wide, invisible line over each stretch, so it's easy to click. */
+.tl-curve-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 12;
+  cursor: pointer;
+  pointer-events: stroke;
+}
+
+.tl-curve-key {
+  fill: var(--panel-bg);
+  stroke: currentColor;
+  stroke-width: 2;
+  cursor: pointer;
+}
+
+.tl-curve-key.is-selected {
+  fill: currentColor;
+}
+
+.tl-curve-box {
+  fill: var(--accent-wash);
+  stroke: none;
+}
+
+.tl-curve-arm {
+  stroke: currentColor;
+  stroke-width: 1.5;
+}
+
+.tl-curve-handle {
+  fill: var(--panel-bg);
+  stroke: currentColor;
+  stroke-width: 2.5;
+  cursor: grab;
+}
+
+.tl-curve-handle:hover,
+.tl-curve-handle:focus-visible {
+  fill: currentColor;
+  outline: none;
+}
+
 /* Hold keys are squares: the value jumps at the next key. */
 .tl-key.is-hold {
   transform: none;
@@ -755,11 +884,13 @@ body {
 }
 
 .transport-toggle,
-.transport-ghosts {
+.transport-ghosts,
+.transport-curves {
   flex: none;
 }
 
 .transport-ghosts[aria-pressed='true'],
+.transport-curves[aria-pressed='true'],
 .pivot-toggle[aria-pressed='true'] {
   border-color: var(--accent);
   background: var(--hover-bg);

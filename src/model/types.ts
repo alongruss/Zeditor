@@ -120,9 +120,18 @@ export type Placeable = ShapeData | GroupData;
 /** A shape type, 'Group' or 'Camera'. */
 export type ObjectType = SceneObject['type'];
 
-/** How a keyframe eases into the next one. "Ease in" starts slowly, as in CSS. */
+/** The named easings (presets). "Ease in" starts slowly, as in CSS. */
 export const EASINGS = ['linear', 'easeIn', 'easeOut', 'easeInOut', 'hold'] as const;
-export type Easing = (typeof EASINGS)[number];
+export type EasingPreset = (typeof EASINGS)[number];
+
+/**
+ * A custom easing curve, as CSS `cubic-bezier(x1, y1, x2, y2)`: x1 and x2
+ * from 0 to 1 (time), y1 and y2 from -1 to 2 (so it can overshoot).
+ */
+export type EasingCurve = readonly [number, number, number, number];
+
+/** How a keyframe eases into the next one: a preset, or a curve of its own. */
+export type Easing = EasingPreset | EasingCurve;
 
 /** A number, a color (hex), or for hold-only properties a boolean. */
 export type TrackValue = number | string | boolean;
