@@ -144,7 +144,7 @@ export function createRecorder(): {
   const paint = (p: Paint) => {
     const last = ops[ops.length - 1];
     if (last && paintedVersion === pathVersion) {
-      ops[ops.length - 1] = { subpaths: last.subpaths, paints: [...last.paints, p] };
+      ops[ops.length - 1] = { ...last, paints: [...last.paints, p] }; // keeps its source
       return;
     }
     const recorded = snapshot();

@@ -74,8 +74,8 @@ function shownOn(animation: LottieAnimation, frame: number): unknown[] {
 }
 
 /** The baked frame in the same form: still values unwrapped. */
-function bakedOn(frames: readonly DrawOp[][], frame: number): unknown[] {
-  const [layer] = shapeLayers(bakeLottie([frames[frame]], OPTIONS));
+function bakedOn(frames: readonly DrawOp[][], frame: number, options = OPTIONS): unknown[] {
+  const [layer] = shapeLayers(bakeLottie([frames[frame]], options));
   return layer.shapes.map((group) => ({
     ...group,
     nm: '',
@@ -263,7 +263,29 @@ describe('keyLottie', () => {
     expect(JSON.stringify(animation)).not.toContain('"o":{"a":1');
   });
 
-  it('writes the baked file when keys come out no smaller (the walking couple on the turntable)', () => {
+  it('writes the baked file when keys come out bigger (ten paths changing their number of points every frame)', () => {
+    const polygon = (source: string, points: number, x: number): DrawOp => ({
+      source,
+      subpaths: [
+        {
+          start: { x: x + 40, y: 40 },
+          segments: Array.from({ length: points - 1 }, (_, i) => ({
+            kind: 'line' as const,
+            to: { x: x + 40 + 30 * Math.cos(((i + 1) * Math.PI * 2) / points), y: 40 + 30 * Math.sin(((i + 1) * Math.PI * 2) / points) },
+          })),
+          closed: true,
+        },
+      ],
+      paints: [{ kind: 'fill', color: '#336699' }],
+    });
+    const fresh = Array.from({ length: 60 }, (_, f) => Array.from({ length: 10 }, (__, i) => polygon(`/${i}#0`, 3 + ((f + i) % 9), i * 3)));
+    const keyed = keyLottie(fresh, OPTIONS);
+    expect(keyed.baked).toBe(true);
+    expect(keyed.breaks).toEqual([]);
+    expect(keyed.animation).toEqual(bakeLottie(fresh, OPTIONS));
+  });
+
+  it('makes the walking couple on the turntable much smaller, the same picture on every frame', () => {
     const opened = parseSceneFile(readFileSync('src/examples/nippu-walking.zeditor.json', 'utf8'));
     if (!opened.ok) throw new Error(opened.error);
     const scene = opened.scene;
@@ -273,10 +295,10 @@ describe('keyLottie', () => {
     );
     const size = { ...OPTIONS, width: turntable.width, height: turntable.height };
     const keyed = keyLottie(frames, size);
-    expect(keyed.baked).toBe(true);
-    expect(keyed.breaks).toEqual([]);
-    expect(keyed.animation).toEqual(bakeLottie(frames, size));
-  }, 30000);
+    expect(keyed.baked).toBe(false);
+    expect(JSON.stringify(keyed.animation).length).toBeLessThan(JSON.stringify(bakeLottie(frames, size)).length * 0.7);
+    for (let f = 0; f < frames.length; f += 9) expectSamePicture(shownOn(keyed.animation, f), bakedOn(frames, f, size), `frame ${f}`);
+  }, 60000);
 
   it('never puts one object in two places (lottie-web rewrites what it is given)', () => {
     const red = square('/0#0', 0, '#ff0000');

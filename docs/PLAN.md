@@ -439,14 +439,20 @@ in front of one another on 237 frames"), and MP4 video. One PR each: culling and
     when the places pile up (more than 8 per path drawn, at least 64).
   - **Never bigger.** If keys come out bigger than baking, the file is written baked (the same
     picture), and the dialog says so. A scene where nothing moves gets no note.
-  - Measured on the walking couple from a still camera: 119 new layers (one per frame, so the
-    same as baked) down to 5, and 4.9 MB down to 4.0 MB. Through the turning Turntable the gain is
-    about 1%: when the camera turns, nearly every outline moves along a curve on every frame, and
-    Lottie can only move points in straight lines between keys, so it needs a key nearly every
-    frame. Keys shine for slides, scales and fades.
-  - Found while testing: the keyed file shared objects between keys (a hidden frame holding the
-    value before it), which lottie-web rewrites in place; every value is copied now, and a test
-    checks no object appears twice.
+  - Measured, keys against baked (before this, keys started a new layer on every frame of these,
+    so they came out the same as baked):
+    - the walking couple from a still camera: 4.91 MB down to 1.80 MB, one new layer;
+    - the walking couple on the turning Turntable: 4.91 MB down to 2.90 MB, two new layers;
+    - Nippu on the Turntable: 4.86 MB down to 2.48 MB, one new layer.
+    Turning outlines move along curves, and Lottie moves points in straight lines between keys,
+    so they still need many keys; slides, scales and fades need very few.
+  - Found while testing:
+    - The recorder dropped a path's tag when zdog stroked and then filled it (the two paints
+      merge into one path), so those paths shared one key and their places got mixed up. Fixing
+      that took the turntable files from about the baked size to the figures above.
+    - The keyed file shared objects between keys (a hidden frame holding the value before it),
+      which lottie-web rewrites in place; every value is copied now, and a test checks no object
+      appears twice.
 - **V2, MP4 video:** each frame drawn with zdog's canvas renderer through the chosen view,
   encoded as H.264 with the browser's WebCodecs, in an MP4 file.
 

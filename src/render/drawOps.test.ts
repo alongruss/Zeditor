@@ -1,9 +1,12 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { objectAtFrame, sceneAtFrame } from '../model/evaluate';
+import { parseSceneFile } from '../model/sceneFile';
 import { addShape, createShape, emptyScene, updateShape } from '../model/scene';
 import { starterScene } from '../model/starterScene';
 import { SHAPE_TYPES, type Scene, type ShapeData, type ShapeType } from '../model/types';
 import { arcSegments, createRecorder, recordFrame, type DrawOp, type Point, type Segment } from './drawOps';
-import type { ViewSpec } from './view';
+import { viewFromCamera, type ViewSpec } from './view';
 
 const FRONT: ViewSpec = {
   rotate: { x: 0, y: 0, z: 0 },
@@ -56,6 +59,35 @@ describe('arcSegments', () => {
     expect(quarter.segments).toHaveLength(1);
     expect(quarter.segments[0].to.y).toBeCloseTo(-1);
     expect(arcSegments(0, 0, 1, 1, 1, false).segments).toHaveLength(0);
+  });
+});
+
+describe('which zdog item drew each path', () => {
+  it('keeps the tag when a path is stroked and then filled (one op, two paints)', () => {
+    const { ctx, ops, setSource } = createRecorder();
+    setSource('/3');
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(10, 10);
+    ctx.stroke();
+    ctx.fill();
+    expect(ops).toHaveLength(1);
+    expect(ops[0].paints).toHaveLength(2);
+    expect(ops[0].source).toBe('/3');
+  });
+
+  it('tags every path of the Nippu examples, each once per frame', () => {
+    for (const file of ['nippu', 'nippu-walking']) {
+      const opened = parseSceneFile(readFileSync(`src/examples/${file}.zeditor.json`, 'utf8'));
+      if (!opened.ok) throw new Error(opened.error);
+      const { scene } = opened;
+      for (const frame of [0, 37]) {
+        const ops = recordFrame(sceneAtFrame(scene, frame), viewFromCamera(objectAtFrame(scene.cameras[0], frame)));
+        const sources = ops.map((op) => op.source);
+        expect(sources.filter((source) => source === undefined), `${file} frame ${frame}`).toEqual([]);
+        expect(new Set(sources).size, `${file} frame ${frame}`).toBe(ops.length);
+      }
+    }
   });
 });
 
