@@ -1,7 +1,9 @@
 import { useCallback, useRef, useState } from 'preact/hooks';
 import { isAnimated } from '../model/evaluate';
+import { MAX_FRAME } from '../model/limits';
 import { findShape } from '../model/scene';
 import { retimeCommand, setTiming } from '../state/commands';
+import { showNotice } from '../state/notice';
 import { dispatch, useEditorState } from '../state/store';
 import { pause, setCurves, setFrame, setGhosts, setPanelOpen, togglePlayback, useTimeline } from '../state/timeline';
 import { FpsDialog } from './FpsDialog';
@@ -9,7 +11,6 @@ import { NumberInput } from './fields';
 
 /** Common frame rates offered for the scene (a file's own rate is added if it's another). */
 const FPS_CHOICES = [12, 15, 24, 25, 30, 48, 50, 60];
-const MAX_LENGTH = 100000;
 /** Ruler ticks are at least this far apart, in pixels. */
 const MIN_TICK_GAP = 8;
 /** Ruler labels are at least this far apart, in pixels. */
@@ -178,7 +179,7 @@ export function TransportBar() {
         step={1}
         shiftStep={10}
         min={1}
-        max={MAX_LENGTH}
+        max={MAX_FRAME}
         integer
         onCommit={(value, group) => {
           pause();
@@ -199,9 +200,16 @@ export function TransportBar() {
           from={fps}
           to={pendingFps}
           onClose={closeFpsDialog}
-          onChoose={(choice) =>
-            dispatch(choice === 'keepTiming' ? retimeCommand(pendingFps) : setTiming({ fps: pendingFps }))
-          }
+          onChoose={(choice) => {
+            if (choice === 'keepFrames') {
+              dispatch(setTiming({ fps: pendingFps }));
+              return;
+            }
+            dispatch(retimeCommand(pendingFps));
+            if (Math.round((duration * pendingFps) / fps) > MAX_FRAME) {
+              showNotice(`The animation would be longer than ${MAX_FRAME} frames, so it stops at frame ${MAX_FRAME}.`);
+            }
+          }}
         />
       )}
     </div>

@@ -1,3 +1,4 @@
+import { MAX_SIDES, MAX_SIZE, MAX_STROKE, MIN_SIDES } from './limits';
 import type { PathData, PropValue, ShapeType } from './types';
 
 /** Which Inspector section a field appears in. */
@@ -12,7 +13,7 @@ interface FieldBase {
 export interface NumberField extends FieldBase {
   readonly kind: 'number';
   readonly min: number;
-  readonly max?: number;
+  readonly max: number;
   /** Arrow-key step in the Inspector. */
   readonly step: number;
   /** Whole numbers only (e.g. polygon sides). */
@@ -56,6 +57,7 @@ const size = (key: string, label: string): NumberField => ({
   group: 'size',
   kind: 'number',
   min: 0,
+  max: MAX_SIZE,
   step: UNIT_STEP,
 });
 
@@ -66,6 +68,7 @@ const stroke: NumberField = {
   group: 'appearance',
   kind: 'number',
   min: 0,
+  max: MAX_STROKE,
   step: UNIT_STEP,
 };
 const fill: BooleanField = { key: 'fill', label: 'Fill', group: 'appearance', kind: 'boolean' };
@@ -136,7 +139,7 @@ const defs: readonly ShapeTypeDef[] = [
     label: 'Polygon',
     idPrefix: 'polygon',
     fields: [
-      { key: 'sides', label: 'Sides', group: 'size', kind: 'number', min: 3, step: 1, integer: true },
+      { key: 'sides', label: 'Sides', group: 'size', kind: 'number', min: MIN_SIDES, max: MAX_SIDES, step: 1, integer: true },
       size('radius', 'Radius'),
       color,
       stroke,

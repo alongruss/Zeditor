@@ -13,6 +13,7 @@ import {
   sharedEasing,
   type KeyRef,
 } from './keyEdits';
+import { MAX_FRAME } from './limits';
 import { addShape, createGroup, createShape, emptyScene } from './scene';
 import type { Scene, ShapeData } from './types';
 
@@ -59,6 +60,12 @@ describe('moveKeys', () => {
     expect(framesOf(scene)).toEqual([0, 12, 20]);
   });
 
+  it('never goes past the last frame a scene can have', () => {
+    const box = animatedBox();
+    const moved = moveKeys([box], [x(20)], MAX_FRAME * 3).shapes.get('box-1')!;
+    expect(moved.tracks!['translate.x'].map((k) => k.frame)).toEqual([0, 10, MAX_FRAME]);
+  });
+
   it('leaves the other properties alone', () => {
     const box = animatedBox();
     const scene = moveKeysInScene(sceneWith(box), [box], [x(0)], 3);
@@ -95,6 +102,14 @@ describe('setKeysEasing', () => {
 });
 
 describe('retime', () => {
+  it('stops at the longest length, so the scene can still be saved and opened', () => {
+    let scene = sceneWith(setKey(animatedBox(), 'translate.x', 90000, 1));
+    scene = { ...scene, settings: { ...scene.settings, fps: 12, duration: MAX_FRAME } };
+    const faster = retime(scene, 60);
+    expect(faster.settings.duration).toBe(MAX_FRAME);
+    expect(Math.max(...framesOf(faster))).toBe(MAX_FRAME);
+  });
+
   it('keeps the timing in seconds at a new frame rate', () => {
     const scene = retime(sceneWith(animatedBox()), 60);
     expect(scene.settings).toMatchObject({ fps: 60, duration: 180 });

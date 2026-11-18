@@ -500,7 +500,11 @@ the tab or blank the page. Three phases, one PR each:
 - **S2, one set of limits** (`src/model/limits.ts`), checked where every edit passes
   (`applyCommand`). A typed value out of range is clamped to the limit with a hint. Polygon sides
   stop at 100. Retiming, dragging keys and renaming can't make a scene the editor then refuses to
-  open.
+  open. A value that isn't a number gets back the one it had. Scale can still go down to 0, since
+  shrinking something to nothing is a common trick. A group scaled almost to nothing no longer turns a
+  drag inside it into Infinity. Names lose control characters and direction marks, and stop at 200
+  characters. A fast-check property test makes random edits with hostile values and checks that the
+  result can always be saved and opened again.
 - **S3, files and exports.** A real check for path data, which today lets an empty path in. Error
   messages are short. The colour check follows the browser's rules. The Zdog script escapes
   `</script>` and only makes valid variable names. The MP4 size through a camera, and download names,

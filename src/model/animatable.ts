@@ -1,3 +1,4 @@
+import { ANGLE, OPACITY, POSITION, SCALE, VIEW_SPAN } from './limits';
 import { getShapeTypeDef } from './shapeTypes';
 import type { ObjectType, PropertyPath, PropValue, SceneObject, ShapeType, TrackValue, Vec3 } from './types';
 
@@ -30,16 +31,16 @@ export const AXES = ['x', 'y', 'z'] as const;
 type Axis = (typeof AXES)[number];
 
 const TRANSFORM: readonly PropertySpec[] = [
-  ...AXES.map((axis): PropertySpec => ({ path: `translate.${axis}`, label: `Position ${axis.toUpperCase()}`, kind: 'number' })),
-  ...AXES.map((axis): PropertySpec => ({ path: `rotate.${axis}`, label: `Rotation ${axis.toUpperCase()}`, kind: 'number' })),
-  { path: 'scale', label: 'Scale', kind: 'number', min: 0 },
-  { path: 'opacity', label: 'Opacity', kind: 'number', min: 0, max: 1 },
+  ...AXES.map((axis): PropertySpec => ({ path: `translate.${axis}`, label: `Position ${axis.toUpperCase()}`, kind: 'number', ...POSITION })),
+  ...AXES.map((axis): PropertySpec => ({ path: `rotate.${axis}`, label: `Rotation ${axis.toUpperCase()}`, kind: 'number', ...ANGLE })),
+  { path: 'scale', label: 'Scale', kind: 'number', ...SCALE },
+  { path: 'opacity', label: 'Opacity', kind: 'number', ...OPACITY },
 ];
 
 const CAMERA: readonly PropertySpec[] = [
-  ...AXES.map((axis): PropertySpec => ({ path: `rotate.${axis}`, label: `Angle ${axis.toUpperCase()}`, kind: 'number' })),
-  ...AXES.map((axis): PropertySpec => ({ path: `target.${axis}`, label: `Target ${axis.toUpperCase()}`, kind: 'number' })),
-  { path: 'viewSpan', label: 'View span', kind: 'number', min: 0.01 },
+  ...AXES.map((axis): PropertySpec => ({ path: `rotate.${axis}`, label: `Angle ${axis.toUpperCase()}`, kind: 'number', ...ANGLE })),
+  ...AXES.map((axis): PropertySpec => ({ path: `target.${axis}`, label: `Target ${axis.toUpperCase()}`, kind: 'number', ...POSITION })),
+  { path: 'viewSpan', label: 'View span', kind: 'number', ...VIEW_SPAN },
 ];
 
 /** A group moves, turns and scales what is inside it (opacity and colors belong to the shapes). */

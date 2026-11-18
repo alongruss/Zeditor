@@ -1,6 +1,9 @@
 import { readCurve } from './easing';
 import { propertySpec, type PropertySpec } from './animatable';
 import { MAX_DEPTH } from './hierarchy';
+import { MAX_FPS, MAX_FRAME, MAX_PICTURE_SIZE, MAX_VIEW_SPAN } from './limits';
+import { cleanName } from './names';
+import { repairScene } from './repair';
 import { DEFAULT_BACKGROUND } from './scene';
 import { getShapeTypeDef, type FieldDef } from './shapeTypes';
 import {
@@ -44,11 +47,8 @@ export const SCENE_FILE_EXTENSION = '.zeditor.json';
 export const MAX_SCENE_FILE_BYTES = 5 * 1024 * 1024;
 
 const MAX_SHAPES = 5000;
-const MAX_NAME_LENGTH = 200;
 const MAX_PATH_POINTS = 2000;
 const MAX_KEYS = 10000;
-const MAX_FRAME = 100000;
-const MAX_FPS = 120;
 
 export type SceneFileResult = { readonly ok: true; readonly scene: Scene } | { readonly ok: false; readonly error: string };
 
@@ -190,23 +190,21 @@ function readWholeSetting(value: unknown, name: string, fallback: number, max: n
 }
 
 const MAX_CAMERAS = 100;
-const MAX_PICTURE_SIDE = 8192;
-const MAX_VIEW_SPAN = 1e6;
 
 function readCamera(raw: unknown, index: number): CameraData {
   const where = `Camera ${index + 1}`;
   if (!isRecord(raw)) return fail(`${where} isn't a camera.`);
   const id = raw.id;
   if (typeof id !== 'string' || !/^[A-Za-z][\w-]{0,63}$/.test(id)) return fail(`${where} has no valid id.`);
-  const name = typeof raw.name === 'string' && raw.name.trim() !== '' ? raw.name.trim().slice(0, MAX_NAME_LENGTH) : id;
+  const name = (typeof raw.name === 'string' && cleanName(raw.name)) || id;
   const viewSpan = raw.viewSpan;
   if (!isFiniteNumber(viewSpan) || viewSpan <= 0 || viewSpan > MAX_VIEW_SPAN) {
     return fail(`${where}: the view span must be a number above 0.`);
   }
   const side = (value: unknown, label: string): number =>
-    isFiniteNumber(value) && Number.isInteger(value) && value >= 1 && value <= MAX_PICTURE_SIDE
+    isFiniteNumber(value) && Number.isInteger(value) && value >= 1 && value <= MAX_PICTURE_SIZE
       ? value
-      : fail(`${where}: the picture ${label} must be a whole number from 1 to ${MAX_PICTURE_SIDE}.`);
+      : fail(`${where}: the picture ${label} must be a whole number from 1 to ${MAX_PICTURE_SIZE}.`);
   const camera: CameraData = {
     id,
     name,
@@ -236,7 +234,7 @@ function readGroup(raw: unknown, index: number): GroupData {
   if (!isRecord(raw)) return fail(`${where} isn't a group.`);
   const id = raw.id;
   if (typeof id !== 'string' || !/^[A-Za-z][\w-]{0,63}$/.test(id)) return fail(`${where} has no valid id.`);
-  const name = typeof raw.name === 'string' && raw.name.trim() !== '' ? raw.name.trim().slice(0, MAX_NAME_LENGTH) : id;
+  const name = (typeof raw.name === 'string' && cleanName(raw.name)) || id;
   const scale = raw.scale ?? 1;
   if (!isFiniteNumber(scale) || scale < 0) return fail(`${where}: scale isn't a number of 0 or more.`);
   const parent = readParent(raw, where);
@@ -286,7 +284,7 @@ function readShape(raw: unknown, index: number, version: number): ShapeData {
   const id = raw.id;
   if (typeof id !== 'string' || !/^[A-Za-z][\w-]{0,63}$/.test(id)) return fail(`${where} has no valid id.`);
 
-  const name = typeof raw.name === 'string' && raw.name.trim() !== '' ? raw.name.trim().slice(0, MAX_NAME_LENGTH) : id;
+  const name = (typeof raw.name === 'string' && cleanName(raw.name)) || id;
   const scale = raw.scale ?? 1;
   if (!isFiniteNumber(scale) || scale < 0) return fail(`${where}: scale isn't a number of 0 or more.`);
   const opacity = raw.opacity ?? 1;
@@ -366,10 +364,9 @@ export function parseSceneFile(text: string): SceneFileResult {
     }
     checkHierarchy(shapes, groups);
 
-    return {
-      ok: true,
-      scene: { version: SCENE_VERSION, settings: { background, fps, duration }, shapes, groups, cameras },
-    };
+    // Within the editor's limits, as every edit is (positions, angles and the like are clamped).
+    const scene: Scene = { version: SCENE_VERSION, settings: { background, fps, duration }, shapes, groups, cameras };
+    return { ok: true, scene: repairScene(scene) };
   } catch (error) {
     if (error instanceof SceneFileError) return { ok: false, error: error.message };
     throw error;

@@ -1897,6 +1897,26 @@ kbd {
   font-variant-numeric: tabular-nums;
 }
 
+/* "Up to 100" under a number field while what's typed is past a limit. */
+.field-number {
+  position: relative;
+}
+
+.field-hint {
+  position: absolute;
+  top: calc(100% + 2px);
+  right: 0;
+  z-index: 5;
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 11px;
+  white-space: nowrap;
+  color: var(--text);
+  background: var(--panel-bg);
+  pointer-events: none;
+}
+
 .group > .field-number .field-label,
 .group > .field-color .field-label {
   width: 7em;

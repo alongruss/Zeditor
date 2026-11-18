@@ -203,6 +203,8 @@ export function Viewport() {
       if (!press.orbiting) setPointerDrag(true);
       press.orbiting = true;
       const displaySize = Math.min(container.clientWidth, container.clientHeight);
+      // A viewport with no size (hidden, say) can't be dragged around.
+      if (displaySize <= 0) return;
       if (press.camera) {
         // The same feel as the free view: a drag across the shorter side is a full turn.
         const { rotate } = press.camera;

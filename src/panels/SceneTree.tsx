@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef, useState } from 'preact/hooks';
+import { MAX_NAME_LENGTH } from '../model/limits';
 import { ancestorsOf, childrenOf, findGroup } from '../model/hierarchy';
 import { findShape } from '../model/scene';
 import { SHAPE_TYPE_DEFS } from '../model/shapeTypes';
@@ -168,6 +169,7 @@ function RenameInput({ label, initial, onDone }: RenameInputProps) {
       ref={inputRef}
       class="tree-rename"
       aria-label={label}
+      maxLength={MAX_NAME_LENGTH}
       onKeyDown={(event) => {
         if (event.key === 'Enter') finish(event.currentTarget.value);
         if (event.key === 'Escape') finish(null);

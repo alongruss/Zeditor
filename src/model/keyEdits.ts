@@ -1,4 +1,5 @@
 import { sameEasing } from './easing';
+import { MAX_FRAME } from './limits';
 import { propertySpec } from './animatable';
 import { removeKey } from './animation';
 import { findObject, replaceObjects } from './scene';
@@ -64,7 +65,7 @@ export function moveKeys(
       const landing = new Map<number, Keyframe>();
       for (const key of track) {
         if (!frames.has(key.frame)) continue;
-        const frame = Math.max(0, key.frame + delta);
+        const frame = Math.min(MAX_FRAME, Math.max(0, key.frame + delta));
         landing.set(frame, { ...key, frame }); // in frame order, so a later key overwrites
       }
       const staying = track.filter((key) => !frames.has(key.frame) && !landing.has(key.frame));
@@ -143,7 +144,8 @@ export function sharedEasing(scene: Scene, refs: readonly KeyRef[]): Easing | 'm
 export function retime(scene: Scene, fps: number): Scene {
   const { fps: oldFps, duration } = scene.settings;
   if (fps === oldFps) return scene;
-  const scale = (frame: number) => Math.round((frame * fps) / oldFps);
+  // Never past the last frame a scene can have: keys there would make a file that can't be opened.
+  const scale = (frame: number) => Math.min(MAX_FRAME, Math.round((frame * fps) / oldFps));
   const rescaled = <T extends SceneObject>(object: T): T => {
     if (!object.tracks) return object;
     const tracks: Record<PropertyPath, readonly Keyframe[]> = {};

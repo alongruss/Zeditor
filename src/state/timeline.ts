@@ -101,6 +101,8 @@ export function playbackTime(elapsed: number, startFrame: number, fps: number, d
  * change are separate undo steps, even mid-way through typing in a field.
  */
 export function setFrame(frame: number): void {
+  // A pointer over a ruler with no width (say) gives no frame at all.
+  if (!Number.isFinite(frame)) return;
   const next = Math.min(lastFrame(), Math.max(0, Math.round(frame)));
   const current = timeline.get();
   if (next === current.frame && !current.playing) return;
