@@ -76,21 +76,36 @@ interface SceneSource {
   subscribe(listener: (state: { readonly scene: Scene }) => void): () => void;
 }
 
+export interface AutosaveOptions {
+  /** Scenes that mustn't be saved (ones that couldn't be drawn), so they never come back on a reload. */
+  readonly skip?: (scene: Scene) => boolean;
+  /** The browser refused to save (storage full, say). Called once until a save works again. */
+  readonly onWriteFailed?: () => void;
+}
+
 /**
  * Saves the scene shortly after each change, and straight away when the
  * page is hidden or closed, so a reload keeps your work. Returns a function
  * that stops autosaving.
  */
-export function startAutosave(source: SceneSource, storage: WritableStorage | null): () => void {
+export function startAutosave(source: SceneSource, storage: WritableStorage | null, options: AutosaveOptions = {}): () => void {
   if (!storage) return () => {};
   let saved = source.get().scene;
   let timer: ReturnType<typeof setTimeout> | undefined;
+  let warned = false;
 
   const flush = () => {
     clearTimeout(timer);
     timer = undefined;
     const { scene } = source.get();
-    if (scene !== saved && writeAutosave(storage, scene)) saved = scene;
+    if (scene === saved || options.skip?.(scene)) return;
+    if (writeAutosave(storage, scene)) {
+      saved = scene;
+      warned = false;
+    } else if (!warned) {
+      warned = true;
+      options.onWriteFailed?.();
+    }
   };
   const unsubscribe = source.subscribe(({ scene }) => {
     if (scene === saved) return;

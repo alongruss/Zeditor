@@ -1,5 +1,7 @@
 import { useEffect } from 'preact/hooks';
+import { ErrorBoundary } from './panels/ErrorBoundary';
 import { Inspector } from './panels/Inspector';
+import { RecoveryDialog } from './panels/RecoveryDialog';
 import {
   AddMenu,
   Dialogs,
@@ -82,15 +84,21 @@ export function App() {
           <h2 class="panel-title" id="scene-tree-title">
             Scene tree
           </h2>
-          <SceneTree />
+          <ErrorBoundary area="The scene tree">
+            <SceneTree />
+          </ErrorBoundary>
         </div>
       </aside>
 
       <main class="viewport-column">
-        <Viewport />
+        <ErrorBoundary area="The viewport">
+          <Viewport />
+        </ErrorBoundary>
         <div class="dock">
-          <TransportBar />
-          <TimelineArea />
+          <ErrorBoundary area="The timeline">
+            <TransportBar />
+            <TimelineArea />
+          </ErrorBoundary>
         </div>
       </main>
 
@@ -104,10 +112,15 @@ export function App() {
           <h2 class="panel-title" id="inspector-title">
             Inspector
           </h2>
-          <Inspector />
+          <ErrorBoundary area="The Inspector">
+            <Inspector />
+          </ErrorBoundary>
         </div>
       </aside>
-      <Dialogs />
+      <ErrorBoundary area="The export window">
+        <Dialogs />
+      </ErrorBoundary>
+      <RecoveryDialog />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { VideoExportError } from '../export/videoSize';
 import { exportZdogScript, scriptAnimates, scriptViewFromCamera, scriptViewFromFreeView } from '../export/zdogScript';
 import { objectAtFrame } from '../model/evaluate';
 import { findCamera } from '../model/scene';
+import type { Scene } from '../model/types';
 import { MAX_SCENE_FILE_BYTES, SCENE_FILE_EXTENSION, parseSceneFile, serializeScene } from '../model/sceneFile';
 import { loadScene } from '../state/commands';
 import { showNotice } from '../state/notice';
@@ -33,6 +34,11 @@ export function saveScene(): void {
   showNotice(`Saved ${fileName} to your downloads.`);
 }
 
+/** Downloads `scene` as a scene file called `fileName`, without opening it. */
+export function downloadSceneCopy(scene: Scene, fileName: string): void {
+  download(fileName, serializeScene(scene), 'application/json');
+}
+
 /** Reads a scene file and, if it checks out, replaces the scene with it (undoable). */
 export async function openFile(file: File): Promise<void> {
   if (file.size > MAX_SCENE_FILE_BYTES) {
@@ -52,6 +58,8 @@ export async function openFile(file: File): Promise<void> {
     return;
   }
   dispatch(loadScene(result.scene));
+  // It couldn't be drawn and was undone (the editor already said so).
+  if (editor.get().scene !== result.scene) return;
   baseName = file.name.replace(/\.zeditor\.json$|\.json$/i, '') || 'scene';
   showNotice(`Opened ${file.name}. Ctrl+Z goes back to the scene you had.`);
 }

@@ -26,9 +26,10 @@ export default defineConfig<TestOptions>({
       expect: { timeout: 20_000 },
     },
   ],
-  // Test the production build, which is what GitHub Pages serves.
+  // Test the production build, which is what GitHub Pages serves. Its "e2e"
+  // mode only adds the hooks that make drawing fail on purpose (state/testHooks.ts).
   webServer: {
-    command: `npm run build && npm run preview -- --host 127.0.0.1 --port ${port} --strictPort`,
+    command: `npm run build -- --mode e2e && npm run preview -- --host 127.0.0.1 --port ${port} --strictPort`,
     url: `http://127.0.0.1:${port}`,
     reuseExistingServer: !isCI,
   },
