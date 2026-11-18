@@ -9,7 +9,7 @@ Zdog shapes, save your scene, and export it as a ready-to-run Zdog script.
 > between visits), and export a ready-to-run Zdog script or a Lottie file.
 > Animation: key any Inspector value on any frame, with easing, play it back, and edit keys on a
 > timeline (move, ease, copy and paste, delete); shape any easing as a curve in the Curves view; Ghosts show the poses on the keys either side; the Zdog
-> script plays the animation, looping, with a small player of its own; the Lottie export writes keys (the same picture as baking every frame, usually much smaller) or bakes every frame, and leaves out what's out of view. Cameras: add cameras to the
+> script plays the animation, looping, with a small player of its own; the Lottie export writes keys (the same picture as baking every frame, usually much smaller) or bakes every frame, and leaves out what's out of view; or export an MP4 video. Cameras: add cameras to the
 > scene, look through them, animate them, and export through them. Groups: put shapes in groups
 > (nested as deep as you like), which move, turn, scale and animate together; move a group's
 > pivot to set where it turns; select several to move or turn them at once. The "Playroom" redesign is done:

@@ -18,6 +18,21 @@ export function useLottieDialogOpen(): boolean {
   return useStore(lottieDialog);
 }
 
+/** Whether the Export video dialog is open (from File ▾ or Export ▾, like Lottie's). */
+export const videoDialog: Store<boolean> = createStore(false);
+
+export function openVideoDialog(): void {
+  videoDialog.dispatch(() => true);
+}
+
+export function closeVideoDialog(): void {
+  videoDialog.dispatch(() => false);
+}
+
+export function useVideoDialogOpen(): boolean {
+  return useStore(videoDialog);
+}
+
 /** What a finished Lottie export made: shown on the export card. */
 export interface ExportSummary {
   readonly frames: readonly number[];
