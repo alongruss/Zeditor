@@ -3,6 +3,7 @@ import { Zdog } from '../zdog';
 import type { Placeable, Scene, ShapeData } from '../model/types';
 import { rootTranslate, type ViewSpec } from '../render/view';
 import { attachAll, createZdogGroup } from '../render/zdogGraph';
+import { testHooks } from '../state/testHooks';
 import { createZdogShape, zdogTransform } from './toZdog';
 
 /** Attribute that ties every SVG element back to the top-level shape that drew it. */
@@ -10,6 +11,14 @@ export const SHAPE_ID_ATTRIBUTE = 'data-shape-id';
 
 /** Padding around the selection outline, in screen pixels. */
 const SELECTION_PADDING = 4;
+
+/** What a SceneView tells its owner after each draw. */
+export interface SceneViewEvents {
+  /** The scene was drawn without trouble. */
+  readonly onDrawn?: () => void;
+  /** Drawing failed. Without this, the error is thrown. */
+  readonly onError?: (error: unknown) => void;
+}
 
 interface Entry {
   readonly data: Placeable;
@@ -58,6 +67,7 @@ export class SceneView {
   constructor(
     private readonly svg: SVGSVGElement,
     private readonly selectionOutline: HTMLElement,
+    private readonly events: SceneViewEvents = {},
   ) {
     this.illo = new Zdog.Illustration({
       element: svg,
@@ -159,11 +169,24 @@ export class SceneView {
     if (this.frame) return;
     this.frame = requestAnimationFrame(() => {
       this.frame = 0;
-      this.renderNow();
+      // A draw that throws mustn't escape: it would repeat on every frame and
+      // leave the viewport stuck. Report it, so the editor can step back.
+      try {
+        this.renderNow();
+      } catch (error) {
+        if (!this.events.onError) throw error;
+        this.events.onError(error);
+        return;
+      }
+      this.events.onDrawn?.();
     });
   }
 
   renderNow(): void {
+    const breakFor = testHooks().breakDrawOf;
+    if (breakFor !== undefined && [...this.entries.values()].some((entry) => entry.data.name === breakFor)) {
+      throw new Error(`Test: drawing "${breakFor}" fails on purpose.`);
+    }
     this.illo.updateRenderGraph();
     this.tagElements();
     this.placeSelectionOutline();

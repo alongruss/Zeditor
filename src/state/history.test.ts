@@ -10,6 +10,7 @@ import {
   canUndo,
   newGroup,
   redo,
+  rewindTo,
   startHistory,
   undo,
   type History,
@@ -191,5 +192,47 @@ describe('closeGroup', () => {
     history = applyCommand(history, moveX('box-1', 6), typing);
     expect(history.past).toHaveLength(2);
     expect(closeGroup(start())).toEqual(start());
+  });
+});
+
+describe('rewindTo', () => {
+  it('goes back to an earlier scene, dropping the steps after it and the redo list', () => {
+    let history = start();
+    history = applyCommand(history, moveX('box-1', 1));
+    const good = history.present.scene;
+    history = applyCommand(history, moveX('box-1', 2));
+    history = applyCommand(history, moveX('box-1', 3));
+    history = undo(history);
+    const back = rewindTo(history, good);
+    expect(xOf(back.present, 'box-1')).toBe(1);
+    expect(back.past).toHaveLength(1);
+    expect(canRedo(back)).toBe(false);
+    // Undo still works from there.
+    expect(xOf(undo(back).present, 'box-1')).toBe(start().present.scene.shapes.find((s) => s.id === 'box-1')!.translate.x);
+  });
+
+  it('can go back to the very first scene', () => {
+    let history = start();
+    const first = history.present.scene;
+    history = applyCommand(history, moveX('box-1', 5));
+    const back = rewindTo(history, first);
+    expect(back.present.scene).toBe(first);
+    expect(back.past).toEqual([]);
+  });
+
+  it('changes nothing when the scene is already the present one', () => {
+    const history = applyCommand(start(), moveX('box-1', 1));
+    expect(rewindTo(history, history.present.scene)).toBe(history);
+  });
+
+  it('puts back a scene that is no longer in the history, keeping only a selection that still exists', () => {
+    const elsewhere = starterScene();
+    let history = applyCommand(start(), addShapeOfType('Box'));
+    const added = history.present.selectedId!;
+    history = applyCommand(history, select(added));
+    const back = rewindTo(history, elsewhere);
+    expect(back.present.scene).toBe(elsewhere);
+    expect(back.present.selectedId).toBeNull();
+    expect(back.present.selectedIds).toEqual([]);
   });
 });

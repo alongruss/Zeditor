@@ -1,5 +1,6 @@
 import { useEffect, useReducer } from 'preact/hooks';
 import { starterScene } from '../model/starterScene';
+import type { Scene } from '../model/types';
 import { DEFAULT_FREE_VIEW, type FreeView } from '../viewport/freeView';
 import type { Command, EditorState } from './commands';
 import { browserStorage, readAutosave } from './autosave';
@@ -12,7 +13,14 @@ export interface Store<T> {
   subscribe(listener: (state: T) => void): () => void;
 }
 
-export function createStore<T>(initial: T): Store<T> {
+/** Throws `error` again on its own, after the current work, so the page's error handler sees it. */
+function rethrowLater(error: unknown): void {
+  queueMicrotask(() => {
+    throw error;
+  });
+}
+
+export function createStore<T>(initial: T, onListenerError: (error: unknown) => void = rethrowLater): Store<T> {
   let state = initial;
   const listeners = new Set<(state: T) => void>();
   return {
@@ -21,7 +29,17 @@ export function createStore<T>(initial: T): Store<T> {
       const next = update(state);
       if (next === state) return;
       state = next;
-      for (const listener of [...listeners]) listener(state);
+      // One listener that throws mustn't stop the others from hearing about
+      // the change. Its error is reported afterwards, on its own.
+      let failure: { error: unknown } | null = null;
+      for (const listener of [...listeners]) {
+        try {
+          listener(state);
+        } catch (error) {
+          failure ??= { error };
+        }
+      }
+      if (failure) onListenerError(failure.error);
     },
     subscribe(listener) {
       listeners.add(listener);
@@ -64,6 +82,14 @@ export function undo(): void {
 
 export function redo(): void {
   tracked.dispatch(history.redo);
+}
+
+/**
+ * Goes back to `scene`, an earlier scene, dropping the steps since then (see
+ * history.rewindTo). Only for a scene that couldn't be drawn; not an undo step.
+ */
+export function rewindTo(scene: Scene): void {
+  tracked.dispatch((current) => history.rewindTo(current, scene));
 }
 
 /** Makes the next change its own undo step (e.g. after the playhead moves). */

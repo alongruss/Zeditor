@@ -9,6 +9,7 @@ import type { CameraData, FaceValue, GroupData, Placeable, PropValue, PropertyPa
 import { groupSelection, moveToGroup, ungroupSelection } from '../state/groupActions';
 import { edit, selectionOf, toggleKey } from '../state/commands';
 import { dispatch, setLookThrough, useEditorState, useLookThrough } from '../state/store';
+import { testHooks } from '../state/testHooks';
 import { pause, useTimeline } from '../state/timeline';
 import { CheckboxInput, ColorInput, FaceInput, NumberInput } from './fields';
 import { KeyButton, type KeyButtonState } from './KeyButton';
@@ -28,6 +29,7 @@ export function Inspector() {
   const { scene, selectedId } = state;
   const object = findObject(scene, selectedId);
   if (!object) return <p class="panel-empty">Select a shape or camera to edit it.</p>;
+  if (testHooks().breakInspectorOf === object.name) throw new Error(`Test: the Inspector fails for "${object.name}" on purpose.`);
   const selection = selectionOf(state);
   if (selection.length > 1) return <SelectionSummary ids={selection} />;
   // Keyed by id so half-typed text never carries over to another object.

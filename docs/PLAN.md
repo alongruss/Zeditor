@@ -484,6 +484,28 @@ refreshes.
 - The exported Zdog script's player plays the same way (`player.time` is the moment shown;
   `player.frame` the whole frame), and pauses on a whole frame.
 
+## Bad input never breaks the editor
+
+The goal: whatever the editor holds can be drawn, saved and opened again, and no input can freeze
+the tab or blank the page. Three phases, one PR each:
+
+- **S1, a safety net.** If drawing or a panel fails, the editor goes back to the last scene that
+  drew and says "That change couldn't be drawn, so it was undone." A scene that failed is never
+  autosaved. A saved scene that can't be drawn at start-up gets a dialog that offers a copy and a
+  fresh start, and the copy also stays in the browser as a backup. A panel that still fails shows a
+  short note with Try again, while the rest keeps working. One store listener that throws no longer
+  stops the others. Anything else that goes wrong gets a calm notice instead of nothing. The browser
+  tests' build (`--mode e2e`) has hooks that make drawing fail on purpose (`src/state/testHooks.ts`);
+  the real app has none.
+- **S2, one set of limits** (`src/model/limits.ts`), checked where every edit passes
+  (`applyCommand`). A typed value out of range is clamped to the limit with a hint. Polygon sides
+  stop at 100. Retiming, dragging keys and renaming can't make a scene the editor then refuses to
+  open.
+- **S3, files and exports.** A real check for path data, which today lets an empty path in. Error
+  messages are short. The colour check follows the browser's rules. The Zdog script escapes
+  `</script>` and only makes valid variable names. The MP4 size through a camera, and download names,
+  are made safe. Fuzz tests use fast-check.
+
 ## Later
 
 **Lottie export.** Now planned and under way: see "Animation, cameras and Lottie" above.

@@ -96,6 +96,26 @@ export function applyCommand(history: History, command: Command, group?: string)
 }
 
 /**
+ * Goes back to `scene`, a scene the editor held earlier, as if the steps
+ * since then never happened: they are dropped, and so is the redo list.
+ * Used when a newer scene couldn't be drawn. If `scene` isn't in the history
+ * any more, the present keeps its selection (where it still exists) but gets
+ * `scene` back.
+ */
+export function rewindTo(history: History, scene: Scene): History {
+  if (history.present.scene === scene) return history;
+  for (let i = history.past.length - 1; i >= 0; i--) {
+    const step = history.past[i];
+    if (step.after.scene === scene) return { present: step.after, past: history.past.slice(0, i + 1), future: [], openGroup: null };
+    if (step.before.scene === scene) return { present: step.before, past: history.past.slice(0, i), future: [], openGroup: null };
+  }
+  const ids = new Set([...scene.shapes, ...scene.groups, ...scene.cameras].map((object) => object.id));
+  const selectedIds = history.present.selectedIds.filter((id) => ids.has(id));
+  const selectedId = history.present.selectedId !== null && ids.has(history.present.selectedId) ? history.present.selectedId : (selectedIds[0] ?? null);
+  return { ...history, present: { ...history.present, scene, selectedId, selectedIds }, future: [], openGroup: null };
+}
+
+/**
  * Ends the open group, so the next change starts a new step even if it uses
  * the same group (e.g. after moving to another frame mid-edit).
  */

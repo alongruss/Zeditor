@@ -4,7 +4,7 @@ import { ghostFrames, ghostScene } from '../model/ghosts';
 import { parentTransform, topmost } from '../model/hierarchy';
 import { SHAPE_TYPE_DEFS } from '../model/shapeTypes';
 import { SHAPE_TYPES } from '../model/types';
-import type { CameraData } from '../model/types';
+import type { CameraData, Scene } from '../model/types';
 import { ContextMenu, type MenuPosition } from '../panels/ContextMenu';
 import { NoticeBar } from '../panels/NoticeBar';
 import { cameraFrame } from '../render/view';
@@ -12,6 +12,7 @@ import { addShapeOfType, edit, select, toggleSelect } from '../state/commands';
 import { currentViewSpec, lookedThroughCamera } from '../state/currentView';
 import { newGroup } from '../state/history';
 import { usePivotGroup } from '../state/pivot';
+import { markDrawn, recoverFromError } from '../state/recovery';
 import { setPointerDrag } from '../state/pointerDrag';
 import { PopupMenu } from '../panels/PopupMenu';
 import {
@@ -106,17 +107,35 @@ export function Viewport() {
       element.setAttribute('height', String(Math.max(1, container.clientHeight)));
     }
 
-    const view = new SceneView(svg, outline);
+    // The editor's scene last handed to the view: once it draws, it's one the
+    // editor can safely go back to if a later change can't be drawn.
+    let shownScene: Scene | null = null;
+    const view = new SceneView(svg, outline, {
+      onDrawn: () => {
+        if (shownScene) markDrawn(shownScene);
+      },
+      onError: recoverFromError,
+    });
     // Ghosts: the selection on the keys before and after the playhead, drawn behind the scene.
     const ghosts = (ghostSvgs as SVGSVGElement[]).map((element) => ({
       element,
-      view: new SceneView(element, document.createElement('div')),
+      view: new SceneView(element, document.createElement('div'), { onError: recoverFromError }),
     }));
     let area: Size = { width: container.clientWidth, height: container.clientHeight };
+    const show = () => {
+      try {
+        showNow();
+      } catch (error) {
+        // Half shown: a draw that follows doesn't prove this scene draws.
+        shownScene = null;
+        recoverFromError(error);
+      }
+    };
     // The scene as posed on the playhead's frame, through the current view.
     // Playback only moves the playhead; it never goes through the undo history.
-    const show = () => {
+    const showNow = () => {
       const { scene, selectedIds } = editor.get();
+      shownScene = scene;
       view.setPlaying(timeline.get().playing);
       // While playing, the exact moment (between frames), so motion is smooth.
       const moment = shownFrame();
