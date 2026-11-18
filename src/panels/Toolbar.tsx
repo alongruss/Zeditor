@@ -6,7 +6,14 @@ import { SHAPE_TYPES } from '../model/types';
 import { addCameraCommand, addShapeOfType, loadScene, newScene } from '../state/commands';
 import { showNotice } from '../state/notice';
 import { lookedThroughCamera } from '../state/currentView';
-import { closeLottieDialog, openLottieDialog, useLottieDialogOpen } from '../state/dialogs';
+import {
+  closeLottieDialog,
+  closeVideoDialog,
+  openLottieDialog,
+  openVideoDialog,
+  useLottieDialogOpen,
+  useVideoDialogOpen,
+} from '../state/dialogs';
 import {
   dispatch,
   freeView,
@@ -23,6 +30,7 @@ import { viewportSize, useViewportSize } from '../state/viewportSize';
 import { VIEW_SPAN } from '../viewport/fitZoom';
 import { Dropdown } from './Dropdown';
 import { ExportLottieDialog } from './ExportLottieDialog';
+import { ExportVideoDialog } from './ExportVideoDialog';
 import { STICKER, shapeTileSvg } from './shapeTiles';
 
 /*
@@ -63,6 +71,7 @@ export function FileMenu() {
         { label: 'Save', shortcut: 'Ctrl+S', onSelect: saveScene },
         { label: 'Export Zdog JS', onSelect: () => void exportScript() },
         { label: 'Export Lottie…', onSelect: openLottieDialog },
+        { label: 'Export video (MP4)…', onSelect: openVideoDialog },
         ...EXAMPLES.map((example) => ({ label: example.title, onSelect: () => openExample(example) })),
         { label: 'Theme: match system', checked: theme === 'system', onSelect: () => setTheme('system') },
         { label: 'Theme: light', checked: theme === 'light', onSelect: () => setTheme('light') },
@@ -81,6 +90,7 @@ export function ExportMenu() {
       primary
       items={[
         { label: 'Lottie animation…', onSelect: openLottieDialog },
+        { label: 'MP4 video…', onSelect: openVideoDialog },
         { label: 'Zdog JS script', onSelect: () => void exportScript() },
       ]}
     />
@@ -196,21 +206,21 @@ export function ViewMenu() {
   );
 }
 
-/** The Export Lottie dialog, while open (from File ▾ or Export ▾). */
+/** The Export Lottie and Export video dialogs, while open (from File ▾ or Export ▾). */
 export function Dialogs() {
   const lottieOpen = useLottieDialogOpen();
+  const videoOpen = useVideoDialogOpen();
   const size = useViewportSize();
   const lookingThrough = useLookThrough();
   const { scene } = useEditorState();
-  const close = useCallback(() => closeLottieDialog(), []);
-  if (!lottieOpen) return null;
+  const closeLottie = useCallback(() => closeLottieDialog(), []);
+  const closeVideo = useCallback(() => closeVideoDialog(), []);
   const viewing = scene.cameras.some((c) => c.id === lookingThrough) ? lookingThrough : null;
+  const defaults = { defaultWidth: size?.width ?? 512, defaultHeight: size?.height ?? 512, defaultCamera: viewing };
   return (
-    <ExportLottieDialog
-      defaultWidth={size?.width ?? 512}
-      defaultHeight={size?.height ?? 512}
-      defaultCamera={viewing}
-      onClose={close}
-    />
+    <>
+      {lottieOpen && <ExportLottieDialog {...defaults} onClose={closeLottie} />}
+      {videoOpen && <ExportVideoDialog {...defaults} onClose={closeVideo} />}
+    </>
   );
 }

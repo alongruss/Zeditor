@@ -1,5 +1,6 @@
 import { LottieExportError } from '../export/lottie/bake';
 import { allFrames, lottieExport } from '../export/lottie/exportScene';
+import { VideoExportError } from '../export/videoSize';
 import { exportZdogScript, scriptAnimates, scriptViewFromCamera, scriptViewFromFreeView } from '../export/zdogScript';
 import { objectAtFrame } from '../model/evaluate';
 import { findCamera } from '../model/scene';
@@ -13,9 +14,9 @@ import { currentFrame } from '../state/timeline';
 /** Base name for saved and exported files: the last opened file's, or "scene". */
 let baseName = 'scene';
 
-/** Starts a download of `text` as a file called `fileName`. */
-function download(fileName: string, text: string, type: string): void {
-  const url = URL.createObjectURL(new Blob([text], { type }));
+/** Starts a download of `text` (or a file's contents) as a file called `fileName`. */
+function download(fileName: string, text: string | Blob, type: string): void {
+  const url = URL.createObjectURL(typeof text === 'string' ? new Blob([text], { type }) : text);
   const link = document.createElement('a');
   link.href = url;
   link.download = fileName;
@@ -163,4 +164,60 @@ export function saveLottie(settings: LottieSettings): number | null {
 /** The frames a Lottie export bakes, for its settings. */
 export function lottieFrames(settings: Pick<LottieSettings, 'frames'>): number[] {
   return settings.frames === 'all' ? allFrames(editor.get().scene) : [currentFrame()];
+}
+
+export interface VideoSettings {
+  /** The camera to film through, or null for the free view at `width` x `height`. */
+  readonly camera: string | null;
+  readonly width: number;
+  readonly height: number;
+}
+
+/** The view a video export films through, per frame, or why it can't. */
+function videoView(settings: VideoSettings): { readonly viewAt: (frame: number) => ViewSpec } | { readonly error: string } {
+  const { scene } = editor.get();
+  if (settings.camera === null) {
+    const view = viewFromFreeView(freeView.get(), settings.width, settings.height);
+    return view ? { viewAt: () => view } : { error: 'Width and height must be more than 0.' };
+  }
+  const camera = findCamera(scene, settings.camera);
+  if (!camera) return { error: 'That camera is no longer in the scene.' };
+  return { viewAt: (frame) => viewFromCamera(objectAtFrame(camera, frame)) };
+}
+
+/**
+ * Makes the scene's whole animation as an MP4 video and downloads it.
+ * Returns the file's size in bytes, or null (with a notice) if it couldn't
+ * be made; throws an AbortError if `signal` stops it.
+ */
+export async function saveVideo(
+  settings: VideoSettings,
+  onProgress: (done: number, total: number) => void,
+  signal: AbortSignal,
+): Promise<number | null> {
+  const found = videoView(settings);
+  if ('error' in found) {
+    showNotice(`Couldn't export the video. ${found.error}`, 'error');
+    return null;
+  }
+  const { scene } = editor.get();
+  try {
+    // The MP4 library loads only when a video is made.
+    const { makeVideo } = await import('../export/video');
+    const video = await makeVideo(scene, found.viewAt, { frames: allFrames(scene), fps: scene.settings.fps, onProgress, signal });
+    const fileName = `${baseName}.mp4`;
+    download(fileName, video, 'video/mp4');
+    showNotice(`Saved ${fileName} to your downloads.`);
+    return video.size;
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') throw error; // stopped
+    if (error instanceof VideoExportError) {
+      showNotice(`Couldn't export the video. ${error.message}`, 'error');
+      return null;
+    }
+    // The browser's encoder can fail on its own (out of memory, say): say so rather than go quiet.
+    console.error(error);
+    showNotice("Couldn't export the video: the browser's video encoder stopped. A smaller size may work.", 'error');
+    return null;
+  }
 }

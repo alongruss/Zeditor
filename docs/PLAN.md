@@ -453,8 +453,20 @@ in front of one another on 237 frames"), and MP4 video. One PR each: culling and
     - The keyed file shared objects between keys (a hidden frame holding the value before it),
       which lottie-web rewrites in place; every value is copied now, and a test checks no object
       appears twice.
-- **V2, MP4 video:** each frame drawn with zdog's canvas renderer through the chosen view,
-  encoded as H.264 with the browser's WebCodecs, in an MP4 file.
+- **V2, MP4 video** (`src/export/video.ts`, `ExportVideoDialog.tsx`): File ▾ › Export video (MP4)…
+  and Export ▾ › MP4 video….
+  - Each frame is drawn with zdog's own canvas renderer through the chosen view (free view or a
+    camera, followed as it moves), set up as zdog's Illustration does, on the scene's background
+    (over white if that's see-through: video has no transparency). The browser encodes it as
+    H.264 (WebCodecs), and mediabunny (MPL-2.0, the maintained successor of mp4-muxer) writes the
+    MP4. It loads only when the video dialog is used, so the editor itself stays as small.
+  - H.264 needs even sides: an odd size is rounded down, and the dialog says so. It shows which
+    frame it's on, and Stop stops it. Where the browser can't make H.264 video, it says so
+    plainly and Export stays off; an encoder that fails partway gets a notice too.
+  - Tests: in Chromium, the file starts with `ftyp`, plays for the animation's length at the
+    even size, and its first frame matches zdog's drawing (all but 0.1% of pixels; up to 1%
+    allowed for H.264's blur); through a turning camera the frames change; Stop leaves no
+    download; with no encoder the message shows.
 
 ## Smooth playback
 

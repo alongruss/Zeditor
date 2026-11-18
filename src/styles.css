@@ -987,6 +987,11 @@ body {
 }
 
 .dialog-note,
+.dialog-progress progress {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
 .dialog-error {
   margin: 0;
   color: var(--text-muted);
