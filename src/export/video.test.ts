@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { starterScene } from '../model/starterScene';
 import type { ViewSpec } from '../render/view';
 import { NO_H264, VideoExportError, canMakeVideo, drawFrame, evenSide, evenView, makeVideo } from './video';
+import { MAX_VIDEO_SIDE, fitVideoSize } from './videoSize';
 
 const VIEW: ViewSpec = { rotate: { x: 0, y: 0, z: 0 }, target: { x: 0, y: 0, z: 0 }, pixelsPerUnit: 10, width: 321, height: 241 };
 
@@ -12,6 +13,21 @@ describe('even sizes for H.264', () => {
 
   it('keeps the rest of the view (angle, target, zoom) as it is', () => {
     expect(evenView(VIEW)).toEqual({ ...VIEW, width: 320, height: 240 });
+  });
+});
+
+describe('fitVideoSize', () => {
+  it('scales a picture too big for video down to fit, keeping its shape, with even sides', () => {
+    expect(fitVideoSize(8192, 4608)).toEqual({ width: 4096, height: 2304 });
+    expect(fitVideoSize(1001, 8192)).toEqual({ width: 500, height: 4096 });
+    const { width, height } = fitVideoSize(8191, 8191);
+    expect(Math.max(width, height)).toBeLessThanOrEqual(MAX_VIDEO_SIDE);
+    expect(width % 2 + (height % 2)).toBe(0);
+  });
+
+  it('leaves a picture that fits at its size (made even)', () => {
+    expect(fitVideoSize(1920, 1080)).toEqual({ width: 1920, height: 1080 });
+    expect(fitVideoSize(641, 361)).toEqual({ width: 640, height: 360 });
   });
 });
 

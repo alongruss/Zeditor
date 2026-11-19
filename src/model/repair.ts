@@ -44,7 +44,9 @@ export function repairScene(scene: Scene, before?: Scene): Scene {
     let changed = false;
     const fixed = list.map((object) => {
       if (unchanged.has(object)) return object;
-      const repaired = repairObject(object, old.get(object.id) as T | undefined);
+      // The same object before the edit: same id and type (a loaded scene can reuse an id for another kind).
+      const previous = old.get(object.id);
+      const repaired = repairObject(object, previous?.type === object.type ? (previous as T) : undefined);
       if (repaired !== object) changed = true;
       return repaired;
     });

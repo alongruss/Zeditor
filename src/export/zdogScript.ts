@@ -1,6 +1,7 @@
 import { propertySpec } from '../model/animatable';
 import { objectAtFrame, sceneAtFrame } from '../model/evaluate';
 import { overshoots } from '../model/easing';
+import { cleanName } from '../model/names';
 import { getShapeTypeDef } from '../model/shapeTypes';
 import type { CameraData, GroupData, Keyframe, PropValue, Scene, SceneObject, ShapeData, Vec3 } from '../model/types';
 import type { FreeView } from '../viewport/freeView';
@@ -64,12 +65,36 @@ export function scriptAnimates(scene: Scene, view: ScriptView): boolean {
 /** Every kind of line break, including U+2028 and U+2029, which also end a // comment. */
 const LINE_BREAKS = new RegExp(`[${String.fromCharCode(10, 13, 0x2028, 0x2029)}]+`, 'g');
 
-/** Names the script itself uses, so no shape may take them. */
-const TAKEN = new Set([
-  'illo', 'world', 'element', 'animate', 'DEG', 'Zdog', 'document', 'window',
-  // The player's own names, and the page's that it uses.
-  'FPS', 'FRAMES', 'animated', 'player', 'requestAnimationFrame', 'parseInt',
-]);
+/**
+ * A string as JavaScript source that is also safe inside an HTML <script>:
+ * every "<" is written as <, so a name like "</script>" can't end the
+ * script early.
+ */
+const text = (value: string): string => JSON.stringify(value).replace(/</g, '\\u003c');
+
+/** A line of comment text: on one line, with no direction marks, and no "<" that HTML could read as a tag. */
+const commentText = (value: string): string => cleanName(value.replace(LINE_BREAKS, ' ')).replace(/</g, '\\u003c');
+
+/**
+ * Names the script itself uses, so no shape may take them, and the page's
+ * own global names: the script declares its shapes at the top level, where
+ * `const top` or `const location` would stop the whole script.
+ */
+const TAKEN = new Set(
+  (
+    'illo world element animate DEG Zdog FPS FRAMES animated player __proto__ ' +
+    'window document location top parent self frames name status length origin history event opener closed ' +
+    'screen navigator performance crypto console alert confirm prompt print open close stop focus blur find ' +
+    'scroll scrollTo scrollBy fetch external frameElement customElements localStorage sessionStorage indexedDB ' +
+    'caches visualViewport devicePixelRatio innerWidth innerHeight outerWidth outerHeight screenX screenY ' +
+    'screenLeft screenTop scrollX scrollY pageXOffset pageYOffset menubar toolbar statusbar scrollbars personalbar ' +
+    'locationbar globalThis setTimeout setInterval clearTimeout clearInterval queueMicrotask structuredClone ' +
+    'requestAnimationFrame cancelAnimationFrame requestIdleCallback cancelIdleCallback atob btoa isNaN isFinite ' +
+    'parseInt parseFloat escape unescape encodeURI decodeURI encodeURIComponent decodeURIComponent ' +
+    'getComputedStyle getSelection matchMedia postMessage reportError isSecureContext crossOriginIsolated ' +
+    'trustedTypes speechSynthesis onload onerror onmessage'
+  ).split(' '),
+);
 
 const RESERVED = new Set(
   (
@@ -82,18 +107,21 @@ const RESERVED = new Set(
 
 /**
  * A JavaScript name for a shape, from its display name: "Rounded rectangle 1"
- * becomes `roundedRectangle1`. Letters from any language are kept. Falls
- * back to the shape's id, and adds a number if the name is already used.
+ * becomes `roundedRectangle1`. Letters from any language are kept, but only
+ * characters JavaScript allows in a name (so "Wheel ²" is `wheel`, never a
+ * script that won't run). Falls back to the shape's id, and adds a number if
+ * the name is already used.
  */
 export function constName(shape: Pick<ShapeData, 'name' | 'id'>, used: Set<string>): string {
-  const camel = (text: string) =>
-    text
-      .split(/[^\p{L}\p{N}]+/u)
+  const camel = (words: string) =>
+    words
+      .split(/[^\p{ID_Continue}]+/u)
       .filter(Boolean)
       .map((word, i) => (i === 0 ? word.charAt(0).toLowerCase() + word.slice(1) : word.charAt(0).toUpperCase() + word.slice(1)))
       .join('');
-  let base = camel(shape.name) || camel(shape.id) || 'shape';
-  if (!/^[\p{L}_$]/u.test(base)) base = `shape${base.charAt(0).toUpperCase()}${base.slice(1)}`;
+  const usable = (name: string) => (/^[\p{ID_Continue}$]*$/u.test(name) ? name : '');
+  let base = usable(camel(shape.name)) || camel(shape.id) || 'shape';
+  if (!/^[\p{ID_Start}_$]/u.test(base)) base = `shape${base.charAt(0).toUpperCase()}${base.slice(1)}`;
   if (RESERVED.has(base) || TAKEN.has(base)) base = `${base}Shape`;
   let name = base;
   for (let n = 2; used.has(name); n++) name = `${base}${n}`;
@@ -110,12 +138,14 @@ function num(value: number, places = 4): string {
 /** A value as JavaScript source, with plain keys unquoted. */
 function source(value: PropValue | Readonly<Record<string, unknown>> | unknown): string {
   if (typeof value === 'number') return num(value, 6);
-  if (typeof value === 'string' || typeof value === 'boolean') return JSON.stringify(value);
+  if (typeof value === 'string') return text(value);
+  if (typeof value === 'boolean') return String(value);
   if (Array.isArray(value)) return `[${value.map((item) => source(item)).join(', ')}]`;
   if (typeof value === 'object' && value !== null) {
     const entries = Object.entries(value);
     if (entries.length === 0) return '{}';
-    const keyText = (key: string) => (/^[A-Za-z_$][\w$]*$/.test(key) ? key : JSON.stringify(key));
+    // `__proto__: x`, quoted or not, would set the object's prototype; a computed key doesn't.
+    const keyText = (key: string) => (key === '__proto__' ? `[${text(key)}]` : /^[A-Za-z_$][\w$]*$/.test(key) ? key : text(key));
     return `{ ${entries.map(([key, item]) => `${keyText(key)}: ${source(item)}`).join(', ')} }`;
   }
   return 'undefined';
@@ -134,8 +164,7 @@ function shapeSource(shape: ShapeData, name: string, parent: string): string {
   for (const [key, value] of Object.entries(fadedProps(shape))) {
     lines.push(`  ${key}: ${source(value)},`);
   }
-  const title = shape.name.replace(LINE_BREAKS, ' ');
-  return `// ${title}\nconst ${name} = new Zdog.${shape.type}({\n${lines.join('\n')}\n});`;
+  return `// ${commentText(shape.name)}\nconst ${name} = new Zdog.${shape.type}({\n${lines.join('\n')}\n});`;
 }
 
 /** A group as an Anchor (or, if it draws its children together, a Group) named `name`. */
@@ -144,8 +173,7 @@ function groupSource(group: GroupData, name: string, addTo: string): string {
   if (!isZero(group.translate)) lines.push(`  translate: ${vector(group.translate)},`);
   if (!isZero(group.rotate)) lines.push(`  rotate: ${angles(group.rotate)},`);
   if (group.scale !== 1) lines.push(`  scale: ${num(group.scale)},`);
-  const title = group.name.replace(LINE_BREAKS, ' ');
-  return `// ${title}\nconst ${name} = new Zdog.${group.drawTogether ? 'Group' : 'Anchor'}({\n${lines.join('\n')}\n});`;
+  return `// ${commentText(group.name)}\nconst ${name} = new Zdog.${group.drawTogether ? 'Group' : 'Anchor'}({\n${lines.join('\n')}\n});`;
 }
 
 /** Position, rotation and scale: set on the zdog object in place. Anything else rebuilds the shape. */
@@ -157,7 +185,7 @@ const keysSource = (keys: readonly Keyframe[]) =>
 /** One entry of the script's `animated` list: a zdog object and its tracks. */
 function animatedSource(node: string, tracks: readonly (readonly [string, readonly Keyframe[]])[], extra: readonly string[] = []): string {
   const lines = [`    node: ${node},`, ...extra.map((line) => `    ${line},`), '    tracks: {'];
-  for (const [path, keys] of tracks) lines.push(`      ${JSON.stringify(path)}: ${keysSource(keys)},`);
+  for (const [path, keys] of tracks) lines.push(`      ${text(path)}: ${keysSource(keys)},`);
   lines.push('    },');
   return `  {\n${lines.join('\n')}\n  }`;
 }
@@ -425,9 +453,9 @@ const world = new Zdog.Anchor({ addTo: illo, translate: ${vector({ x: -target.x,
       : '';
 
   return `// Made with Zeditor.
-// Needs Zdog 1.x on the page first, for example:
-// <script src="https://unpkg.com/zdog@1/dist/zdog.dist.min.js"></script>
-// Draws into <canvas class="zeditor-scene"> if the page has one, or adds a ${width} x ${height} one.
+// Needs Zdog 1.x on the page first, for example from
+// https://unpkg.com/zdog@1/dist/zdog.dist.min.js
+// Draws into a canvas with class "zeditor-scene" if the page has one, or adds a ${width} x ${height} one.
 
 let element = document.querySelector('canvas.zeditor-scene');
 if (!element) {
@@ -437,7 +465,7 @@ if (!element) {
   element.height = ${height};
   document.body.append(element);
 }
-element.style.background = ${JSON.stringify(scene.settings.background)};
+element.style.background = ${text(scene.settings.background)};
 
 const DEG = Zdog.TAU / 360;
 

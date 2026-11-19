@@ -18,6 +18,15 @@ describe('repairScene', () => {
     expect(repairScene(moved, scene)).toBe(moved);
   });
 
+  it('copes with an id that is now a different kind of object, as when a scene is opened', () => {
+    const before = starterScene();
+    const cross = findShape(before, 'shape-1')!;
+    expect(cross.type).toBe('Shape');
+    const box = { ...createShape(before, 'Box'), id: 'shape-1', name: 'Box A' };
+    const opened: Scene = { ...before, shapes: [box] };
+    expect(repairScene(opened, before)).toBe(opened);
+  });
+
   it('only looks at objects that changed, and keeps the rest as they are', () => {
     const scene = starterScene();
     const next = withShape(scene, 'box-1', (shape) => ({ ...shape, translate: { ...shape.translate, x: 1e9 } }));

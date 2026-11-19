@@ -34,4 +34,22 @@ describe('parseCssColor', () => {
       expect(parseCssColor(bad), bad).toBeNull();
     }
   });
+
+  it('refuses what browsers refuse: empty parts, mixed units, odd numbers', () => {
+    const bad = [
+      'hsl(,50%,50%)',
+      'hsl(0x10, 50%, 50%)',
+      'hsl(10%, 50%, 50%)',
+      'hsl(1e999, 50%, 50%)',
+      'rgb(100%, 0, 0)',
+      'rgb(1., 2, 3)',
+      'rgb(1, 2, 3,)',
+      'rgb(, 2, 3)',
+      'rgb(1 2 3)',
+      'rgb(1e999, 0, 0)',
+    ];
+    for (const text of bad) expect(parseCssColor(text), text).toBeNull();
+    expect(parseCssColor('rgb(1e2, .5, +3)')).toEqual({ r: 100, g: 0.5, b: 3, a: 1 });
+    expect(parseCssColor('hsl(-120, 100%, 50%, 50%)')?.a).toBe(0.5);
+  });
 });

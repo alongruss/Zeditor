@@ -59,12 +59,23 @@ function parseHex(text: string): Rgba | null {
   return { r: byte(0), g: byte(2), b: byte(4), a: digits.length === 8 ? byte(6) / 255 : 1 };
 }
 
+/** A CSS number: digits with an optional fraction (never a bare "1."), and an optional exponent. */
+const NUMBER = String.raw`[+-]?(?:\d+(?:\.\d+)?|\.\d+)(?:e[+-]?\d+)?`;
+const PART = new RegExp(`^(${NUMBER})(%?)$`, 'i');
+const HUE = new RegExp(`^(${NUMBER})(deg)?$`, 'i');
+
+interface Part {
+  readonly value: number;
+  readonly percent: boolean;
+}
+
 /** A number or percentage from rgb()/hsl(), scaled so 100% = `full`. */
-function parsePart(text: string, full: number): number | null {
-  const match = /^([+-]?(?:\d+\.?\d*|\.\d+))(%?)$/.exec(text.trim());
+function readPart(text: string, full: number): Part | null {
+  const match = PART.exec(text.trim());
   if (!match) return null;
   const value = Number(match[1]);
-  return match[2] ? (value / 100) * full : value;
+  if (!Number.isFinite(value)) return null;
+  return match[2] ? { value: (value / 100) * full, percent: true } : { value, percent: false };
 }
 
 function hslToRgb(h: number, s: number, l: number): [number, number, number] {
@@ -75,27 +86,36 @@ function hslToRgb(h: number, s: number, l: number): [number, number, number] {
   return [f(0) * 255, f(8) * 255, f(4) * 255];
 }
 
+/**
+ * rgb()/hsl() in the comma form, as strictly as browsers read it: rgb() takes
+ * three numbers or three percentages (not a mix), hsl() a hue (a number,
+ * maybe in deg) and two percentages, and either may end with an alpha.
+ * Anything a browser wouldn't draw is refused, so what zdog is handed always
+ * shows.
+ */
 function parseFunction(text: string): Rgba | null {
   const match = /^(rgba?|hsla?)\(([^()]*)\)$/i.exec(text);
   if (!match) return null;
   const parts = match[2].split(',');
   if (parts.length !== 3 && parts.length !== 4) return null;
-  const alpha = parts.length === 4 ? parsePart(parts[3], 1) : 1;
+  const alpha = parts.length === 4 ? readPart(parts[3], 1) : { value: 1, percent: false };
   if (alpha === null) return null;
+  const a = clamp(alpha.value, 0, 1);
 
   if (match[1].toLowerCase().startsWith('rgb')) {
-    const [r, g, b] = parts.slice(0, 3).map((part) => parsePart(part, 255));
+    const [r, g, b] = parts.slice(0, 3).map((part) => readPart(part, 255));
     if (r === null || g === null || b === null) return null;
-    return { r: clamp(r, 0, 255), g: clamp(g, 0, 255), b: clamp(b, 0, 255), a: clamp(alpha, 0, 1) };
+    if (r.percent !== g.percent || g.percent !== b.percent) return null;
+    return { r: clamp(r.value, 0, 255), g: clamp(g.value, 0, 255), b: clamp(b.value, 0, 255), a };
   }
-  const hue = Number(parts[0].trim().replace(/deg$/i, ''));
-  const s = parsePart(parts[1], 1);
-  const l = parsePart(parts[2], 1);
-  if (!Number.isFinite(hue) || s === null || l === null || !parts[1].includes('%') || !parts[2].includes('%')) {
-    return null;
-  }
-  const [r, g, b] = hslToRgb(((hue % 360) + 360) % 360, clamp(s, 0, 1), clamp(l, 0, 1));
-  return { r, g, b, a: clamp(alpha, 0, 1) };
+  const hue = HUE.exec(parts[0].trim());
+  const s = readPart(parts[1], 1);
+  const l = readPart(parts[2], 1);
+  if (!hue || s === null || l === null || !s.percent || !l.percent) return null;
+  const h = Number(hue[1]);
+  if (!Number.isFinite(h)) return null;
+  const [r, g, b] = hslToRgb(((h % 360) + 360) % 360, clamp(s.value, 0, 1), clamp(l.value, 0, 1));
+  return { r, g, b, a };
 }
 
 /** The color as RGBA, or null if it isn't a color this editor understands. */

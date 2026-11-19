@@ -183,3 +183,18 @@ test('full flow: move with the gizmo, rotate, undo, save, reload', async ({ page
   await expect(field(page, 'Position X')).toHaveValue(movedX);
   await expect(field(page, 'Rotation Z')).toHaveValue('0');
 });
+
+test('downloads are named after the opened file, made safe, and go back to "scene" for a new scene', async ({ page }) => {
+  await openFile(page, 'my:odd*name?.zeditor.json', JSON.stringify({ version: 4, shapes: [] }));
+  expect((await downloaded(page, () => fileMenu(page, 'Save'))).name).toBe('my-odd-name-.zeditor.json');
+
+  page.once('dialog', (dialog) => dialog.accept());
+  await fileMenu(page, 'Example: Nippu');
+  await expect(page.getByRole('list', { name: 'Shapes' }).getByRole('button', { name: /^Ground/ })).toBeVisible();
+  expect((await downloaded(page, () => fileMenu(page, 'Save'))).name).toBe('nippu.zeditor.json');
+
+  page.once('dialog', (dialog) => dialog.accept());
+  await fileMenu(page, 'New scene');
+  await expect(shapeItems(page)).toHaveCount(0);
+  expect((await downloaded(page, () => fileMenu(page, 'Save'))).name).toBe('scene.zeditor.json');
+});

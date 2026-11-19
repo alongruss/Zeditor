@@ -155,6 +155,28 @@ describe('exportZdogScript', () => {
       expect(childrenOf(run(script).illo)).toHaveLength(1);
     }
   });
+
+  it('is safe inside an HTML <script> and still runs, whatever the shapes are called', () => {
+    const names = ['</script><script>alert(1)</script>', '<!--', '__proto__', 'top', 'location', 'Wheel ²', '½', '‮evil', 'constructor'];
+    let scene = emptyScene();
+    for (const name of names) scene = addShape(scene, { ...createShape(scene, 'Box'), name });
+    // An animated one too, so the player's list of keys is written out.
+    const animated = setKey(scene.shapes[0], 'translate.x', 10, 3);
+    scene = { ...scene, shapes: [animated, ...scene.shapes.slice(1)] };
+    const script = exportZdogScript(scene, FREE);
+    expect(script).not.toMatch(/<\/script|<script|<!--/i);
+    expect(script).not.toContain('‮');
+    expect(script).not.toMatch(/^const (top|location|__proto__|wheel²) /m);
+    expect(childrenOf(run(script).illo)).toHaveLength(names.length);
+  });
+
+  it('writes a __proto__ key so it stays a key, not the prototype', () => {
+    // A shape whose color changes writes its props out as they are, for the player to rebuild it.
+    const plain = createShape(emptyScene(), 'Shape');
+    const shape = setKey({ ...plain, props: { ...plain.props, ...JSON.parse('{"__proto__": 1}') } }, 'props.color', 10, '#ff0000');
+    const script = exportZdogScript(addShape(emptyScene(), shape), FREE);
+    expect(script).toContain('["__proto__"]: 1');
+  });
 });
 
 describe('constName', () => {

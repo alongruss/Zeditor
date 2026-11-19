@@ -1,11 +1,10 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { NO_H264, canMakeVideo, evenSide } from '../export/videoSize';
+import { MAX_VIDEO_SIDE, NO_H264, canMakeVideo, evenSide, fitVideoSize } from '../export/videoSize';
 import { saveVideo } from '../files/sceneFiles';
 import { findCamera } from '../model/scene';
 import { editor } from '../state/store';
 
-/** Biggest picture side the dialog accepts, in pixels (H.264 encoders top out around here). */
-const MAX_SIDE = 4096;
+const MAX_SIDE = MAX_VIDEO_SIDE;
 
 interface ExportVideoDialogProps {
   /** The viewport's size: the default picture size. */
@@ -50,8 +49,10 @@ export function ExportVideoDialog({ defaultWidth, defaultHeight, defaultCamera, 
     };
   }, [onClose]);
 
-  const w = camera ? camera.width : readSide(width);
-  const h = camera ? camera.height : readSide(height);
+  // A camera's picture bigger than a video can hold is scaled down to fit, keeping its shape.
+  const fitted = camera && Math.max(camera.width, camera.height) > MAX_SIDE ? fitVideoSize(camera.width, camera.height) : null;
+  const w = camera ? (fitted?.width ?? camera.width) : readSide(width);
+  const h = camera ? (fitted?.height ?? camera.height) : readSide(height);
   useEffect(() => {
     if (w === null || h === null) return;
     let current = true;
@@ -129,7 +130,7 @@ export function ExportVideoDialog({ defaultWidth, defaultHeight, defaultCamera, 
               min={2}
               max={MAX_SIDE}
               step={2}
-              value={camera ? camera.width : width}
+              value={camera ? String(w) : width}
               disabled={camera !== undefined || working}
               onInput={(e) => setWidth(e.currentTarget.value)}
             />
@@ -141,13 +142,18 @@ export function ExportVideoDialog({ defaultWidth, defaultHeight, defaultCamera, 
               min={2}
               max={MAX_SIDE}
               step={2}
-              value={camera ? camera.height : height}
+              value={camera ? String(h) : height}
               disabled={camera !== undefined || working}
               onInput={(e) => setHeight(e.currentTarget.value)}
             />
           </label>
           <span class="dialog-unit">px{camera ? ` (${camera.name}'s picture size)` : ''}</span>
         </div>
+        {fitted && (
+          <p class="dialog-note">
+            Made {fitted.width} × {fitted.height} to fit what video can hold.
+          </p>
+        )}
         {rounded && w !== null && h !== null && (
           <p class="dialog-note">
             Videos need even sizes, so it will be {evenSide(w)} x {evenSide(h)}.

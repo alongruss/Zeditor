@@ -43,11 +43,12 @@ test("a change that can't be drawn is undone, the editor says so, and it's never
 });
 
 test("opening a scene that trips up the drawing goes back to the scene you had", async ({ page }) => {
-  // A Shape with no points at all: zdog can't sort or draw it.
+  // The file reader refuses what it knows zdog can't draw, so the drawing is made to fail on purpose.
+  await breakOn(page, { breakDrawOf: 'Nothing' });
   const file = {
     version: 4,
     settings: { background: '#ffffff' },
-    shapes: [{ id: 'shape-1', name: 'Nothing', type: 'Shape', props: { path: [] } }],
+    shapes: [{ id: 'shape-1', name: 'Nothing', type: 'Box' }],
   };
   const chooser = page.waitForEvent('filechooser');
   await fileMenu(page, 'Open…');

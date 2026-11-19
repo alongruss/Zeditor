@@ -1,5 +1,5 @@
 import { useCallback } from 'preact/hooks';
-import { chooseSceneFile, exportScript, saveScene } from '../files/sceneFiles';
+import { chooseSceneFile, exportScript, saveScene, setBaseName } from '../files/sceneFiles';
 import { EXAMPLES, exampleScene, type Example } from '../examples';
 import { SHAPE_TYPE_DEFS } from '../model/shapeTypes';
 import { SHAPE_TYPES } from '../model/types';
@@ -45,7 +45,9 @@ export const NEW_SCENE_PROMPT = 'Start a new, empty scene? You can undo this wit
 
 /** Asks first, then empties the scene (undoable). */
 export function confirmNewScene(): void {
-  if (window.confirm(NEW_SCENE_PROMPT)) dispatch(newScene);
+  if (!window.confirm(NEW_SCENE_PROMPT)) return;
+  dispatch(newScene);
+  setBaseName();
 }
 
 /** Asks first, then opens an example in place of the scene (undoable), from its best angle. */
@@ -54,6 +56,7 @@ export function openExample(example: Example): void {
     return;
   }
   dispatch(loadScene(exampleScene(example)));
+  setBaseName(example.id);
   setLookThrough(null);
   setFreeView(example.freeView);
   showNotice(example.credit);

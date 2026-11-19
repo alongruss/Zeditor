@@ -19,3 +19,19 @@ export function cleanName(name: string): string {
   const characters = Array.from(cleaned);
   return characters.length <= MAX_NAME_LENGTH ? cleaned : characters.slice(0, MAX_NAME_LENGTH).join('').trimEnd();
 }
+
+const MAX_FILE_NAME = 100;
+
+/**
+ * A name any computer can save a file under: no characters Windows, macOS or
+ * Linux refuse (\ / : * ? " < > |), no control characters or direction marks,
+ * no dots or spaces at either end, not a name Windows keeps for itself (CON,
+ * NUL…), and at most 100 characters. "scene" if nothing is left.
+ */
+export function safeFileName(name: string): string {
+  // Control characters and direction marks are already gone (cleanName).
+  const replaced = cleanName(name).replace(/[\\/:*?"<>|]/g, '-');
+  const cut = Array.from(replaced).slice(0, MAX_FILE_NAME).join('');
+  const trimmed = cut.replace(/[. ]+$/, '').replace(/^[. ]+/, '');
+  return trimmed === '' || /^(con|prn|aux|nul|com\d|lpt\d)(\.|$)/i.test(trimmed) ? 'scene' : trimmed;
+}
