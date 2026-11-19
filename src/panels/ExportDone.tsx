@@ -2,10 +2,10 @@ import { useEffect, useRef } from 'preact/hooks';
 import { objectAtFrame, sceneAtFrame } from '../model/evaluate';
 import { findCamera } from '../model/scene';
 import { rootTranslate, viewFromCamera, viewFromFreeView, type ViewSpec } from '../render/view';
+import { buildZdogGraph } from '../render/zdogGraph';
 import { closeExportDone, useExportDone, type ExportSummary } from '../state/dialogs';
 import { prefersReducedMotion } from '../state/motion';
 import { editor, freeView } from '../state/store';
-import { createZdogShape } from '../viewport/toZdog';
 import { Zdog } from '../zdog';
 
 /** The preview's longer side, in CSS pixels. */
@@ -61,7 +61,8 @@ function Preview({ summary }: { summary: ExportSummary }) {
         rotate: view.rotate,
         translate: rootTranslate(view),
       });
-      for (const shape of sceneAtFrame(scene, frame).shapes) illo.addChild(createZdogShape(shape));
+      // The same graph the export draws, so shapes sit where their groups put them.
+      buildZdogGraph(sceneAtFrame(scene, frame), illo);
       illo.updateRenderGraph();
     };
 
