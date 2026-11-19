@@ -9,6 +9,7 @@ import {
   EDGE_LOCK_PX,
   atWindowEdge,
   trackScrub,
+  typedNumber,
   type ScrubTrack,
 } from './fields';
 
@@ -35,7 +36,38 @@ describe('parseNumber', () => {
   });
 });
 
+describe('typedNumber', () => {
+  it('brings a number past a limit back to the limit, and says which', () => {
+    expect(typedNumber('5000', { min: 3, max: 100 })).toEqual({ value: 100, limit: 'max' });
+    expect(typedNumber('1', { min: 3, max: 100 })).toEqual({ value: 3, limit: 'min' });
+    expect(typedNumber('50', { min: 3, max: 100 })).toEqual({ value: 50, limit: null });
+    // Too big to hold at all: the top.
+    expect(typedNumber('1e999', { max: 100 })).toEqual({ value: 100, limit: 'max' });
+    expect(typedNumber('-1e999', { min: -5 })).toEqual({ value: -5, limit: 'min' });
+    expect(typedNumber('1e999')).toBeNull();
+  });
+
+  it('only reads plain decimal numbers', () => {
+    for (const text of ['0x1A', '0b101', 'Infinity', 'NaN', '1,5', '1e', '--1', '']) {
+      expect(typedNumber(text), JSON.stringify(text)).toBeNull();
+    }
+    for (const [text, value] of [['.5', 0.5], ['+5', 5], ['3.', 3], ['1e3', 1000], [' -2 ', -2]] as const) {
+      expect(typedNumber(text)?.value, text).toBe(value);
+    }
+  });
+
+  it('waits for a whole number where one is needed', () => {
+    expect(typedNumber('3.5', { integer: true })).toBeNull();
+    expect(typedNumber('4', { integer: true })).toEqual({ value: 4, limit: null });
+  });
+});
+
 describe('stepNumber', () => {
+  it('never steps a huge number to Infinity', () => {
+    expect(stepNumber(1e306, 1e306)).toBe(2e306);
+    expect(stepNumber(Number.MAX_VALUE, Number.MAX_VALUE)).toBe(Number.MAX_VALUE);
+  });
+
   it('steps without float noise', () => {
     expect(stepNumber(0.1, 0.2)).toBe(0.3);
     expect(stepNumber(1, -0.5)).toBe(0.5);

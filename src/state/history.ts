@@ -1,3 +1,4 @@
+import { repairScene } from '../model/repair';
 import type { Scene } from '../model/types';
 import type { Command, EditorState } from './commands';
 
@@ -72,8 +73,11 @@ function sameScene(a: Scene, b: Scene): boolean {
  */
 export function applyCommand(history: History, command: Command, group?: string): History {
   const { present } = history;
-  const next = command(present);
-  if (next === present) return history;
+  const proposed = command(present);
+  if (proposed === present) return history;
+  // The one place every edit passes: keep the scene within the editor's limits.
+  const scene = repairScene(proposed.scene, present.scene);
+  const next = scene === proposed.scene ? proposed : { ...proposed, scene };
 
   if (sameScene(next.scene, present.scene)) {
     if (next.selectedId === present.selectedId && next.selectedIds === present.selectedIds) return history;

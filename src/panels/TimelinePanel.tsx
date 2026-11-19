@@ -288,7 +288,10 @@ export function TimelinePanel() {
               aria-label="Easing of selected keys"
               disabled={easing === null}
               value={easing === null || easing === 'mixed' ? '' : isCurve(easing) ? 'custom' : easing}
-              onChange={(event) => setEasing(event.currentTarget.value as EasingPreset)}
+              onChange={(event) => {
+                const choice = event.currentTarget.value;
+                if ((EASINGS as readonly string[]).includes(choice)) setEasing(choice as EasingPreset);
+              }}
             >
               {(easing === null || easing === 'mixed') && <option value="">{easing === 'mixed' ? 'Mixed' : '—'}</option>}
               {easing !== null && easing !== 'mixed' && isCurve(easing) && (

@@ -62,6 +62,8 @@ export function applyMatrix(m: Matrix, v: Vec3): Vec3 {
 /** Rounds away float noise (1e-12 and the like), so values read cleanly in the Inspector. */
 const clean = (n: number, places = 6) => {
   const rounded = Math.round(n * 10 ** places) / 10 ** places;
+  // Huge numbers can't be scaled up to round: they have no float noise to lose anyway.
+  if (!Number.isFinite(rounded)) return n;
   return Object.is(rounded, -0) ? 0 : rounded;
 };
 
@@ -127,5 +129,7 @@ export function relativeTo(parent: Transform, world: Transform): Transform {
 export function directionInto(parent: Transform, worldDelta: Vec3): Vec3 {
   const d = applyMatrix(transpose(rotationMatrix(parent.rotate)), worldDelta);
   const s = parent.scale === 0 ? 1 : parent.scale;
-  return { x: d.x / s, y: d.y / s, z: d.z / s };
+  const into = { x: d.x / s, y: d.y / s, z: d.z / s };
+  // A group scaled almost to nothing: no sensible change inside it.
+  return Number.isFinite(into.x) && Number.isFinite(into.y) && Number.isFinite(into.z) ? into : { x: 0, y: 0, z: 0 };
 }

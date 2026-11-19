@@ -1,3 +1,4 @@
+import { cleanName } from '../model/names';
 import {
   addCamera,
   addShape,
@@ -255,10 +256,11 @@ export const retimeCommand =
 export const rename =
   (id: string, name: string): Command =>
   (state) => {
-    const trimmed = name.trim();
+    // Without control characters or direction marks, and not too long (names.ts).
+    const cleaned = cleanName(name);
     const object = findObject(state.scene, id);
-    if (!object || trimmed === '' || trimmed === object.name) return state;
-    return withObject(state, id, (o) => ({ ...o, name: trimmed }));
+    if (!object || cleaned === '' || cleaned === object.name) return state;
+    return withObject(state, id, (o) => ({ ...o, name: cleaned }));
   };
 
 export const newScene: Command = () => ({ scene: emptyScene(), ...only(null) });

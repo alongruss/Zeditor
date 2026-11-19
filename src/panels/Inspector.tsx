@@ -2,6 +2,7 @@ import type { ComponentChildren } from 'preact';
 import { groupKeyState, keyState } from '../model/animation';
 import { objectAtFrame, shapeAtFrame } from '../model/evaluate';
 import type { ObjectPatch } from '../model/animation';
+import { ANGLE, PICTURE_SIZE, POSITION, SCALE, VIEW_SPAN } from '../model/limits';
 import { findObject } from '../model/scene';
 import { findGroup, subtreeIds } from '../model/hierarchy';
 import { getShapeTypeDef, type FieldDef, type FieldGroup } from '../model/shapeTypes';
@@ -20,7 +21,6 @@ const ANGLE_SHIFT_STEP = 15;
 const SCALE_STEP = 0.1;
 const PERCENT_STEP = 1;
 const SPAN_STEP = 1;
-const MAX_PICTURE_SIZE = 8192;
 const AXES = ['x', 'y', 'z'] as const;
 
 /** Edits the selected shape (built from its type's field list), group or camera. */
@@ -139,7 +139,8 @@ function GroupInspector({ group }: { group: GroupData }) {
             shortLabel="Uniform"
             value={posed.scale}
             step={SCALE_STEP}
-            min={0}
+            min={SCALE.min}
+            max={SCALE.max}
             onCommit={(scale, g) => set({ scale }, g)}
           />
         </KeyedRow>
@@ -225,7 +226,8 @@ function ShapeInspector({ shape }: { shape: ShapeData }) {
             shortLabel="Uniform"
             value={posed.scale}
             step={SCALE_STEP}
-            min={0}
+            min={SCALE.min}
+            max={SCALE.max}
             onCommit={(scale, group) => set({ scale }, group)}
           />
         </KeyedRow>
@@ -320,7 +322,8 @@ function CameraInspector({ camera }: { camera: CameraData }) {
             label="View span"
             value={posed.viewSpan}
             step={SPAN_STEP}
-            min={0.01}
+            min={VIEW_SPAN.min}
+            max={VIEW_SPAN.max}
             onCommit={(viewSpan, group) => set({ viewSpan }, group)}
           />
         </KeyedRow>
@@ -334,8 +337,8 @@ function CameraInspector({ camera }: { camera: CameraData }) {
             suffix="px"
             value={camera.width}
             step={1}
-            min={1}
-            max={MAX_PICTURE_SIZE}
+            min={PICTURE_SIZE.min}
+            max={PICTURE_SIZE.max}
             integer
             onCommit={(width, group) => set({ width }, group)}
           />
@@ -345,8 +348,8 @@ function CameraInspector({ camera }: { camera: CameraData }) {
             suffix="px"
             value={camera.height}
             step={1}
-            min={1}
-            max={MAX_PICTURE_SIZE}
+            min={PICTURE_SIZE.min}
+            max={PICTURE_SIZE.max}
             integer
             onCommit={(height, group) => set({ height }, group)}
           />
@@ -391,6 +394,7 @@ interface VectorGroupProps {
 /** Position or Rotation: one keyframe button keys x, y and z together. */
 function VectorGroup({ legend, property, value, step, shiftStep, suffix, keys, onCommit }: VectorGroupProps) {
   const paths = AXES.map((axis) => `${property}.${axis}`);
+  const limits = property === 'rotate' ? ANGLE : POSITION;
   return (
     <fieldset class="group">
       <legend class="keyed-legend">
@@ -408,6 +412,8 @@ function VectorGroup({ legend, property, value, step, shiftStep, suffix, keys, o
             step={step}
             shiftStep={shiftStep}
             suffix={suffix}
+            min={limits.min}
+            max={limits.max}
             onCommit={(n, group) => onCommit({ [axis]: n }, group)}
           />
         ))}

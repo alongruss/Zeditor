@@ -28,28 +28,59 @@ export function formatNumber(value: number): string {
   return String(Math.round(value * 10000) / 10000);
 }
 
+interface NumberRules {
+  readonly min?: number;
+  readonly max?: number;
+  readonly integer?: boolean;
+}
+
+/** A plain decimal number, as people type them: "12", "-0.5", ".5", "3.", "1e3". Not "0x1A" or "Infinity". */
+const DECIMAL = /^[+-]?(\d+\.?\d*|\.\d+)(e[+-]?\d+)?$/i;
+
 /**
  * Parses what the user typed. Returns null for anything that isn't a finite
  * number within the field's rules, so half-typed text like "-" or "1." is
  * kept on screen without being applied.
  */
-export function parseNumber(
-  text: string,
-  rules: { min?: number; max?: number; integer?: boolean } = {},
-): number | null {
+export function parseNumber(text: string, rules: NumberRules = {}): number | null {
+  const typed = typedNumber(text, rules);
+  return typed && typed.limit === null ? typed.value : null;
+}
+
+/** A typed number, and which limit it was brought back to (null if none). */
+export interface TypedNumber {
+  readonly value: number;
+  readonly limit: 'min' | 'max' | null;
+}
+
+/**
+ * Reads what the user typed, bringing a number past the field's limits back
+ * to the limit (so 5000 sides becomes 100). Null for text that isn't a
+ * number yet ("-", "1e"), or isn't a whole number where one is needed.
+ */
+export function typedNumber(text: string, rules: NumberRules = {}): TypedNumber | null {
   const trimmed = text.trim();
-  if (trimmed === '') return null;
+  if (!DECIMAL.test(trimmed)) return null;
   const value = Number(trimmed);
-  if (!Number.isFinite(value)) return null;
-  if (rules.min !== undefined && value < rules.min) return null;
-  if (rules.max !== undefined && value > rules.max) return null;
+  // "1e999" is a number too big to hold: the field's top, if it has one.
+  if (!Number.isFinite(value)) {
+    if (value > 0 && rules.max !== undefined) return { value: rules.max, limit: 'max' };
+    if (value < 0 && rules.min !== undefined) return { value: rules.min, limit: 'min' };
+    return null;
+  }
+  if (rules.max !== undefined && value > rules.max) return { value: rules.max, limit: 'max' };
+  if (rules.min !== undefined && value < rules.min) return { value: rules.min, limit: 'min' };
   if (rules.integer && !Number.isInteger(value)) return null;
-  return value;
+  return { value, limit: null };
 }
 
 /** Adds `delta` to `value` and rounds away float noise, keeping within `min` and `max`. */
 export function stepNumber(value: number, delta: number, min?: number, max?: number): number {
-  const next = Math.round((value + delta) * 10000) / 10000;
+  const sum = value + delta;
+  const rounded = Math.round(sum * 10000) / 10000;
+  // Too big to round (it has no float noise to lose anyway).
+  const next = Number.isFinite(rounded) ? rounded : sum;
+  if (!Number.isFinite(next)) return value;
   return Math.min(max ?? Infinity, Math.max(min ?? -Infinity, next));
 }
 
@@ -186,6 +217,8 @@ export function NumberInput(props: NumberInputProps) {
   const { hideLabel, disabled, className } = props;
   const rules: StepRules = { step, shiftStep, min, max, integer };
   const [draft, setDraft] = useState<string | null>(null);
+  /** A short note while what's typed is past a limit: "Up to 100". */
+  const [hint, setHint] = useState<string | null>(null);
   const scrub = useRef<Scrub | null>(null);
   const suppressClick = useRef(false);
   const typing = useEditSession();
@@ -200,6 +233,15 @@ export function NumberInput(props: NumberInputProps) {
 
   const commit = (next: number, group: string) => {
     if (next !== value) onCommit(next, group);
+  };
+  const limitText = (limit: 'min' | 'max') =>
+    `${limit === 'max' ? 'Up to' : 'At least'} ${formatNumber(limit === 'max' ? max! : min!)}${suffix ?? ''}`;
+  /** Leaving the field (or Enter): a number typed below the lowest allowed becomes the lowest. */
+  const finishTyping = () => {
+    const typed = draft === null ? null : typedNumber(draft, rules);
+    if (typed?.limit === 'min') commit(typed.value, typing.group());
+    setDraft(null);
+    setHint(null);
   };
 
   const scrubHandlers = {
@@ -277,17 +319,20 @@ export function NumberInput(props: NumberInputProps) {
         onInput={(event) => {
           const text = event.currentTarget.value;
           setDraft(text);
-          const parsed = parseNumber(text, rules);
-          if (parsed !== null) commit(parsed, typing.group());
+          const typed = typedNumber(text, rules);
+          setHint(typed?.limit ? limitText(typed.limit) : null);
+          // Too big applies the top at once. Too small waits: "1" may be on its way to "15".
+          if (typed && typed.limit !== 'min') commit(typed.value, typing.group());
         }}
         onKeyDown={(event) => {
           if (event.key === 'Enter') {
-            setDraft(null);
+            finishTyping();
             return;
           }
           if (isHistoryShortcut(event)) {
             // The app's Undo/Redo runs next; show its result, not old typing.
             setDraft(null);
+            setHint(null);
             typing.end();
             return;
           }
@@ -300,10 +345,15 @@ export function NumberInput(props: NumberInputProps) {
           commit(next, typing.group());
         }}
         onBlur={() => {
-          setDraft(null);
+          finishTyping();
           typing.end();
         }}
       />
+      {hint && (
+        <span class="field-hint" aria-live="polite">
+          {hint}
+        </span>
+      )}
       {suffix && (
         <span class="field-suffix scrub" title={scrubTitle} {...scrubHandlers}>
           {suffix}

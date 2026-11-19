@@ -40,7 +40,8 @@ interface CurvesViewProps {
 }
 
 const round3 = (n: number) => Math.round(n * 1000) / 1000;
-const clamp = (n: number, [low, high]: readonly [number, number]) => Math.min(high, Math.max(low, n));
+/** `n` within `low` to `high`; `low` when it isn't a number (a box with no width gives none). */
+const clamp = (n: number, [low, high]: readonly [number, number]) => (Number.isNaN(n) ? low : Math.min(high, Math.max(low, n)));
 
 /** The object's number tracks, each with the range its curve covers. */
 function curvesOf(object: SceneObject, last: number): Curve[] {

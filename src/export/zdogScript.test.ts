@@ -330,7 +330,7 @@ describe('exportZdogScript with animation', () => {
     };
     const script = exportZdogScript(scene, FREE);
     expect(script).toContain('limits: { opacity: { min: 0, max: 1 } }');
-    expect(script).toContain('limits: { scale: { min: 0 } }');
+    expect(script).toContain('limits: { "translate.x": { min: -100000, max: 100000 }, scale: { min: 0, max: 1000 } }');
     expect(script).toContain('[0.3, -0.8, 0.7, 1.8]');
     const ran = runAnimated(script);
     const shapes = scene.shapes.filter((shape) => shape.tracks);
