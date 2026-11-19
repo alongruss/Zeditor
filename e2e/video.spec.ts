@@ -178,3 +178,20 @@ test('shows how far it has got, and Stop stops it without a download', async ({ 
   expect(downloads).toBe(0);
   await expect(dialogOf(page)).toBeVisible();
 });
+
+test('a camera picture bigger than video can hold is made smaller to fit, keeping its shape', async ({ page }) => {
+  await page.getByRole('button', { name: 'Add ▾' }).click();
+  await page.getByRole('menuitem', { name: 'Camera' }).click();
+  await field(page, 'Width').fill('8192');
+  await field(page, 'Width').press('Tab');
+  await field(page, 'Height').fill('4608');
+  await field(page, 'Height').press('Tab');
+
+  await openVideoDialog(page);
+  await dialogOf(page).getByLabel('View').selectOption({ label: 'Camera 1' });
+  await expect(dialogOf(page)).toContainText('Made 4096 × 2304 to fit what video can hold.');
+  await expect(dialogOf(page).getByLabel('Width')).toHaveValue('4096');
+  await expect(dialogOf(page).getByLabel('Height')).toHaveValue('2304');
+  // Not the message for a browser that can't make video at all.
+  await expect(dialogOf(page)).not.toContainText("can't make MP4");
+});

@@ -1,5 +1,5 @@
 import { expect, test } from './fixtures';
-import { field, inspector, openEditorForEachTest, treeItem } from './helpers';
+import { field, fileMenu, inspector, openEditorForEachTest, treeItem } from './helpers';
 
 // Every test here also fails if the page throws (openEditorForEachTest).
 openEditorForEachTest(test);
@@ -82,4 +82,39 @@ test('a name loses control characters and direction marks, and stops at 200 char
   const text = (await inspector(page).locator('.inspector-name').textContent()) ?? '';
   expect(text.startsWith('evil cone x')).toBe(true);
   expect(Array.from(text)).toHaveLength(200);
+});
+
+/** Opens `text` as a scene file through File > Open. */
+async function openFileText(page: import('@playwright/test').Page, text: string) {
+  const chooser = page.waitForEvent('filechooser');
+  await fileMenu(page, 'Open…');
+  await (await chooser).setFiles({ name: 'crafted.zeditor.json', mimeType: 'application/json', buffer: Buffer.from(text) });
+}
+
+test('a crafted file is refused with a calm note, and the scene stays as it was', async ({ page }) => {
+  const shape = (extra: Record<string, unknown>) => JSON.stringify({ version: 4, shapes: [{ id: 'crafted-1', name: 'Crafted', ...extra }] });
+  const files: [string, string, RegExp][] = [
+    ['an empty path', shape({ type: 'Shape', props: { path: [] } }), /"path"/],
+    ['a bezier with one point', shape({ type: 'Shape', props: { path: [{}, { bezier: [{ x: 1 }] }] } }), /"path"/],
+    ['a billion sides', shape({ type: 'Polygon', props: { sides: 1e9 } }), /"sides" must be a whole number from 3 to 100/],
+    ['a value that is null', shape({ type: 'Box', props: { width: null } }), /"width"/],
+    ['a 10,000-character type', shape({ type: 'x'.repeat(10000) }), /unknown type: "x{40}…"/],
+  ];
+  for (const [what, text, says] of files) {
+    await openFileText(page, text);
+    const note = page.getByRole('alert');
+    await expect(note, what).toContainText("Couldn't open crafted.zeditor.json.");
+    await expect(note, what).toContainText(says);
+    expect((await note.textContent())?.length ?? 0, what).toBeLessThan(200);
+    await expect(treeItem(page, 'Cone 1'), what).toBeVisible();
+    await expect(treeItem(page, 'Crafted'), what).toHaveCount(0);
+  }
+});
+
+test('a file with a very long name opens with the name cut to 200 characters', async ({ page }) => {
+  await openFileText(page, JSON.stringify({ version: 4, shapes: [{ id: 'long-1', name: `Long ${'n'.repeat(10000)}`, type: 'Box' }] }));
+  const item = page.getByRole('list', { name: 'Shapes' }).getByRole('button', { name: /^Long n+/ });
+  await expect(item).toBeVisible();
+  await item.click();
+  expect(Array.from((await inspector(page).locator('.inspector-name').textContent()) ?? '')).toHaveLength(200);
 });

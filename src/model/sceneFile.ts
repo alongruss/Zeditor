@@ -68,6 +68,17 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+/**
+ * Something from the file, shown in a message: at most 40 characters, with
+ * control characters and direction marks taken out, so a message can't be
+ * flooded or turned around by what the file holds.
+ */
+function quote(value: unknown): string {
+  const text = cleanName(typeof value === 'string' ? value : (JSON.stringify(value) ?? String(value)));
+  const chars = Array.from(text);
+  return chars.length > 40 ? `${chars.slice(0, 40).join('')}…` : text;
+}
+
 const isFiniteNumber = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
 
 /**
@@ -79,20 +90,60 @@ export function isSafeColor(value: unknown): value is string {
   return typeof value === 'string' && value.length <= 64 && parseCssColor(value) !== null;
 }
 
-/** A zdog path: a list of points and commands made only of numbers. */
-function isPathData(value: unknown): value is PathData {
-  const numbersOnly = (node: unknown, depth: number): boolean => {
-    if (isFiniteNumber(node)) return true;
-    if (depth > 3) return false;
-    if (Array.isArray(node)) return node.length <= 4 && node.every((item) => numbersOnly(item, depth + 1));
-    if (isRecord(node)) return Object.values(node).every((item) => numbersOnly(item, depth + 1));
-    return false;
-  };
-  return (
-    Array.isArray(value) &&
-    value.length <= MAX_PATH_POINTS &&
-    value.every((point) => isRecord(point) && numbersOnly(point, 0))
-  );
+/** How many points each zdog path command takes. */
+const PATH_COMMANDS: Readonly<Record<string, number>> = { line: 1, move: 1, arc: 2, bezier: 3 };
+const AXES = ['x', 'y', 'z'] as const;
+
+/** A path point: only x, y and z, each a plain number, rebuilt as a fresh object. */
+function readPathPoint(node: unknown): Record<string, number> | null {
+  if (!isRecord(node)) return null;
+  const keys = Object.keys(node);
+  if (!keys.every((key) => (AXES as readonly string[]).includes(key))) return null;
+  const point: Record<string, number> = {};
+  for (const axis of AXES) {
+    if (!Object.hasOwn(node, axis)) continue;
+    const n = node[axis];
+    if (!isFiniteNumber(n)) return null;
+    point[axis] = n;
+  }
+  return point;
+}
+
+/**
+ * A zdog path zdog can draw: at least one part, each a point `{x, y, z}` or
+ * one command with the right number of points (`line` and `move` take one,
+ * `arc` two, `bezier` three). The path is rebuilt from what was checked, so
+ * nothing else (an unknown key, `__proto__`) is carried along. Null when it
+ * doesn't fit.
+ */
+export function readPath(value: unknown): PathData | null {
+  if (!Array.isArray(value) || value.length === 0 || value.length > MAX_PATH_POINTS) return null;
+  const path: Record<string, unknown>[] = [];
+  for (const part of value) {
+    if (!isRecord(part)) return null;
+    const keys = Object.keys(part);
+    const method = keys.length === 1 && Object.hasOwn(PATH_COMMANDS, keys[0]) ? keys[0] : null;
+    if (method === null) {
+      const point = readPathPoint(part);
+      if (!point) return null;
+      path.push(point);
+      continue;
+    }
+    const raw = part[method];
+    const single = !Array.isArray(raw);
+    // line and move may give their one point without a list.
+    if (single && PATH_COMMANDS[method] !== 1) return null;
+    const rawPoints: unknown[] = single ? [raw] : raw;
+    if (rawPoints.length !== PATH_COMMANDS[method]) return null;
+    const points: Record<string, number>[] = [];
+    for (const rawPoint of rawPoints) {
+      const point = readPathPoint(rawPoint);
+      if (!point) return null;
+      points.push(point);
+    }
+    path.push({ [method]: single ? points[0] : points });
+  }
+  return path;
 }
 
 function readVec3(value: unknown, where: string): Vec3 {
@@ -108,15 +159,12 @@ function readVec3(value: unknown, where: string): Vec3 {
 /** A prop value checked against what its field (or, for `path`, its default) expects. */
 function readProp(key: string, value: unknown, field: FieldDef | undefined, where: string): PropValue {
   const bad = () => fail(`${where}: "${key}" has a value that doesn't fit.`);
-  if (key === 'path') return isPathData(value) ? structuredClone(value) : bad();
+  if (key === 'path') return readPath(value) ?? bad();
   switch (field?.kind) {
     case 'number':
-      return isFiniteNumber(value) &&
-        value >= field.min &&
-        (field.max === undefined || value <= field.max) &&
-        (!field.integer || Number.isInteger(value))
+      return isFiniteNumber(value) && value >= field.min && value <= field.max && (!field.integer || Number.isInteger(value))
         ? value
-        : bad();
+        : fail(`${where}: "${key}" must be a ${field.integer ? 'whole number' : 'number'} from ${field.min} to ${field.max}.`);
     case 'color':
       return isSafeColor(value) ? value : bad();
     case 'boolean':
@@ -152,7 +200,7 @@ function readTracks(raw: unknown, type: ObjectType, where: string): Tracks | und
   const tracks: Record<string, readonly Keyframe[]> = {};
   for (const [path, rawKeys] of Object.entries(raw)) {
     const spec = propertySpec(type, path);
-    if (!spec) return fail(`${where}: "${path}" can't be animated.`);
+    if (!spec) return fail(`${where}: "${quote(path)}" can't be animated.`);
     if (!Array.isArray(rawKeys) || rawKeys.length === 0 || rawKeys.length > MAX_KEYS) {
       return fail(`${where}: the "${path}" track has no keys, or too many.`);
     }
@@ -257,14 +305,14 @@ function checkHierarchy(shapes: readonly ShapeData[], groups: readonly GroupData
   const byId = new Map(groups.map((group) => [group.id, group]));
   for (const object of [...groups, ...shapes]) {
     if (object.parent !== undefined && !byId.has(object.parent)) {
-      fail(`"${object.name}" is in a group that isn't in the scene (${object.parent}).`);
+      fail(`"${quote(object.name)}" is in a group that isn't in the scene.`);
     }
   }
   for (const group of groups) {
     let depth = 0;
     let parent = group.parent === undefined ? undefined : byId.get(group.parent);
     while (parent) {
-      if (parent.id === group.id) fail(`The group "${group.name}" is inside itself.`);
+      if (parent.id === group.id) fail(`The group "${quote(group.name)}" is inside itself.`);
       if (++depth > MAX_DEPTH) fail(`Groups are nested more than ${MAX_DEPTH} deep.`);
       parent = parent.parent === undefined ? undefined : byId.get(parent.parent);
     }
@@ -277,7 +325,7 @@ function readShape(raw: unknown, index: number, version: number): ShapeData {
 
   const type = raw.type;
   if (typeof type !== 'string' || !(SHAPE_TYPES as readonly string[]).includes(type)) {
-    return fail(`${where} has an unknown type: ${JSON.stringify(type)}.`);
+    return fail(`${where} has an unknown type: "${quote(type)}".`);
   }
   const def = getShapeTypeDef(type as ShapeType);
 
@@ -317,7 +365,7 @@ function readShape(raw: unknown, index: number, version: number): ShapeData {
   return tracks ? { ...shape, tracks } : shape;
 }
 
-/** Reads a scene file's text, checking everything. Never throws. */
+/** Reads a scene file's text, checking everything. Never throws, and what it hands back can be drawn. */
 export function parseSceneFile(text: string): SceneFileResult {
   try {
     let data: unknown;
@@ -336,7 +384,7 @@ export function parseSceneFile(text: string): SceneFileResult {
             `This version opens file version ${SCENE_VERSION}.`,
         );
       }
-      return fail(`${NOT_A_SCENE} (Unknown file version: ${JSON.stringify(version)}.)`);
+      return fail(`${NOT_A_SCENE} (Unknown file version: ${quote(version)}.)`);
     }
     if (data.shapes.length > MAX_SHAPES) return fail(`This scene has more than ${MAX_SHAPES} shapes.`);
 
@@ -359,7 +407,7 @@ export function parseSceneFile(text: string): SceneFileResult {
     const groups = rawGroups.map(readGroup);
     const ids = new Set<string>();
     for (const object of [...shapes, ...groups, ...cameras]) {
-      if (ids.has(object.id)) return fail(`Two objects have the same id: ${object.id}.`);
+      if (ids.has(object.id)) return fail(`Two objects have the same id: ${quote(object.id)}.`);
       ids.add(object.id);
     }
     checkHierarchy(shapes, groups);
@@ -369,6 +417,7 @@ export function parseSceneFile(text: string): SceneFileResult {
     return { ok: true, scene: repairScene(scene) };
   } catch (error) {
     if (error instanceof SceneFileError) return { ok: false, error: error.message };
-    throw error;
+    // Something no check foresaw: still a calm refusal, never a crash.
+    return { ok: false, error: "This file couldn't be read." };
   }
 }

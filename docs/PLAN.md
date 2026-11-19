@@ -505,10 +505,19 @@ the tab or blank the page. Three phases, one PR each:
   drag inside it into Infinity. Names lose control characters and direction marks, and stop at 200
   characters. A fast-check property test makes random edits with hostile values and checks that the
   result can always be saved and opened again.
-- **S3, files and exports.** A real check for path data, which today lets an empty path in. Error
-  messages are short. The colour check follows the browser's rules. The Zdog script escapes
-  `</script>` and only makes valid variable names. The MP4 size through a camera, and download names,
-  are made safe. Fuzz tests use fast-check.
+- **S3, files and exports.** Done. Paths in a file must be ones zdog can draw: at least one part, each
+  a point or a command with the right number of points. They are rebuilt from what was checked, so
+  nothing else (`__proto__`, unknown keys) rides along. Messages quote at most 40 characters of the
+  file, cleaned, and say what range a number must be in ("sides" from 3 to 100); anything no check
+  foresaw is "This file couldn't be read." The colour check follows the browser's grammar (no empty
+  parts, no mixed rgb() units, no "1."), checked against `CSS.supports` in a browser test. The Zdog
+  script writes every "<" in strings and comments as `<`, so it can be pasted into an inline
+  `<script>`, and steers shape names clear of the page's global names (`top`, `location`…); names in
+  any language are still kept, with only characters JavaScript allows. A camera picture over 4096 is
+  filmed smaller, framed the same, and the MP4 dialog says so. Download names are made safe for every
+  computer and go back to "scene" for a new scene (an example's are its own). The Lottie size
+  estimate is worked out a few frames at a time, stops when an option changes, and is what Export
+  saves. Fuzz tests feed random and mutated files to the reader and draw whatever opens.
 
 ## Later
 

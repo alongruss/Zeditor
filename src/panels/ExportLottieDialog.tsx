@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { lottieFrames, lottieText, saveLottie, type LottieSettings } from '../files/sceneFiles';
+import { lottieFrames, lottieTextSoon, saveLottie, type LottieResult, type LottieSettings } from '../files/sceneFiles';
 import { isAnimated } from '../model/evaluate';
 import { findCamera } from '../model/scene';
 import { showExportDone } from '../state/dialogs';
@@ -76,17 +76,21 @@ export function ExportLottieDialog({ defaultWidth, defaultHeight, defaultCamera,
   // A camera's picture size is its own (set in the Inspector).
   const w = camera ? camera.width : readSide(width);
   const h = camera ? camera.height : readSide(height);
-  // Baking every frame can take a moment, so the estimate is worked out after
-  // the dialog has opened (and again after each change), not while it opens.
-  const [result, setResult] = useState<ReturnType<typeof lottieText> | null>(null);
+  // Baking every frame can take a while, so the estimate is worked out a few
+  // frames at a time after the dialog has opened, with the page answering in
+  // between. A change to the options (or closing) stops it and starts again.
+  const [result, setResult] = useState<LottieResult | null>(null);
   useEffect(() => {
     setResult(null);
     if (w === null || h === null) return;
-    const timer = setTimeout(
-      () => setResult(lottieText({ camera: cameraId, width: w, height: h, background, frames, mode })),
-      0,
+    const controller = new AbortController();
+    lottieTextSoon({ camera: cameraId, width: w, height: h, background, frames, mode }, controller.signal).then(
+      (made) => controller.signal.aborted || setResult(made),
+      (error: unknown) => {
+        if (!(error instanceof DOMException && error.name === 'AbortError')) throw error;
+      },
     );
-    return () => clearTimeout(timer);
+    return () => controller.abort();
   }, [cameraId, w, h, background, frames, mode]);
   const problem =
     w === null || h === null
@@ -103,7 +107,8 @@ export function ExportLottieDialog({ defaultWidth, defaultHeight, defaultCamera,
           event.preventDefault();
           if (w === null || h === null) return;
           const settings = { camera: cameraId, width: w, height: h, background, frames, mode };
-          const bytes = saveLottie(settings);
+          // The estimate is the file itself: saved as it is, when it's done.
+          const bytes = saveLottie(settings, result && 'text' in result ? result : undefined);
           if (bytes === null) return;
           dialogRef.current?.close();
           showExportDone({ frames: lottieFrames(settings), fps, bytes, camera: cameraId, width: w, height: h });

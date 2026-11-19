@@ -1,10 +1,18 @@
 import { LottieExportError } from '../export/lottie/bake';
-import { allFrames, lottieExport } from '../export/lottie/exportScene';
-import { VideoExportError } from '../export/videoSize';
+import {
+  allFrames,
+  lottieExport,
+  lottieExportInChunks,
+  type LottieExport,
+  type LottieExportOptions,
+  type ViewSource,
+} from '../export/lottie/exportScene';
+import { MAX_VIDEO_SIDE, VideoExportError, fitVideoSize } from '../export/videoSize';
 import { exportZdogScript, scriptAnimates, scriptViewFromCamera, scriptViewFromFreeView } from '../export/zdogScript';
 import { objectAtFrame } from '../model/evaluate';
 import { findCamera } from '../model/scene';
 import type { Scene } from '../model/types';
+import { safeFileName } from '../model/names';
 import { MAX_SCENE_FILE_BYTES, SCENE_FILE_EXTENSION, parseSceneFile, serializeScene } from '../model/sceneFile';
 import { loadScene } from '../state/commands';
 import { showNotice } from '../state/notice';
@@ -12,8 +20,13 @@ import { viewFromCamera, viewFromFreeView, type ViewSpec } from '../render/view'
 import { dispatch, editor, freeView, lookThrough } from '../state/store';
 import { currentFrame } from '../state/timeline';
 
-/** Base name for saved and exported files: the last opened file's, or "scene". */
+/** Base name for saved and exported files: the last opened file's or example's, or "scene". */
 let baseName = 'scene';
+
+/** Saved and exported files are named after `name` from now on ("scene" by default, as for a new scene). */
+export function setBaseName(name = 'scene'): void {
+  baseName = safeFileName(name);
+}
 
 /** Starts a download of `text` (or a file's contents) as a file called `fileName`. */
 function download(fileName: string, text: string | Blob, type: string): void {
@@ -60,7 +73,7 @@ export async function openFile(file: File): Promise<void> {
   dispatch(loadScene(result.scene));
   // It couldn't be drawn and was undone (the editor already said so).
   if (editor.get().scene !== result.scene) return;
-  baseName = file.name.replace(/\.zeditor\.json$|\.json$/i, '') || 'scene';
+  setBaseName(file.name.replace(/\.zeditor\.json$|\.json$/i, ''));
   showNotice(`Opened ${file.name}. Ctrl+Z goes back to the scene you had.`);
 }
 
@@ -125,11 +138,43 @@ export interface LottieSettings {
  * can't be made. With keys, also the frames where a new layer starts (see
  * export/lottie/keys.ts).
  */
-export function lottieText(
-  settings: LottieSettings,
-): { readonly text: string; readonly breaks: readonly number[]; readonly bakedInstead: boolean } | { readonly error: string } {
+export function lottieText(settings: LottieSettings): LottieResult {
+  const made = lottieJob(settings);
+  if ('error' in made) return made;
+  try {
+    return asText(lottieExport(...made.job));
+  } catch (error) {
+    if (error instanceof LottieExportError) return { error: error.message };
+    throw error;
+  }
+}
+
+/**
+ * As lottieText, worked out a few frames at a time so the page keeps
+ * answering, and stopped (with an AbortError) when `signal` is. For the
+ * dialog's size estimate.
+ */
+export async function lottieTextSoon(settings: LottieSettings, signal: AbortSignal): Promise<LottieResult> {
+  const made = lottieJob(settings);
+  if ('error' in made) return made;
+  try {
+    return asText(await lottieExportInChunks(...made.job, signal));
+  } catch (error) {
+    if (error instanceof LottieExportError) return { error: error.message };
+    throw error;
+  }
+}
+
+export type LottieResult =
+  | { readonly text: string; readonly breaks: readonly number[]; readonly bakedInstead: boolean }
+  | { readonly error: string };
+
+const asText = ({ animation, breaks, bakedInstead }: LottieExport): LottieResult => ({ text: JSON.stringify(animation), breaks, bakedInstead });
+
+/** What lottieExport is given for these settings, or why it can't be made. */
+function lottieJob(settings: LottieSettings): { readonly job: [Scene, ViewSource, LottieExportOptions] } | { readonly error: string } {
   const { scene } = editor.get();
-  let view: ViewSpec | ((frame: number) => ViewSpec) | null;
+  let view: ViewSource | null;
   if (settings.camera === null) {
     view = viewFromFreeView(freeView.get(), settings.width, settings.height);
     if (!view) return { error: 'Width and height must be more than 0.' };
@@ -138,27 +183,16 @@ export function lottieText(
     if (!camera) return { error: 'That camera is no longer in the scene.' };
     view = (frame) => viewFromCamera(objectAtFrame(camera, frame));
   }
-  try {
-    const frames = lottieFrames(settings);
-    const { animation, breaks, bakedInstead } = lottieExport(scene, view, {
-      background: settings.background,
-      name: baseName,
-      frames,
-      mode: settings.mode,
-    });
-    return { text: JSON.stringify(animation), breaks, bakedInstead };
-  } catch (error) {
-    if (error instanceof LottieExportError) return { error: error.message };
-    throw error;
-  }
+  return { job: [scene, view, { background: settings.background, name: baseName, frames: lottieFrames(settings), mode: settings.mode }] };
 }
 
 /**
- * Downloads the scene as a Lottie file. Returns the file's size in bytes, or
- * null (with a notice) if it couldn't be made.
+ * Downloads the scene as a Lottie file (`made` for these settings, if it's
+ * already been worked out). Returns the file's size in bytes, or null (with a
+ * notice) if it couldn't be made.
  */
-export function saveLottie(settings: LottieSettings): number | null {
-  const result = lottieText(settings);
+export function saveLottie(settings: LottieSettings, made?: LottieResult): number | null {
+  const result = made ?? lottieText(settings);
   if ('error' in result) {
     showNotice(`Couldn't export Lottie. ${result.error}`, 'error');
     return null;
@@ -190,7 +224,9 @@ function videoView(settings: VideoSettings): { readonly viewAt: (frame: number) 
   }
   const camera = findCamera(scene, settings.camera);
   if (!camera) return { error: 'That camera is no longer in the scene.' };
-  return { viewAt: (frame) => viewFromCamera(objectAtFrame(camera, frame)) };
+  // A picture bigger than a video can hold is filmed smaller, framed the same.
+  const size = Math.max(camera.width, camera.height) > MAX_VIDEO_SIDE ? fitVideoSize(camera.width, camera.height) : null;
+  return { viewAt: (frame) => viewFromCamera({ ...objectAtFrame(camera, frame), ...size }) };
 }
 
 /**
