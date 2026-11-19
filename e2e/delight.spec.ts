@@ -28,7 +28,7 @@ async function animateConeX(page: Page) {
 async function exportLottie(page: Page) {
   await fileMenu(page, 'Export Lottie…');
   const dialog = page.getByRole('dialog', { name: 'Export Lottie' });
-  await expect(dialog.getByText(/^About \d+ KB\.$/)).toBeVisible();
+  await expect(dialog.getByText(/^About \d+ (KB|bytes)\.$/)).toBeVisible();
   const download = page.waitForEvent('download');
   await dialog.getByRole('button', { name: 'Export' }).click();
   await download;
@@ -86,6 +86,31 @@ test('the export preview loops, or holds still when less motion is asked for', a
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await exportLottie(page);
   await expect(card(page).locator('canvas.export-preview')).toHaveAttribute('data-playing', 'false');
+});
+
+/** How many of the export preview's pixels have anything drawn on them. */
+const previewPaint = (page: Page) =>
+  card(page)
+    .locator('canvas.export-preview')
+    .evaluate((canvas: HTMLCanvasElement) => {
+      const { data } = canvas.getContext('2d')!.getImageData(0, 0, canvas.width, canvas.height);
+      let painted = 0;
+      for (let i = 3; i < data.length; i += 4) if (data[i] > 0) painted += 1;
+      return painted;
+    });
+
+test('the export preview draws shapes where their groups put them', async ({ page }) => {
+  await treeItem(page, 'Cone 1').click();
+  await page.keyboard.press('Control+a');
+  await page.keyboard.press('Control+g'); // every shape in Group 1, which is selected
+  await exportLottie(page);
+  expect(await previewPaint(page)).toBeGreaterThan(0);
+
+  // The group carries every shape out of view, so the preview shows nothing.
+  await field(page, 'Position X').fill('1000');
+  await field(page, 'Position X').press('Tab');
+  await exportLottie(page);
+  expect(await previewPaint(page)).toBe(0);
 });
 
 test('the first key opens the timeline and says what to do next, once', async ({ page }) => {
