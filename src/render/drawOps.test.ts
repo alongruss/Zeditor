@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { objectAtFrame, sceneAtFrame } from '../model/evaluate';
 import { parseSceneFile } from '../model/sceneFile';
-import { addShape, createShape, emptyScene, updateShape } from '../model/scene';
+import { addShape, createGroup, createShape, emptyScene, updateShape } from '../model/scene';
 import { starterScene } from '../model/starterScene';
 import { SHAPE_TYPES, type Scene, type ShapeData, type ShapeType } from '../model/types';
 import { arcSegments, createRecorder, recordFrame, type DrawOp, type Point, type Segment } from './drawOps';
@@ -200,6 +200,21 @@ describe('recordFrame', () => {
     const centered = recordFrame(sceneOf(dot), { ...FRONT, target: { x: 0, y: 0, z: 2 } })[0];
     const cx = centered.subpaths[0].segments.map((s) => s.to.x);
     expect((Math.max(...cx) + Math.min(...cx)) / 2).toBeCloseTo(100);
+  });
+
+  it('draws the shapes of a group inside a group that draws together, in order, whatever order the groups are listed in', () => {
+    const together = { ...createGroup(emptyScene()), drawTogether: true };
+    const inner = { ...createGroup({ ...emptyScene(), groups: [together] }), parent: together.id };
+    const red = shapeOf('Ellipse', { parent: inner.id, translate: { x: 0, y: 0, z: -5 }, props: { ...shapeOf('Ellipse').props, color: '#ff0000' } });
+    const blue = shapeOf('Ellipse', { id: 'ellipse-2', parent: together.id, translate: { x: 0, y: 0, z: 5 }, props: { ...shapeOf('Ellipse').props, color: '#0000ff' } });
+    for (const groups of [
+      [together, inner],
+      [inner, together],
+    ]) {
+      const scene = { ...sceneOf(red, blue), groups };
+      // A Group draws its groups, then its shapes: the inner group's red first, though it's nearer.
+      expect(recordFrame(scene, { ...FRONT, rotate: { x: 0, y: Math.PI, z: 0 } }).map((op) => op.paints[0].color)).toEqual(['#ff0000', '#0000ff']);
+    }
   });
 
   it('records the whole starter scene, with faded colors for opacity', () => {

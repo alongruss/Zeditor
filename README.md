@@ -63,6 +63,15 @@ File ▾ › Example: Nippu is Robin Davey's illustration "Nippu", made with Zdo
 `src/examples/nippu.zeditor.json`. File ▾ › Example: Nippu, walking is the same scene with the
 couple walking in place; `scripts/make-walk.mjs` adds the walk.
 
+File ▾ › Example: All the bombs at once is an unofficial fan tribute to
+[Kurzgesagt – In a Nutshell](https://www.youtube.com/@kurzgesagt)'s video
+["What If We Detonated All Nuclear Bombs at Once?"](https://www.youtube.com/watch?v=JyECrGp-Sw8)
+(31 March 2019): four of its scenes (the stockpile of warheads, the button and the fireball, the
+mushroom cloud, and the nuclear winter that turns green again), rebuilt from Zdog shapes and
+filmed by one camera that cuts between them. The story, the ideas and the look are Kurzgesagt's;
+the example isn't made or endorsed by them, and their work isn't covered by this project's MIT
+license. `scripts/make-all-the-bombs.mjs` makes `src/examples/all-the-bombs.zeditor.json`.
+
 ## License
 
 MIT
