@@ -162,6 +162,22 @@ test.describe('File ▾ › Example: Nippu, walking', () => {
 });
 
 
+test.describe('File ▾ › Example: All the bombs at once', () => {
+  openEditorForEachTest(test);
+
+  test('opens through its Film camera, credits Kurzgesagt, and undoes', async ({ page }) => {
+    page.once('dialog', (dialog) => dialog.accept());
+    await fileMenu(page, 'Example: All the bombs at once');
+    const stockpile = page.getByRole('list', { name: 'Shapes' }).getByRole('button', { name: /^1 · The stockpile/ });
+    await expect(stockpile).toBeVisible();
+    await expect(page.getByRole('status')).toContainText('Kurzgesagt');
+    await expect(page.getByRole('combobox', { name: 'View' }).locator('option:checked')).toHaveText('Film');
+    await expect(page.locator('svg.scene [data-shape-id]').first()).toBeAttached();
+    await page.getByRole('button', { name: 'Undo', exact: true }).click();
+    await expect(stockpile).toHaveCount(0);
+  });
+});
+
 test.describe('the walking example as an animated Zdog script', () => {
   /** The script's canvas pixels, after it has drawn: in a page of its own, as its names are global. */
   async function pixelsOf(editorPage: Page, script: string, frame?: number): Promise<Uint8Array> {

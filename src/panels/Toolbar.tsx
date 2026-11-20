@@ -51,13 +51,20 @@ export function confirmNewScene(): void {
 }
 
 /** Asks first, then opens an example in place of the scene (undoable), from its best angle. */
-export function openExample(example: Example): void {
+export async function openExample(example: Example): Promise<void> {
   if (!window.confirm(`Open the "${example.title.replace(/^Example: /, '')}" example in place of this scene? You can undo this with Ctrl+Z.`)) {
     return;
   }
-  dispatch(loadScene(exampleScene(example)));
+  let scene;
+  try {
+    scene = await exampleScene(example);
+  } catch {
+    showNotice(`Couldn't load the ${example.title.replace(/^Example: /, '')} example. Check your connection and try again.`, 'error');
+    return;
+  }
+  dispatch(loadScene(scene));
   setBaseName(example.id);
-  setLookThrough(null);
+  setLookThrough(example.lookThrough ?? null);
   setFreeView(example.freeView);
   showNotice(example.credit);
 }
@@ -75,7 +82,7 @@ export function FileMenu() {
         { label: 'Export Zdog JS', onSelect: () => void exportScript() },
         { label: 'Export Lottie…', onSelect: openLottieDialog },
         { label: 'Export video (MP4)…', onSelect: openVideoDialog },
-        ...EXAMPLES.map((example) => ({ label: example.title, onSelect: () => openExample(example) })),
+        ...EXAMPLES.map((example) => ({ label: example.title, onSelect: () => void openExample(example) })),
         { label: 'Theme: match system', checked: theme === 'system', onSelect: () => setTheme('system') },
         { label: 'Theme: light', checked: theme === 'light', onSelect: () => setTheme('light') },
         { label: 'Theme: dark', checked: theme === 'dark', onSelect: () => setTheme('dark') },

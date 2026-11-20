@@ -1,6 +1,5 @@
 import type * as ZdogTypes from 'zdog';
-import { childrenOf } from '../model/hierarchy';
-import type { GroupData, Scene } from '../model/types';
+import type { GroupData, Placeable, Scene } from '../model/types';
 import { createZdogShape, zdogTransform } from '../viewport/toZdog';
 import { Zdog } from '../zdog';
 
@@ -29,17 +28,11 @@ export function isZdogGroup(node: Node): boolean {
   return node instanceof Zdog.Group;
 }
 
-/**
- * Makes `kids` the node's children, in this order. A zdog Group keeps a
- * cached list of what it draws and never refreshes it by itself, so it is
- * refreshed here; otherwise a shape moved out of a Group would still be
- * drawn in it.
- */
-export function setChildren(node: Node, kids: readonly Node[]): void {
+/** Makes `kids` the node's children, in this order (see attachAll for zdog Groups). */
+function setChildren(node: Node, kids: readonly Node[]): void {
   const fields = node as unknown as NodeFields;
   fields.children.splice(0, fields.children.length, ...kids);
   for (const kid of kids) (kid as unknown as NodeFields).addTo = node;
-  if (isZdogGroup(node)) fields.updateFlatGraph?.();
 }
 
 /**
@@ -54,20 +47,39 @@ export function buildZdogGraph(scene: Scene, root: Node): Map<string, Node> {
   return nodes;
 }
 
-/** Puts every node under its parent (or `root`), in the scene's order. */
+/**
+ * Puts every node under its parent (or `root`), in the scene's order: a
+ * parent's groups, then its shapes. A zdog Group keeps a cached list of
+ * everything it draws, its groups' shapes too, and never refreshes it by
+ * itself, so each is refreshed once everything is in place; otherwise a shape
+ * moved out of a Group would still be drawn in it, and a group inside a
+ * Group, filled after the Group was, wouldn't be drawn.
+ */
 export function attachAll(scene: Scene, root: Node, nodes: ReadonlyMap<string, Node>): void {
-  const known = (id: string | undefined) => id !== undefined && nodes.has(id);
-  const kidsOf = (parent: string | null) =>
-    childrenOf(scene, parent)
-      .map((object) => nodes.get(object.id))
-      .filter((node): node is Node => node !== undefined);
-  const orphans = [...scene.groups, ...scene.shapes]
-    .filter((object) => object.parent !== undefined && !known(object.parent))
-    .map((object) => nodes.get(object.id))
-    .filter((node): node is Node => node !== undefined);
-  setChildren(root, [...kidsOf(null), ...orphans]);
+  // Everyone's children in one pass (this runs on every frame of playback).
+  const kids = new Map<string | null, Node[]>();
+  const orphans: Node[] = [];
+  const place = (object: Placeable) => {
+    const node = nodes.get(object.id);
+    if (!node) return;
+    const parent = object.parent ?? null;
+    if (parent !== null && !nodes.has(parent)) {
+      orphans.push(node);
+      return;
+    }
+    const list = kids.get(parent);
+    if (list) list.push(node);
+    else kids.set(parent, [node]);
+  };
+  scene.groups.forEach(place);
+  scene.shapes.forEach(place);
+  setChildren(root, [...(kids.get(null) ?? []), ...orphans]);
   for (const group of scene.groups) {
     const node = nodes.get(group.id);
-    if (node) setChildren(node, kidsOf(group.id));
+    if (node) setChildren(node, kids.get(group.id) ?? []);
+  }
+  for (const group of scene.groups) {
+    const node = nodes.get(group.id);
+    if (node && isZdogGroup(node)) (node as unknown as NodeFields).updateFlatGraph?.();
   }
 }
